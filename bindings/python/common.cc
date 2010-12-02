@@ -212,7 +212,7 @@ static int append_striter_to_strvect(PyObject* obj, vector<string>* vect, int of
 
 	for (PyObject* item ; (item = PyIter_Next(iter)) ; ) {
 		if (offset == 0) {
-			if (PyString_Check(item));
+			if (PyString_Check(item))
 				vect->push_back(PyString_AsString(item));
 		} else
 			offset--;

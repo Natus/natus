@@ -101,17 +101,17 @@ public:
 		if (!glbl || !JS_InitStandardClasses(ctx, glbl)) throw bad_alloc();
 		this->ctx = ctx;
 		this->val = OBJECT_TO_JSVAL(glbl);
-		JSVAL_LOCK(this->ctx, this->val);
+		(void) JSVAL_LOCK(this->ctx, this->val);
 	}
 
 	SpiderMonkeyEngineValue(EngineValue* glb, jsval val, bool exc=false) : EngineValue(glb, exc) {
 		this->ctx = static_cast<SpiderMonkeyEngineValue*>(glb)->ctx;
 		this->val = val;
-		JSVAL_LOCK(ctx, val);
+		(void) JSVAL_LOCK(ctx, val);
 	}
 
 	virtual ~SpiderMonkeyEngineValue() {
-		JSVAL_UNLOCK(ctx, val);
+		(void) JSVAL_UNLOCK(ctx, val);
 		if (isGlobal())
 			JS_DestroyContext(ctx);
 	}
@@ -515,7 +515,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 		return JS_TRUE;
 	} else if (enum_op == JSENUMERATE_DESTROY) {
 		assert(statep);
-		JSVAL_UNLOCK(ctx, *statep);
+		(void) JSVAL_UNLOCK(ctx, *statep);
 		return JS_TRUE;
 	}
 	assert(enum_op == JSENUMERATE_INIT);

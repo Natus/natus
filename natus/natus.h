@@ -163,7 +163,7 @@ public:
 	virtual bool    setPrivate(void *priv)=0;
 	virtual void*   getPrivate()=0;
 
-	virtual T       evaluate(string jscript, string filename=L"", unsigned int lineno=0, bool shift=false)=0;
+	virtual T       evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false)=0;
 	virtual T       call(T func, vector<T> args)=0;
 	virtual T       callNew(vector<T> args)=0;
 };
