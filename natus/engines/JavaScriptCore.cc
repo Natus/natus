@@ -160,6 +160,11 @@ public:
 		return Value(glb);
 	}
 
+	void getContext(void **context, void **value) {
+		if (context) *context = &ctx;
+		if (value) *value = &val;
+	}
+
 	virtual bool    isGlobal() {
 		return JSContextGetGlobalObject(ctx) == val;
 	}

@@ -238,6 +238,11 @@ public:
 		return Value(new V8EngineValue(glb, res, tc.HasCaught()));
 	}
 
+	void getContext(void **context, void **value) {
+		if (context) *context = &ctx;
+		if (value) *value = &val;
+	}
+
 	virtual bool    isGlobal() {
 		return ctx->Global() == val;
 	}

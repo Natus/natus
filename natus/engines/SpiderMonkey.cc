@@ -214,6 +214,11 @@ public:
 		return Value(new SpiderMonkeyEngineValue(glb, val));
 	}
 
+	void getContext(void **context, void **value) {
+		if (context) *context = &ctx;
+		if (value) *value = &val;
+	}
+
 	virtual bool    isGlobal() {
 		return JS_GetGlobalObject(ctx) == toJSObject();
 	}

@@ -457,6 +457,10 @@ Value Value::getGlobal() {
 	return internal->getGlobal();
 }
 
+void Value::getContext(void **context, void **value) {
+	internal->getContext(context, value);
+}
+
 bool Value::isGlobal() {
 	return internal->isGlobal();
 }
