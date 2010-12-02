@@ -80,7 +80,7 @@ if test x$have_python != xyes && test x$PYTHON != x:; then
     AC_CHECK_HEADER(Python.h, have_python=yes, have_python=no)
     if test x$have_python = xyes; then
         python_CFLAGS=${CFLAGS}
-        python_LIBS=
+        python_LIBS=-lpython${PYTHON_VERSION}
     fi
     CFLAGS=${CFLAGSBAK}
     CPPFLAGS=${CPPFLAGSBAK}
