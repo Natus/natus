@@ -1,8 +1,10 @@
 moduledir = @MODULEDIR@
 AM_LDFLAGS = -module -avoid-version -no-undefined -shared -L../../natus -lnatus
 
+if WITH_PYTHON
 pyexec_LTLIBRARIES = natus.la
 module_LTLIBRARIES = python.la
+endif
 
 natus_la_SOURCES  = pythonmod.cc
 natus_la_CXXFLAGS = -Wall -I../../ @python_CFLAGS@

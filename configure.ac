@@ -69,7 +69,19 @@ fi
 AM_CONDITIONAL([WITH_V8], [test x$with_v8 = xyes])
 
 AM_PATH_PYTHON()
-PKG_CHECK_MODULES(python, python, have_python=yes, have_python=no)
+PKG_CHECK_MODULES(python, python-${PYTHON_VERSION}, have_python=yes,
+        [PKG_CHECK_MODULES(python, python, have_python=yes, have_python=no)])
+# Try to work around missing pkgconfig files...
+if test x$have_python != xyes && test x$PYTHON != x:; then
+    CFLAGSBAK=${CFLAGS}
+    CFLAGS=-I`$PYTHON -c 'import sys; print sys.prefix'`/include/python${PYTHON_VERSION}
+    AC_CHECK_HEADER(Python.h, have_python=yes, have_python=no)
+    if test x$have_python = xyes; then
+        python_CFLAGS=${CFLAGS}
+        python_LIBS=
+    fi
+    CFLAGS=${CFLAGSBAK}
+fi
 AC_ARG_WITH([python],
             [AS_HELP_STRING([--without-python],
               [disable the Python module @<:@automatic@:>@])],
@@ -83,7 +95,22 @@ if test x$with_python = xyes; then
         exit 1
     fi
 fi
-AM_CONDITIONAL([WITH_WEBKIT], [test x$with_python = xyes])
+AM_CONDITIONAL([WITH_PYTHON], [test x$with_python = xyes])
+
+echo
+echo
+echo "Building Engines:"
+echo -e "\tJavaScriptCore\t\t${with_javascriptcore}"
+echo -e "\tSpiderMonkey\t\t${with_spidermonkey}"
+echo -e "\tV8\t\t\t${with_v8}"
+echo 
+echo "Building Modules:"
+echo -e "\tsystem\t\t\tyes"
+echo
+echo "Building Bindings:"
+echo -e "\tpython\t\t\t${with_python}"
+echo
+echo
 
 MODULEDIR=${libdir}/${PACKAGE_NAME}/modules
 AC_SUBST(MODULEDIR)
