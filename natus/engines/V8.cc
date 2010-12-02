@@ -263,7 +263,7 @@ public:
 	}
 
 	virtual bool    isObject() {
-		return (val->IsObject() || val->IsDate() || val->IsRegExp()) && !isFunction();
+		return (val->IsObject() || val->IsDate() /*|| val->IsRegExp()*/) && !isFunction();
 	}
 
 	virtual bool    isString() {
