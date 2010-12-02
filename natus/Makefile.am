@@ -1,0 +1,25 @@
+moduledir = @MODULEDIR@
+enginedir = $(libdir)/$(PACKAGE_NAME)/engines
+natincdir = $(includedir)/$(PACKAGE_NAME)
+
+noinst_PROGRAMS = tests
+bin_PROGRAMS    = natus
+lib_LTLIBRARIES = libnatus.la
+natinc_HEADERS  = natus.h engine.h
+
+libnatus_la_SOURCES = natus.h natus.cc natus_engine.h 
+libnatus_la_CXXFLAGS = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir)
+libnatus_la_LDFLAGS = $(AM_LDFLAGS) -ldl -lpthread
+
+natus_SOURCES  = main.cc natus.h
+natus_CXXFLAGS = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir)
+natus_LDFLAGS  = $(AM_LDFLAGS) -lnatus -lreadline
+
+tests_SOURCES  = tests.cc natus.h
+tests_CXXFLAGS = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir)
+tests_LDFLAGS  = $(AM_LDFLAGS) -lnatus
+
+SUBDIRS = . engines
+
+install-data-hook:
+	rm -f $(DESTDIR)$(libdir)/libnatus*.a $(DESTDIR)$(libdir)/libnatus*.la
