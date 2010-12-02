@@ -74,13 +74,16 @@ PKG_CHECK_MODULES(python, python-${PYTHON_VERSION}, have_python=yes,
 # Try to work around missing pkgconfig files...
 if test x$have_python != xyes && test x$PYTHON != x:; then
     CFLAGSBAK=${CFLAGS}
+    CPPFLAGSBAK=${CPPFLAGS}
     CFLAGS=-I`$PYTHON -c 'import sys; print sys.prefix'`/include/python${PYTHON_VERSION}
+    CPPFLAGS=${CFLAGS}
     AC_CHECK_HEADER(Python.h, have_python=yes, have_python=no)
     if test x$have_python = xyes; then
         python_CFLAGS=${CFLAGS}
         python_LIBS=
     fi
     CFLAGS=${CFLAGSBAK}
+    CPPFLAGS=${CPPFLAGSBAK}
 fi
 AC_ARG_WITH([python],
             [AS_HELP_STRING([--without-python],
