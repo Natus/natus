@@ -1,15 +1,27 @@
 *.la
+*.o
+*.lo
 *.so
 *.a
 *.m4
 *.in
+*.tar.gz
+.deps
+.libs
+Makefile
 m4
 
+libtool
 missing
 ltmain.sh
 install-sh
 depcomp
 configure
 config.sub
+config.log
+config.status
 config.guess
 autom4te.cache
+
+natus/natus
+natus/tests
