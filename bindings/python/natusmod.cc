@@ -21,7 +21,15 @@
  * 
  */
 
-#include "common.cc"
+#include <Python.h>
+
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include <natus/natus.h>
+using namespace natus;
+
+// From common.cc
+extern Value value_from_pyobject(Value val, PyObject *obj);
+extern void readyNatusTypes();
 
 Value import(Value& ths, Value& fnc, vector<Value>& arg, void* msc) {
 	if (arg.size() < 1)

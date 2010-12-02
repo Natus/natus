@@ -6,13 +6,13 @@ pyexec_LTLIBRARIES = natus.la
 module_LTLIBRARIES = python.la
 endif
 
-natus_la_SOURCES  = pythonmod.cc
+natus_la_SOURCES  = pythonmod.cc common.cc
 natus_la_CXXFLAGS = -Wall -I../../ @python_CFLAGS@
 natus_la_LDFLAGS  = $(AM_LDFLAGS) @python_LIBS@
 
-python_la_SOURCES  = natusmod.cc
+python_la_SOURCES  = natusmod.cc common.cc
 python_la_CXXFLAGS = -Wall -I../../ @python_CFLAGS@
-python_la_LDFLAGS  = $(AM_LDFLAGS) -lnatus @python_LIBS@
+python_la_LDFLAGS  = $(AM_LDFLAGS) @python_LIBS@
 
 install-data-hook:
 	rm -f $(DESTDIR)$(pyexecdir)/natus.a $(DESTDIR)$(pyexecdir)/natus.la

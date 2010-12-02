@@ -28,14 +28,14 @@
 using namespace natus;
 
 static PyObject* pyobject_from_value(Value val);
-static Value value_from_pyobject(Value val, PyObject *obj);
+Value value_from_pyobject(Value val, PyObject *obj);
 
-static PyObject *NatusException = NULL;
-static PyTypeObject natus_EngineType = {
+PyObject *NatusException = NULL;
+PyTypeObject natus_EngineType = {
 	PyObject_HEAD_INIT(NULL)
 	0, "natus.Engine"
 };
-static PyTypeObject natus_ValueType = {
+PyTypeObject natus_ValueType = {
 	PyObject_HEAD_INIT(NULL)
 	0, "natus.Value"
 };
@@ -506,7 +506,7 @@ static PyObject* pyobject_from_value(Value val) {
 	return obj;
 }
 
-static Value value_from_pyobject(Value val, PyObject *obj) {
+Value value_from_pyobject(Value val, PyObject *obj) {
 	Value ret = val.newUndefined();
 
 	if (obj && PyUnicode_Check(obj)) {

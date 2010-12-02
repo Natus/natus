@@ -21,17 +21,27 @@
  * 
  */
 
-#include "common.cc"
+#include <Python.h>
+
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include <natus/natus.h>
+using namespace natus;
+
+// From common.cc
+extern void readyNatusTypes();
+extern PyObject *NatusException;
+extern PyTypeObject natus_EngineType;
+extern PyTypeObject natus_ValueType;
 
 static PyMethodDef module_methods[] = {
-    {NULL}
+	{NULL}
 };
 
 PyMODINIT_FUNC initnatus(void) {
 	readyNatusTypes();
 
-    PyObject* m = Py_InitModule("natus", module_methods);
-    if (m == NULL) return;
+	PyObject* m = Py_InitModule("natus", module_methods);
+	if (m == NULL) return;
 
 	Py_INCREF(&natus_EngineType);
 	PyModule_AddObject(m, "Engine", (PyObject*) &natus_EngineType);
