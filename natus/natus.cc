@@ -575,7 +575,7 @@ bool Value::has(long idx) {
 	return !v.isUndefined();
 }
 
-bool Value::set(string name, Value value, BaseValue::PropAttrs attrs) {
+bool Value::set(string name, Value value, Value::PropAttrs attrs) {
 	if (!isArray() && !isFunction() && !isObject())
 		return false;
 
