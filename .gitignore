@@ -1,0 +1,15 @@
+*.la
+*.so
+*.a
+*.m4
+*.in
+m4
+
+missing
+ltmain.sh
+install-sh
+depcomp
+configure
+config.sub
+config.guess
+autom4te.cache
