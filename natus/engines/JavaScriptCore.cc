@@ -262,7 +262,7 @@ public:
 		return Value(new JavaScriptCoreEngineValue(glb, val));
 	}
 
-	virtual bool    set(string name, Value value, BaseValue::PropAttrs attrs) {
+	virtual bool    set(string name, Value value, Value::PropAttrs attrs) {
 		// Make sure the enum values don't get changed on us
 		assert(kJSPropertyAttributeNone       == (JSPropertyAttributes) None);
 		assert(kJSPropertyAttributeReadOnly   == (JSPropertyAttributes) ReadOnly   << 1);

@@ -325,7 +325,7 @@ public:
 		return Value(new V8EngineValue(glb, val->ToObject()->Get(idx)));
 	}
 
-	virtual bool    set(string name, Value value, BaseValue::PropAttrs attrs) {
+	virtual bool    set(string name, Value value, Value::PropAttrs attrs) {
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 

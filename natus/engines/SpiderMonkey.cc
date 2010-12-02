@@ -321,7 +321,7 @@ public:
 		return Value(new SpiderMonkeyEngineValue(glb, val));
 	}
 
-	virtual bool    set(string name, Value value, BaseValue::PropAttrs attrs) {
+	virtual bool    set(string name, Value value, Value::PropAttrs attrs) {
 		jsint  flags  = (attrs & Value::DontEnum)   ? 0 : JSPROP_ENUMERATE;
 		       flags |= (attrs & Value::ReadOnly)   ? JSPROP_READONLY  : 0;
 		       flags |= (attrs & Value::DontDelete) ? JSPROP_PERMANENT : 0;
