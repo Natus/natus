@@ -152,7 +152,7 @@ static bool do_load_dir(string dirname, bool reqsym, EngineSpec** enginespec, vo
 	return res;
 }
 
-Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
+static Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
 	// Stat our file
 	struct stat st;
 	if (stat(abspath.c_str(), &st))
@@ -176,7 +176,7 @@ Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
 	if (abspath.substr(abspath.length() - string(MODSUFFIX).length(), string(MODSUFFIX).length()) == MODSUFFIX) {
 		void *dll = dlopen(abspath.c_str(), RTLD_NOW | RTLD_GLOBAL);
 		if (!dll)
-			return ctx->newUndefined().toException();
+			return ctx->newString(dlerror()).toException();
 
 
 		RequireInternal* ri = ((RequireInternal*) ctx->getGlobal().get("require").getPrivate());
@@ -185,7 +185,7 @@ Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
 		if (!load || !load(base)) {
 			if (ri) ri->pop();
 			dlclose(dll);
-			return ctx->newUndefined().toException();
+			return ctx->newString("Module initialization failed!").toException();
 		}
 		if (ri) ri->pop();
 		// Leak the dll, maybe tackle this later?
@@ -202,7 +202,7 @@ Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
 	if (!file.good() && !file.eof()) {
 		file.close();
 		delete jscript;
-		return ctx->newUndefined().toException();
+		return ctx->newString("Error reading file!").toException();
 	}
 	file.close();
 
