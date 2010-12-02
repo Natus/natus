@@ -137,7 +137,7 @@ public:
 	virtual T       newNull()=0;
 	virtual T       newUndefined()=0;
 	virtual T       getGlobal()=0;
-	virtual void    getContext(void **context, void **value);
+	virtual void    getContext(void **context, void **value)=0;
 
 	virtual bool    isGlobal()=0;
 	virtual bool    isException()=0;
