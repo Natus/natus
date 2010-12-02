@@ -103,15 +103,15 @@ AM_CONDITIONAL([WITH_PYTHON], [test x$with_python = xyes])
 echo
 echo
 echo "Building Engines:"
-echo -e "\tJavaScriptCore\t\t${with_javascriptcore}"
-echo -e "\tSpiderMonkey\t\t${with_spidermonkey}"
-echo -e "\tV8\t\t\t${with_v8}"
+echo -e "\tJavaScriptCore\t\t${with_javascriptcore:-no}"
+echo -e "\tSpiderMonkey\t\t${with_spidermonkey:-no}"
+echo -e "\tV8\t\t\t${with_v8:-no}"
 echo 
 echo "Building Modules:"
 echo -e "\tsystem\t\t\tyes"
 echo
 echo "Building Bindings:"
-echo -e "\tpython\t\t\t${with_python}"
+echo -e "\tpython\t\t\t${with_python:-no}"
 echo
 echo
 
