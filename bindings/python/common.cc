@@ -546,7 +546,7 @@ Value value_from_pyobject(Value val, PyObject *obj) {
 	return ret;
 }
 
-static void readyNatusTypes() {
+void readyNatusTypes() {
 	// Prepare the Engine type
 	natus_EngineType.tp_basicsize = sizeof(natus_Engine);
 	natus_EngineType.tp_doc       = "A Natus Engine";
