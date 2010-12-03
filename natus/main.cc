@@ -48,6 +48,16 @@ static Value alert(Value& ths, Value& fnc, vector<Value>& args, void *msc) {
 	return ths.newUndefined();
 }
 
+static Value dir(Value& ths, Value& fnc, vector<Value>& args, void *msc) {
+	Value obj = ths.getGlobal();
+	if (args.size() > 0)
+		obj = args[0];
+	set<string> names = obj.enumerate();
+	for (set<string>::iterator i=names.begin() ; i != names.end() ; i++)
+		fprintf(stderr, "\t%s\n", i->c_str());
+	return ths.newUndefined();
+}
+
 bool inblock(const char *str) {
 	char strstart = '\0';
 	int cnt = 0;
@@ -138,6 +148,7 @@ int main(int argc, char** argv) {
 	if (global.isUndefined())
 		error(2, 0, "Unable to init global!");
 	global.set("alert", global.newFunction(alert, NULL, NULL));
+	global.set("dir",   global.newFunction(dir,   NULL, NULL));
 
 	// Do the evaluation
 	if (eval) {
