@@ -597,6 +597,12 @@ bool Value::set(long idx, Value value) {
 	return internal->set(idx, value);
 }
 
+set<string> Value::enumerate() {
+	if (!isArray() && !isFunction() && !isObject())
+		return std::set<string>();
+	return internal->enumerate();
+}
+
 long Value::length() {
 	return get("length").toLong();
 }

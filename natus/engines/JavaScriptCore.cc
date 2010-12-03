@@ -47,6 +47,7 @@ static JSClassRef cllcls;
 static JSClassRef stkcls;
 
 static JSValueRef getJSValue(Value& value);
+static string JSStringToString(JSStringRef str, bool release=false);
 
 class JavaScriptCoreEngineValue : public EngineValue {
 	friend JSValueRef getJSValue(Value& value);
@@ -290,6 +291,22 @@ public:
 		return exc == NULL;
 	}
 
+	virtual std::set<string>  enumerate() {
+		std::set<string> names;
+
+		JSPropertyNameArrayRef na = JSObjectCopyPropertyNames(ctx, toJSObject());
+		if (!na) return names;
+
+		size_t c = JSPropertyNameArrayGetCount(na);
+		for (size_t i=0 ; i < c ; i++) {
+			JSStringRef name = JSPropertyNameArrayGetNameAtIndex(na, i);
+			if (!name) break;
+			names.insert(JSStringToString(name, true));
+		}
+		JSPropertyNameArrayRelease(na);
+		return names;
+	}
+
 	virtual bool    setPrivate(void *priv) {
 		ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(toJSObject());
 		if (!cfp) return false;
@@ -349,12 +366,13 @@ static JSValueRef getJSValue(Value& value) {
 	return JavaScriptCoreEngineValue::borrowInternal<JavaScriptCoreEngineValue>(value)->val;
 }
 
-static string JSStringToString(JSStringRef str) {
+static string JSStringToString(JSStringRef str, bool release) {
 	size_t size = JSStringGetMaximumUTF8CStringSize(str);
 	char *buffer = new char[size];
 	JSStringGetUTF8CString(str, buffer, size);
 	string ret(buffer);
 	delete[] buffer;
+	if (release) JSStringRelease(str);
 	return ret;
 }
 

@@ -28,8 +28,10 @@
 #error Natus is not stable, go look elsewhere...
 #endif
 
+#include <set>
 #include <string>
 #include <vector>
+
 
 #include <stdarg.h>
 
@@ -162,6 +164,7 @@ public:
 	virtual T       get(long idx)=0;
 	virtual bool    set(string name, T value, BaseValue::PropAttrs attrs=None)=0;
 	virtual bool    set(long idx, T value)=0;
+	virtual std::set<string> enumerate()=0;
 
 	virtual bool    setPrivate(void *priv)=0;
 	virtual void*   getPrivate()=0;
@@ -222,6 +225,7 @@ public:
 	virtual bool    has(long idx);
 	virtual bool    set(string name, Value value, Value::PropAttrs attrs=None);
 	virtual bool    set(long idx, Value value);
+	virtual std::set<string> enumerate();
 
 	virtual long    length();
 	virtual long    push(Value value);
