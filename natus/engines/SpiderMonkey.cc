@@ -356,6 +356,26 @@ public:
 		return true;
 	}
 
+	virtual std::set<string> enumerate() {
+		std::set<string> names;
+
+		Value proto = get("prototype");
+		if (!proto.isUndefined())
+			names = proto.enumerate();
+
+		JSIdArray* na = JS_Enumerate(ctx, toJSObject());
+		if (!na) return names;
+
+		for (jsint i=0 ; i < na->length ; i++) {
+			jsval str;
+			if (!JS_IdToValue(ctx, na->vector[i], &str)) break;
+			names.insert(SpiderMonkeyEngineValue(glb, str).toString());
+		}
+
+		JS_DestroyIdArray(ctx, na);
+		return names;
+	}
+
 	virtual bool    setPrivate(void *priv) {
 		ClassFuncPrivate *cfp = getCFP(ctx, val);
 		if (!cfp) return false;

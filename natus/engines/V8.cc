@@ -350,6 +350,16 @@ public:
 		return val->ToObject()->Set(idx, getJSValue(value));
 	}
 
+	virtual std::set<string> enumerate() {
+		v8::HandleScope hs;
+		v8::Context::Scope cs(ctx);
+		v8::Handle<v8::Array> array = val->ToObject()->GetPropertyNames();
+		std::set<string> names;
+		for (uint32_t i=0 ; i < array->Length() ; i++)
+			names.insert(getString(ctx, array->Get(i)->ToString()));
+		return names;
+	}
+
 	virtual bool    setPrivate(void *priv) {
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
