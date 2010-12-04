@@ -114,7 +114,7 @@ static vector<string> pathparser(string path) {
 static char* completion_generator(const char* text, int state) {
 	static set<string> names;
 	static set<string>::iterator it;
-	char* last = strrchr(text, '.');
+	char* last = (char*) strrchr(text, '.');
 
 	if (state == 0) {
 		Value obj = global;
