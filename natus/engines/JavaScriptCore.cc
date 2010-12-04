@@ -208,7 +208,7 @@ public:
 	}
 
 	virtual bool    isObject() {
-		return JSValueGetType(ctx, val) == kJSTypeObject && !isArray() && !isFunction();
+		return !isUndefined() && JSValueGetType(ctx, val) == kJSTypeObject && !isArray() && !isFunction();
 	}
 
 	virtual bool    isString() {
