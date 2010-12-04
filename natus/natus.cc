@@ -181,7 +181,7 @@ static Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
 			return ctx->newString(dlerror()).toException();
 
 
-		RequireInternal* ri = ((RequireInternal*) ctx->getGlobal().get("require").getPrivate());
+		RequireInternal* ri = ((RequireInternal*) ctx->getGlobal().get("require").getPrivate("natus_require"));
 		if (ri) ri->push(abspath);
 		bool (*load)(Value&) = (bool (*)(Value&)) dlsym(dll, "natus_require");
 		if (!load || !load(base)) {
@@ -216,7 +216,10 @@ static Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
 	return exports;
 }
 
-static Value require_js(Value& ths, Value& fnc, vector<Value>& arg, void* msc) {
+static Value require_js(Value& ths, Value& fnc, vector<Value>& arg) {
+	// Get the private value
+	void* msc = fnc.getPrivate("natus_require");
+
 	// Get the required name argument
 	if (arg.size() < 1 || !arg[0].isString())
 		return ths.newString("Invalid module name!").toException();
@@ -354,7 +357,8 @@ Value Engine::newGlobal(vector<string> path, vector<string> whitelist) {
 	// Add require function
 	if (path.size() > 0) {
 		RequireInternal* ri = new RequireInternal(path, whitelist);
-		Value require = global.newFunction(require_js, ri, RequireInternal::free);
+		Value require = global.newFunction(require_js);
+		require.setPrivate("natus_require", ri, RequireInternal::free);
 
 		if (whitelist.size() == 0) {
 			vector<Value> pathv;
@@ -435,16 +439,12 @@ Value Value::newArray(vector<Value> array) {
 	return internal->newArray(array);
 }
 
-Value Value::newFunction(NativeFunction func, void *misc, FreeFunction free) {
-	return internal->newFunction(func, misc, free);
+Value Value::newFunction(NativeFunction func) {
+	return internal->newFunction(func);
 }
 
-Value Value::newObject(Class* cls, void* priv, FreeFunction free) {
-	return internal->newObject(cls, priv, free);
-}
-
-Value Value::newObject(FreeFunction free, void* priv) {
-	return internal->newObject(NULL, priv, free);
+Value Value::newObject(Class* cls) {
+	return internal->newObject(cls);
 }
 
 Value Value::newNull() {
@@ -617,16 +617,39 @@ Value Value::pop() {
 	return call("pop");
 }
 
-bool Value::setPrivate(void *priv) {
-	if (!internal->supportsPrivate())
-		return false;
-	return internal->setPrivate(priv);
+bool Value::setPrivate(string key, void *priv, FreeFunction free) {
+	PrivateMap* pm;
+	if (!internal->supportsPrivate()) return false;
+	if (!(pm = internal->getPrivateMap())) return false;
+	PrivateMap::iterator it = pm->find(key);
+	if (it != pm->end()) {
+		if (it->second.second)
+			it->second.second(it->second.first);
+		pm->erase(it);
+	}
+	PrivateItem pi(priv, free);
+	pm->insert(pair<string, PrivateItem>(key, pi));
+	return true;
 }
 
-void* Value::getPrivate() {
-	if (!internal->supportsPrivate())
-		return NULL;
-	return internal->getPrivate();
+bool Value::setPrivate(string key, void *priv) {
+	PrivateMap* pm;
+	if (!internal->supportsPrivate()) return false;
+	if (!(pm = internal->getPrivateMap())) return false;
+	PrivateMap::iterator it = pm->find(key);
+	if (it != pm->end())
+		return setPrivate(key, priv, it->second.second);
+	return setPrivate(key, priv, NULL);
+}
+
+void* Value::getPrivate(string key) {
+	PrivateMap* pm;
+	if (!internal->supportsPrivate()) return NULL;
+	if (!(pm = internal->getPrivateMap())) return NULL;
+	PrivateMap::iterator it = pm->find(key);
+	if (it != pm->end())
+		return it->second.first;
+	return NULL;
 }
 
 Value Value::evaluate(string jscript, string filename, unsigned int lineno, bool shift) {
@@ -636,7 +659,7 @@ Value Value::evaluate(string jscript, string filename, unsigned int lineno, bool
 		jscript = jscript.substr(jscript.find_first_of('\n')+1);
 
 	Value gl = getGlobal();
-	RequireInternal* ri = (RequireInternal*) gl.get("require").getPrivate();
+	RequireInternal* ri = (RequireInternal*) gl.get("require").getPrivate("natus_require");
 	if (ri && !filename.empty()) ri->push(filename);
 
 	Value v = internal->evaluate(jscript, filename, lineno, shift);

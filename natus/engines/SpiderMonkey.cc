@@ -145,12 +145,10 @@ public:
 		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
-	virtual Value   newFunction(NativeFunction func, void *priv, FreeFunction free) {
+	virtual Value   newFunction(NativeFunction func) {
 		ClassFuncPrivate *cfp = new ClassFuncPrivate();
 		cfp->clss = NULL;
 		cfp->func = func;
-		cfp->priv = priv;
-		cfp->free = free;
 		cfp->glbl = glb;
 
 		JSFunction *fnc = JS_NewFunction(ctx, fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, NULL);
@@ -159,8 +157,6 @@ public:
 		if (!fnc || !obj || !prv) return newUndefined();
 
 		if (!JS_SetPrivate(ctx, prv, cfp) || !JS_SetReservedSlot(ctx, obj, 0, OBJECT_TO_JSVAL(prv))) {
-			if (cfp->free && cfp->priv)
-				cfp->free(cfp->priv);
 			delete cfp;
 			return newUndefined();
 		}
@@ -168,12 +164,10 @@ public:
 		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
-	virtual Value   newObject(Class* cls, void* priv, FreeFunction free) {
+	virtual Value   newObject(Class* cls) {
 		ClassFuncPrivate *cfp = new ClassFuncPrivate();
 		cfp->clss = cls;
 		cfp->func = NULL;
-		cfp->priv = priv;
-		cfp->free = free;
 		cfp->glbl = glb;
 
 		// Pick what type of object to build
@@ -376,17 +370,10 @@ public:
 		return names;
 	}
 
-	virtual bool    setPrivate(void *priv) {
-		ClassFuncPrivate *cfp = getCFP(ctx, val);
-		if (!cfp) return false;
-		cfp->priv = priv;
-		return true;
-	}
-
-	virtual void*   getPrivate() {
+	virtual PrivateMap* getPrivateMap() {
 		ClassFuncPrivate *cfp = getCFP(ctx, val);
 		if (!cfp) return NULL;
-		return cfp->priv;
+		return &cfp->priv;
 	}
 
 	virtual Value   call(Value func, vector<Value> args) {
@@ -591,7 +578,7 @@ static inline JSBool int_call(JSContext *ctx, uintN argc, jsval *vp, bool constr
 					? (constr
 						? cfp->clss->callNew(fnc, args)
 						: cfp->clss->call(fnc, args))
-					: cfp->func(ths, fnc, args, cfp->priv);
+					: cfp->func(ths, fnc, args);
 
 	// Handle results
 	if (res.isException()) {

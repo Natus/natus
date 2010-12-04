@@ -141,15 +141,13 @@ public:
 		return Value(new V8EngineValue(glb, valv));
 	}
 
-	virtual Value   newFunction(NativeFunction func, void *priv, FreeFunction free) {
+	virtual Value   newFunction(NativeFunction func) {
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
 		ClassFuncPrivate *cfp = new ClassFuncPrivate();
 		cfp->clss = NULL;
 		cfp->func = func;
-		cfp->priv = priv;
-		cfp->free = free;
 		cfp->glbl = glb;
 
 		V8Class *v8cls = new V8Class(ctx, cfp);
@@ -159,15 +157,13 @@ public:
 		return Value(new V8EngineValue(glb, fnc));
 	}
 
-	virtual Value   newObject(Class* cls, void* priv, FreeFunction free) {
+	virtual Value   newObject(Class* cls) {
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
 		ClassFuncPrivate *cfp = new ClassFuncPrivate();
 		cfp->clss = cls;
 		cfp->func = NULL;
-		cfp->priv = priv;
-		cfp->free = free;
 		cfp->glbl = glb;
 
 		v8::Handle<v8::ObjectTemplate> ot = v8::ObjectTemplate::New();
@@ -337,10 +333,10 @@ public:
 		v8::Context::Scope cs(ctx);
 
 		// Make sure that v8 doesn't change its enum values
-		assert(v8::None       == (v8::PropertyAttribute) None);
-		assert(v8::ReadOnly   == (v8::PropertyAttribute) ReadOnly);
-		assert(v8::DontEnum   == (v8::PropertyAttribute) DontEnum);
-		assert(v8::DontDelete == (v8::PropertyAttribute) DontDelete);
+		assert(v8::None       == (v8::PropertyAttribute) Value::None);
+		assert(v8::ReadOnly   == (v8::PropertyAttribute) Value::ReadOnly);
+		assert(v8::DontEnum   == (v8::PropertyAttribute) Value::DontEnum);
+		assert(v8::DontDelete == (v8::PropertyAttribute) Value::DontDelete);
 		return val->ToObject()->Set(v8::String::New(name.c_str()), getJSValue(value), (v8::PropertyAttribute) attrs);
 	}
 
@@ -360,19 +356,7 @@ public:
 		return names;
 	}
 
-	virtual bool    setPrivate(void *priv) {
-		v8::HandleScope hs;
-		v8::Context::Scope cs(ctx);
-
-		v8::Handle<v8::Value>  val = this->val->ToObject()->GetHiddenValue(v8::String::New("__internal__"));
-		if (val.IsEmpty()) return false;
-
-		ClassFuncPrivate *cfp = (ClassFuncPrivate *) val->ToObject()->GetPointerFromInternalField(0);
-		if (cfp) cfp->priv = priv;
-		return true;
-	}
-
-	virtual void*   getPrivate() {
+	virtual PrivateMap* getPrivateMap() {
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
@@ -380,7 +364,7 @@ public:
 		if (val.IsEmpty()) return NULL;
 
 		ClassFuncPrivate *cfp = (ClassFuncPrivate *) val->ToObject()->GetPointerFromInternalField(0);
-		if (cfp) return cfp->priv;
+		if (cfp) return &cfp->priv;
 		return NULL;
 	}
 
@@ -546,7 +530,7 @@ v8::Handle<v8::Value> V8Class::call(const v8::Arguments& args) {
 		Value func = Value(new V8EngineValue(cfp->glbl, args.Callee()));
 		if (args.IsConstructCall())
 			obj = obj.newUndefined();
-		res = cfp->func(obj, func, argv, cfp->priv);
+		res = cfp->func(obj, func, argv);
 	}
 	if (res.isException())
 		return v8::ThrowException(getJSValue(res));

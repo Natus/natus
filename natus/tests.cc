@@ -28,15 +28,15 @@
 #include <natus.h>
 using namespace natus;
 
-static Value firstarg_function(Value& ths, Value& fnc, vector<Value>& arg, void* msc) {
+static Value firstarg_function(Value& ths, Value& fnc, vector<Value>& arg) {
 	assert(ths.isGlobal() || ths.isUndefined());
 	assert(fnc.isFunction());
 	assert(arg.size() > 0);
 	return arg[0];
 }
 
-static Value exception_function(Value& ths, Value& fnc, vector<Value>& arg, void* msc) {
-	return firstarg_function(ths, fnc, arg, msc).toException();
+static Value exception_function(Value& ths, Value& fnc, vector<Value>& arg) {
+	return firstarg_function(ths, fnc, arg).toException();
 }
 
 class TestClass : public Class {
@@ -45,7 +45,7 @@ public:
 
 	bool  del      (Value& obj, string name) {
 		assert(obj.isObject());
-		return obj.setPrivate((void *) name.length());
+		return obj.setPrivate("test", (void *) name.length());
 	}
 
 	Value get      (Value& obj, string name) {
@@ -60,12 +60,12 @@ public:
 
 	bool  set      (Value& obj, string name, Value& value) {
 		assert(obj.isObject());
-		return obj.setPrivate((void *) value.toInt());
+		return obj.setPrivate("test", (void *) value.toInt());
 	}
 
 	bool  set      (Value& obj, long idx, Value& value) {
 		assert(obj.isObject());
-		return obj.setPrivate((void *) value.toInt());
+		return obj.setPrivate("test", (void *) value.toInt());
 	}
 
 	Value enumerate(Value& obj) {
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 	global.del("x");
 
 	//// Function
-	assert(global.set("x", global.newFunction(firstarg_function, NULL, NULL)));
+	assert(global.set("x", global.newFunction(firstarg_function)));
 
 	// Call from C++
 	valv = vector<Value>();
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
 	assert(x.isObject());
 
 	assert(global.del("x"));
-	assert(global.set("x", global.newFunction(exception_function, NULL, NULL)));
+	assert(global.set("x", global.newFunction(exception_function)));
 
 	// Exception Call from C++
 	valv = vector<Value>();
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 	// Delete
 	// TODO: delete from array
 	assert(x.del("foo"));
-	assert(string("foo").length() == (size_t) x.getPrivate());
+	assert(string("foo").length() == (size_t) x.getPrivate("test"));
 
 	// Get
 	y = x.get("foo");
@@ -210,9 +210,9 @@ int main(int argc, char **argv) {
 
 	// Set
 	assert(x.set("foo", x.newNumber(7)));
-	assert((void *) 7 == x.getPrivate());
+	assert((void *) 7 == x.getPrivate("test"));
 	assert(x.set(12345, x.newNumber(14)));
-	assert((void *) 14 == x.getPrivate());
+	assert((void *) 14 == x.getPrivate("test"));
 
 	// Call from C++
 	valv = vector<Value>();
@@ -239,8 +239,8 @@ int main(int argc, char **argv) {
 	assert(y.isObject());
 
 	// Private
-	assert(x.setPrivate((void *) 0x1234));
-	assert((void *) 0x1234 == x.getPrivate());
+	assert(x.setPrivate("test", (void *) 0x1234));
+	assert((void *) 0x1234 == x.getPrivate("test"));
 
 	assert(global.del("x"));
 

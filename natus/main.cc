@@ -45,14 +45,14 @@ using namespace natus;
 Engine engine;
 Value  global;
 
-static Value alert(Value& ths, Value& fnc, vector<Value>& args, void *msc) {
+static Value alert(Value& ths, Value& fnc, vector<Value>& args) {
 	if (args.size() < 1)
 		return ths.newString("Invalid number of arguments!").toException();
 	fprintf(stderr, "%s\n", args[0].toString().c_str());
 	return ths.newUndefined();
 }
 
-static Value dir(Value& ths, Value& fnc, vector<Value>& args, void *msc) {
+static Value dir(Value& ths, Value& fnc, vector<Value>& args) {
 	Value obj = ths.getGlobal();
 	if (args.size() > 0)
 		obj = args[0];
@@ -187,8 +187,8 @@ int main(int argc, char** argv) {
 	global = engine.newGlobal(path, whitelist);
 	if (global.isUndefined())
 		error(2, 0, "Unable to init global!");
-	global.set("alert", global.newFunction(alert, NULL, NULL));
-	global.set("dir",   global.newFunction(dir,   NULL, NULL));
+	global.set("alert", global.newFunction(alert));
+	global.set("dir",   global.newFunction(dir));
 
 	// Do the evaluation
 	if (eval) {

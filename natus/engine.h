@@ -23,7 +23,7 @@
 
 #ifndef NATUS_ENGINE_H_
 #define NATUS_ENGINE_H_
-#include <stdarg.h>
+#include <map>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "natus.h"
@@ -34,15 +34,76 @@ namespace natus {
 #define NATUS_ENGINE(name, symb, init, newg, free) \
 	EngineSpec NATUS_ENGINE_ = { NATUS_ENGINE_VERSION, name, symb, init, newg, free }
 
-class EngineValue : virtual public BaseValue<Value> {
+class EngineValue;
+
+typedef pair<void*, FreeFunction> PrivateItem;
+typedef map<string, PrivateItem>  PrivateMap;
+
+struct ClassFuncPrivate {
+	Class*         clss;
+	NativeFunction func;
+	PrivateMap     priv;
+	EngineValue*   glbl;
+
+	~ClassFuncPrivate() {
+		if (clss)
+			delete clss;
+		for (map<string, pair<void*, FreeFunction> >::iterator it=priv.begin() ; it != priv.end() ; it++)
+			if (it->second.second)
+				it->second.second(it->second.first);
+	}
+};
+
+class EngineValue {
 public:
+	// Methods that mirror Value's methods
+	virtual Value            newBool(bool b)=0;
+	virtual Value            newNumber(double n)=0;
+	virtual Value            newString(string string)=0;
+	virtual Value            newArray(vector<Value> array)=0;
+	virtual Value            newFunction(NativeFunction func)=0;
+	virtual Value            newObject(Class* cls)=0;
+	virtual Value            newNull()=0;
+	virtual Value            newUndefined()=0;
+	virtual Value            getGlobal();
+	virtual void             getContext(void **context, void **value)=0;
+
+	virtual bool             isGlobal()=0;
+	virtual bool             isException();
+	virtual bool             isArray()=0;
+	virtual bool             isBool()=0;
+	virtual bool             isFunction()=0;
+	virtual bool             isNull()=0;
+	virtual bool             isNumber()=0;
+	virtual bool             isObject()=0;
+	virtual bool             isString()=0;
+	virtual bool             isUndefined()=0;
+
+	virtual bool             toBool()=0;
+	virtual double           toDouble()=0;
+	virtual string           toString()=0;
+
+	virtual bool             del(string name)=0;
+	virtual bool             del(long idx)=0;
+	virtual Value            get(string name)=0;
+	virtual Value            get(long idx)=0;
+	virtual bool             set(string name, Value value, Value::PropAttrs attrs=Value::None)=0;
+	virtual bool             set(long idx, Value value)=0;
+	virtual std::set<string> enumerate()=0;
+
+	virtual Value            evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false)=0;
+	virtual Value            call(Value func, vector<Value> args)=0;
+	virtual Value            callNew(vector<Value> args)=0;
+
+	// Non-Value methods that need to be implemented by Engines
+	virtual bool             supportsPrivate()=0;
+
+	// Non-Value methods implemented here
 	EngineValue(EngineValue* glb, bool exception=false);
-	void   incRef();
-	void   decRef();
-	Value  toException(Value& value);
-	bool   isException();
-	Value  getGlobal();
-	virtual bool supportsPrivate()=0;
+	void                     incRef();
+	void                     decRef();
+	Value                    toException(Value& value);
+	virtual PrivateMap*      getPrivateMap()=0;
 
 protected:
 	unsigned long  refCnt;
@@ -61,21 +122,6 @@ struct EngineSpec {
 	void*       (*init)();
 	EngineValue*(*newg)(void *);
 	void        (*free)(void *);
-};
-
-struct ClassFuncPrivate {
-	Class*         clss;
-	NativeFunction func;
-	void*          priv;
-	FreeFunction   free;
-	EngineValue*   glbl;
-
-	~ClassFuncPrivate() {
-		if (clss)
-			delete clss;
-		if (free)
-			free(priv);
-	}
 };
 
 }  // namespace natus

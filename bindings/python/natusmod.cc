@@ -31,7 +31,7 @@ using namespace natus;
 extern Value value_from_pyobject(Value val, PyObject *obj);
 extern void readyNatusTypes();
 
-Value import(Value& ths, Value& fnc, vector<Value>& arg, void* msc) {
+Value import(Value& ths, Value& fnc, vector<Value>& arg) {
 	if (arg.size() < 1)
 		return ths.newString("Missing module argument!").toException();
 	if (!arg[0].isString())

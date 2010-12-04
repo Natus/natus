@@ -55,10 +55,7 @@ class EngineValue;
  * Returns:
  *     The return value, which may be an exception.
  */
-typedef Value (*NativeFunction)(Value& ths,
-                                Value& fnc,
-                        vector<Value>& arg,
-                                 void* msc);
+typedef Value (*NativeFunction)(Value& ths, Value& fnc, vector<Value>& arg);
 
 /* Type: FreeFunction
  * Function type for calls made back to free a memory value allocated outside natus.
@@ -120,8 +117,9 @@ private:
 	void *internal;
 };
 
-template <class T>
-class BaseValue {
+class Value {
+	friend class EngineValue;
+
 public:
 	typedef enum {
 		None       = 0,
@@ -132,52 +130,6 @@ public:
 		Protected  = Constant | DontEnum
 	} PropAttrs;
 
-	virtual T       newBool(bool b)=0;
-	virtual T       newNumber(double n)=0;
-	virtual T       newString(string string)=0;
-	virtual T       newArray(vector<T> array)=0;
-	virtual T       newFunction(NativeFunction func, void *priv, FreeFunction free)=0;
-	virtual T       newObject(Class* cls, void* priv, FreeFunction free)=0;
-	virtual T       newNull()=0;
-	virtual T       newUndefined()=0;
-	virtual T       getGlobal()=0;
-	virtual void    getContext(void **context, void **value)=0;
-
-	virtual bool    isGlobal()=0;
-	virtual bool    isException()=0;
-	virtual bool    isArray()=0;
-	virtual bool    isBool()=0;
-	virtual bool    isFunction()=0;
-	virtual bool    isNull()=0;
-	virtual bool    isNumber()=0;
-	virtual bool    isObject()=0;
-	virtual bool    isString()=0;
-	virtual bool    isUndefined()=0;
-
-	virtual bool    toBool()=0;
-	virtual double  toDouble()=0;
-	virtual string  toString()=0;
-
-	virtual bool    del(string name)=0;
-	virtual bool    del(long idx)=0;
-	virtual T       get(string name)=0;
-	virtual T       get(long idx)=0;
-	virtual bool    set(string name, T value, BaseValue::PropAttrs attrs=None)=0;
-	virtual bool    set(long idx, T value)=0;
-	virtual std::set<string> enumerate()=0;
-
-	virtual bool    setPrivate(void *priv)=0;
-	virtual void*   getPrivate()=0;
-
-	virtual T       evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false)=0;
-	virtual T       call(T func, vector<T> args)=0;
-	virtual T       callNew(vector<T> args)=0;
-};
-
-class Value : virtual public BaseValue<Value> {
-	friend class EngineValue;
-
-public:
 	Value();
 	Value(EngineValue *value);
 	Value(const Value& value);
@@ -190,9 +142,8 @@ public:
 	virtual Value   newNumber(double n);
 	virtual Value   newString(string string);
 	virtual Value   newArray(vector<Value> array=vector<Value>());
-	virtual Value   newFunction(NativeFunction func, void* priv=NULL, FreeFunction free=NULL);
-	virtual Value   newObject(Class* cls=NULL, void* priv=NULL, FreeFunction free=NULL);
-	virtual Value   newObject(FreeFunction free, void* priv=NULL);
+	virtual Value   newFunction(NativeFunction func);
+	virtual Value   newObject(Class* cls=NULL);
 	virtual Value   newNull();
 	virtual Value   newUndefined();
 	virtual Value   getGlobal();
@@ -231,8 +182,9 @@ public:
 	virtual long    push(Value value);
 	virtual Value   pop();
 
-	virtual bool    setPrivate(void *priv);
-	virtual void*   getPrivate();
+	virtual bool    setPrivate(string key, void *priv, FreeFunction free);
+	virtual bool    setPrivate(string key, void *priv);
+	virtual void*   getPrivate(string key);
 
 	virtual Value   evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false);
 	virtual Value   call(Value func);

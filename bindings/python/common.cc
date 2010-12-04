@@ -50,26 +50,12 @@ typedef struct {
     Value value;
 } natus_Value;
 
-struct embedPointer {
-	char      header[8];
-	PyObject* pyobjp;
-};
-
-static void* get_python_private(Value &val) {
-	// This is a silly little trick to minimize chances of collision with
-	// hidden pointers from other objects
-	embedPointer* ep = (embedPointer*) val.getPrivate();
-	if (ep && !strncmp("natus", (const char*) ep, strlen("natus")))
-		return ep->pyobjp;
-	return NULL;
-}
-
 class PythonObjectClass : public Class {
 public:
 	PythonObjectClass(Class::Flags flags=Class::Object) : Class(flags) {}
 
 	virtual bool  del(Value& obj, long idx) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* key = PyLong_FromLong(idx);
@@ -82,14 +68,14 @@ public:
 	}
 
 	virtual bool  del(Value& obj, string name) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		return PyObject_DelAttrString(pyobj, name.c_str()) != -1;
 	}
 
 	virtual Value get(Value& obj, long idx) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* key = PyLong_FromLong(idx);
@@ -105,7 +91,7 @@ public:
 	}
 
 	virtual Value get(Value& obj, string name) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		// Translate to python's __str__() method
@@ -121,7 +107,7 @@ public:
 	}
 
 	virtual bool  set(Value& obj, long idx, Value& value) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* val = pyobject_from_value(value);
@@ -142,7 +128,7 @@ public:
 	}
 
 	virtual bool  set(Value& obj, string name, Value& value) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* val = pyobject_from_value(value);
@@ -156,7 +142,7 @@ public:
 	}
 
 	virtual Value enumerate(Value& obj) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* iter = PyObject_GetIter(pyobj);
@@ -178,7 +164,7 @@ public:
 	PythonCallableClass() : PythonObjectClass(Class::Callable) {}
 
 	virtual Value call     (Value& obj, vector<Value> args) {
-		PyObject* pyobj = (PyObject*) get_python_private(obj);
+		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject *argt = PyTuple_New(args.size());
@@ -489,7 +475,7 @@ static PyObject* pyobject_from_value(Value val) {
 	} else if (val.isNumber()) {
 		obj = PyFloat_FromDouble(val.toDouble());
 	} else if (val.isFunction() || val.isObject()) {
-		obj = (PyObject*) get_python_private(val);
+		obj = (PyObject*) val.getPrivate("python");
 		if (!obj) {
 			obj = Value_new(&natus_ValueType, NULL, NULL);
 			if (obj) {
@@ -532,13 +518,11 @@ Value value_from_pyobject(Value val, PyObject *obj) {
 	else if (PyObject_IsInstance(obj, (PyObject*) &natus_ValueType))
 		ret = ((natus_Value*) obj)->value;
 	else {
-		embedPointer* ep = new embedPointer;
-		strcpy(ep->header, "natus");
-		ep->pyobjp = obj;
 		if (PyCallable_Check(obj))
-			ret = val.newObject(new PythonCallableClass(), ep, pyobj_finalize);
+			ret = val.newObject(new PythonCallableClass());
 		else
-			ret = val.newObject(new PythonObjectClass(), ep, pyobj_finalize);
+			ret = val.newObject(new PythonObjectClass());
+		ret.setPrivate("python", obj, pyobj_finalize);
 		Py_XINCREF(obj);
 	}
 

@@ -101,12 +101,10 @@ public:
 		return Value(new JavaScriptCoreEngineValue(glb, obj));
 	}
 
-	virtual Value   newFunction(NativeFunction func, void *priv, FreeFunction free) {
+	virtual Value   newFunction(NativeFunction func) {
 		ClassFuncPrivate *cfp = new ClassFuncPrivate();
 		cfp->clss = NULL;
 		cfp->func = func;
-		cfp->priv = priv;
-		cfp->free = free;
 		cfp->glbl = glb;
 
 		JSValueRef val = (JSValueRef) JSObjectMake(ctx, fnccls, cfp);
@@ -114,12 +112,10 @@ public:
 		return Value(new JavaScriptCoreEngineValue(glb, val));
 	}
 
-	virtual Value   newObject(Class* cls, void* priv, FreeFunction free) {
+	virtual Value   newObject(Class* cls) {
 		ClassFuncPrivate *cfp = new ClassFuncPrivate();
 		cfp->clss = cls;
 		cfp->func = NULL;
-		cfp->priv = priv;
-		cfp->free = free;
 		cfp->glbl = glb;
 
 		// Pick what type of object to build
@@ -272,14 +268,14 @@ public:
 
 	virtual bool    set(string name, Value value, Value::PropAttrs attrs) {
 		// Make sure the enum values don't get changed on us
-		assert(kJSPropertyAttributeNone       == (JSPropertyAttributes) None);
-		assert(kJSPropertyAttributeReadOnly   == (JSPropertyAttributes) ReadOnly   << 1);
-		assert(kJSPropertyAttributeDontEnum   == (JSPropertyAttributes) DontEnum   << 1);
-		assert(kJSPropertyAttributeDontDelete == (JSPropertyAttributes) DontDelete << 1);
+		assert(kJSPropertyAttributeNone       == (JSPropertyAttributes) Value::None);
+		assert(kJSPropertyAttributeReadOnly   == (JSPropertyAttributes) Value::ReadOnly   << 1);
+		assert(kJSPropertyAttributeDontEnum   == (JSPropertyAttributes) Value::DontEnum   << 1);
+		assert(kJSPropertyAttributeDontDelete == (JSPropertyAttributes) Value::DontDelete << 1);
 
 		JSValueRef exc = NULL;
 		JSStringRef str = JSStringCreateWithUTF8CString(name.c_str());
-		JSPropertyAttributes flags = attrs == None ? None : attrs << 1;
+		JSPropertyAttributes flags = attrs == Value::None ? Value::None : attrs << 1;
 		JSObjectSetProperty(ctx, toJSObject(), str, getJSValue(value), flags, &exc);
 		JSStringRelease(str);
 		return exc == NULL;
@@ -307,17 +303,10 @@ public:
 		return names;
 	}
 
-	virtual bool    setPrivate(void *priv) {
-		ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(toJSObject());
-		if (!cfp) return false;
-		cfp->priv = priv;
-		return true;
-	}
-
-	virtual void*   getPrivate() {
+	virtual PrivateMap* getPrivateMap() {
 		ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(toJSObject());
 		if (!cfp) return NULL;
-		return cfp->priv;
+		return &cfp->priv;
 	}
 
 	virtual Value   call(Value func, vector<Value> args) {
@@ -396,7 +385,7 @@ static JSValueRef fnc_call(JSContextRef ctx, JSObjectRef function, JSObjectRef t
 
 	Value fnc = Value(new JavaScriptCoreEngineValue(cfp->glbl, function));
 	Value ths = thisObject ? Value(new JavaScriptCoreEngineValue(cfp->glbl, thisObject)) : fnc.newUndefined();
-	Value res = cfp->func(ths, fnc, args, cfp->priv);
+	Value res = cfp->func(ths, fnc, args);
 	if (res.isException()) {
 		*exc = getJSValue(res);
 		return NULL;
