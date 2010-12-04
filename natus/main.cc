@@ -40,6 +40,10 @@ using namespace natus;
 #define PWSIZE 1024
 #define PROMPT ">>> "
 #define NPRMPT "... "
+#define HISTORYFILE ".natus_history"
+
+Engine engine;
+Value  global;
 
 static Value alert(Value& ths, Value& fnc, vector<Value>& args, void *msc) {
 	if (args.size() < 1)
@@ -58,7 +62,7 @@ static Value dir(Value& ths, Value& fnc, vector<Value>& args, void *msc) {
 	return ths.newUndefined();
 }
 
-bool inblock(const char *str) {
+static bool inblock(const char *str) {
 	char strstart = '\0';
 	int cnt = 0;
 	for (char prv='\0' ; *str ; prv=*str++) {
@@ -93,7 +97,7 @@ bool inblock(const char *str) {
 	return cnt > 0;
 }
 
-vector<string> pathparser(string path) {
+static vector<string> pathparser(string path) {
 	if (path.find(':') == string::npos) {
 		vector<string> tmp;
 		if (path != "")
@@ -105,6 +109,43 @@ vector<string> pathparser(string path) {
 	vector<string> paths = pathparser(path.substr(0, path.find_last_of(':')));
 	if (segment != "") paths.push_back(segment);
 	return paths;
+}
+
+static char* completion_generator(const char* text, int state) {
+	static set<string> names;
+	static set<string>::iterator it;
+	char* last = strrchr(text, '.');
+
+	if (state == 0) {
+		Value obj = global;
+		if (last) {
+			char* base = new char[last-text+1];
+			memset(base, 0, sizeof(char) * (last-text+1));
+			strncpy(base, text, last-text);
+			obj = obj.get(base);
+			delete[] base;
+			if (obj.isUndefined()) return NULL;
+		}
+
+		names = obj.enumerate();
+		it = names.begin();
+	}
+	if (last) last++;
+
+	for ( ; it != names.end() ; it++) {
+		if ((last && it->find(last) == 0) || (!last && it->find(text) == 0)) {
+			string tmp = last ? (string(text) + (it->c_str()+strlen(last))) : *it;
+			char* ret = strdup(tmp.c_str());
+			it++;
+			return ret;
+		}
+	}
+
+	return NULL;
+}
+
+static char** completion(const char* text, int start, int end) {
+	return rl_completion_matches(text, completion_generator);
 }
 
 int main(int argc, char** argv) {
@@ -140,11 +181,10 @@ int main(int argc, char** argv) {
 	   }
 	}
 
-	Engine engine;
 	if (!engine.initialize(eng))
 		error(1, 0, "Unable to init engine!");
 
-	Value global = engine.newGlobal(path, whitelist);
+	global = engine.newGlobal(path, whitelist);
 	if (global.isUndefined())
 		error(2, 0, "Unable to init global!");
 	global.set("alert", global.newFunction(alert, NULL, NULL));
@@ -169,7 +209,12 @@ int main(int argc, char** argv) {
 
 	// Start the shell
 	if (optind >= argc) {
-		fprintf(stderr, "Natus " PACKAGE_VERSION " - Using: %s\n", engine.getName().c_str());
+		fprintf(stderr, "Natus v" PACKAGE_VERSION " - Using: %s\n", engine.getName().c_str());
+		if (getenv("HOME"))
+			read_history((string(getenv("HOME")) + "/" + HISTORYFILE).c_str());
+		rl_readline_name = "natus";
+		rl_attempted_completion_function = completion;
+		read_history(HISTORYFILE);
 
 		char* line;
 		const char* prompt = PROMPT;
@@ -179,6 +224,7 @@ int main(int argc, char** argv) {
 		for (line=readline(prompt) ; line ; line=readline(prompt)) {
 			// Strip the line
 			string l = line;
+			free(line);
 			string::size_type start = l.find_first_not_of(" \t");
 			l = start == string::npos ? string("") : l.substr(start, l.find_last_not_of(" \t")-start+1);
 			if (l == "") continue;
@@ -212,6 +258,8 @@ int main(int argc, char** argv) {
 			prev = "";
 		}
 		printf("\n");
+		if (getenv("HOME"))
+			write_history((string(getenv("HOME")) + "/" + HISTORYFILE).c_str());
 		return 0;
 	}
 
