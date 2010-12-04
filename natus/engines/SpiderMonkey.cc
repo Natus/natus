@@ -95,7 +95,7 @@ class SpiderMonkeyEngineValue : public EngineValue {
 public:
 	SpiderMonkeyEngineValue(JSContext* ctx) : EngineValue(this) {
 		if (!ctx) throw bad_alloc();
-		JS_SetOptions(ctx, JSOPTION_VAROBJFIX | JSOPTION_DONT_REPORT_UNCAUGHT);
+		JS_SetOptions(ctx, JSOPTION_VAROBJFIX | JSOPTION_DONT_REPORT_UNCAUGHT | JSOPTION_XML);
 		JS_SetVersion(ctx, JSVERSION_LATEST);
 		JS_SetErrorReporter(ctx, report_error);
 
