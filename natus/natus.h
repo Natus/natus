@@ -32,9 +32,6 @@
 #include <string>
 #include <vector>
 
-
-#include <stdarg.h>
-
 namespace natus {
 using namespace std;
 
