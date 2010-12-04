@@ -721,6 +721,20 @@ Value Value::require(string name, string reldir, vector<string> path) {
 	return newString(name + NFSUFFIX).toException();
 }
 
+Value   Value::fromJSON(string json) {
+	vector<Value> args;
+	args.push_back(newString(json));
+	Value obj = getGlobal().get("JSON");
+	return obj.call("parse", args);
+}
+
+string  Value::toJSON() {
+	vector<Value> args;
+	args.push_back(*this);
+	Value obj = getGlobal().get("JSON");
+	return obj.call("stringify", args).toString();
+}
+
 EngineValue::EngineValue(EngineValue* glb, bool exception) {
 	this->glb = glb;
 	refCnt = 0;

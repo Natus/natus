@@ -245,6 +245,8 @@ public:
 	virtual Value   callNew(string func, vector<Value> args);
 
 	virtual Value   require(string name, string reldir, vector<string> path);
+	virtual Value   fromJSON(string json);
+	virtual string  toJSON();
 protected:
 	EngineValue *internal;
 };
