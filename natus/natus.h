@@ -34,8 +34,6 @@
 
 namespace natus {
 using namespace std;
-
-template <class T> class BaseValue;
 class Value;
 class EngineValue;
 
@@ -102,13 +100,13 @@ class Engine {
 public:
 	Engine();
 	~Engine();
-	bool initialize(const char* name_or_path);
-	bool initialize();
+	bool   initialize(const char* name_or_path);
+	bool   initialize();
 	string getName();
 
-	Value newGlobal(vector<string> path, vector<string> whitelist);
-	Value newGlobal(vector<string> path);
-	Value newGlobal();
+	Value  newGlobal(vector<string> path, vector<string> whitelist);
+	Value  newGlobal(vector<string> path);
+	Value  newGlobal();
 
 private:
 	void *internal;
@@ -130,72 +128,73 @@ public:
 	Value();
 	Value(EngineValue *value);
 	Value(const Value& value);
-	virtual ~Value();
-	virtual Value&  operator=(const Value& value);
-	virtual Value   operator[](long index);
-	virtual Value   operator[](string index);
+	~Value();
+	Value&           operator=(const Value& value);
+	Value            operator[](long index);
+	Value            operator[](string index);
 
-	virtual Value   newBool(bool b);
-	virtual Value   newNumber(double n);
-	virtual Value   newString(string string);
-	virtual Value   newArray(vector<Value> array=vector<Value>());
-	virtual Value   newFunction(NativeFunction func);
-	virtual Value   newObject(Class* cls=NULL);
-	virtual Value   newNull();
-	virtual Value   newUndefined();
-	virtual Value   getGlobal();
-	virtual void    getContext(void **context, void **value);
+	Value            newBool(bool b);
+	Value            newNumber(double n);
+	Value            newString(string string);
+	Value            newArray(vector<Value> array=vector<Value>());
+	Value            newFunction(NativeFunction func);
+	Value            newObject(Class* cls=NULL);
+	Value            newNull();
+	Value            newUndefined();
+	Value            getGlobal();
+	void             getContext(void **context, void **value);
 
-	virtual bool    isGlobal();
-	virtual bool    isException();
-	virtual bool    isArray();
-	virtual bool    isBool();
-	virtual bool    isFunction();
-	virtual bool    isNull();
-	virtual bool    isNumber();
-	virtual bool    isObject();
-	virtual bool    isString();
-	virtual bool    isUndefined();
+	bool             isGlobal();
+	bool             isException();
+	bool             isArray();
+	bool             isBool();
+	bool             isFunction();
+	bool             isNull();
+	bool             isNumber();
+	bool             isObject();
+	bool             isString();
+	bool             isUndefined();
 
-	virtual bool    toBool();
-	virtual double  toDouble();
-	virtual Value   toException();
-	virtual int     toInt();
-	virtual long    toLong();
-	virtual string  toString();
-	virtual vector<string> toStringVector();
+	bool             toBool();
+	double           toDouble();
+	Value            toException();
+	int              toInt();
+	long             toLong();
+	string           toString();
+	vector<string>   toStringVector();
 
-	virtual bool    del(string name);
-	virtual bool    del(long idx);
-	virtual Value   get(string name);
-	virtual Value   get(long idx);
-	virtual bool    has(string name);
-	virtual bool    has(long idx);
-	virtual bool    set(string name, Value value, Value::PropAttrs attrs=None);
-	virtual bool    set(long idx, Value value);
-	virtual std::set<string> enumerate();
+	bool             del(string name);
+	bool             del(long idx);
+	Value            get(string name);
+	Value            get(long idx);
+	bool             has(string name);
+	bool             has(long idx);
+	bool             set(string name, Value value, Value::PropAttrs attrs=None);
+	bool             set(long idx, Value value);
+	std::set<string> enumerate();
 
-	virtual long    length();
-	virtual long    push(Value value);
-	virtual Value   pop();
+	long             length();
+	long             push(Value value);
+	Value            pop();
 
-	virtual bool    setPrivate(string key, void *priv, FreeFunction free);
-	virtual bool    setPrivate(string key, void *priv);
-	virtual void*   getPrivate(string key);
+	bool             setPrivate(string key, void *priv, FreeFunction free);
+	bool             setPrivate(string key, void *priv);
+	void*            getPrivate(string key);
 
-	virtual Value   evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false);
-	virtual Value   call(Value func);
-	virtual Value   call(string func);
-	virtual Value   call(Value func, vector<Value> args);
-	virtual Value   call(string func, vector<Value> args);
-	virtual Value   callNew();
-	virtual Value   callNew(string func);
-	virtual Value   callNew(vector<Value> args);
-	virtual Value   callNew(string func, vector<Value> args);
+	Value            evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false);
+	Value            call(Value func);
+	Value            call(string func);
+	Value            call(Value func, vector<Value> args);
+	Value            call(string func, vector<Value> args);
+	Value            callNew();
+	Value            callNew(string func);
+	Value            callNew(vector<Value> args);
+	Value            callNew(string func, vector<Value> args);
 
-	virtual Value   require(string name, string reldir, vector<string> path);
-	virtual Value   fromJSON(string json);
-	virtual string  toJSON();
+	Value            require(string name, string reldir, vector<string> path);
+	Value            fromJSON(string json);
+	string           toJSON();
+
 protected:
 	EngineValue *internal;
 };
