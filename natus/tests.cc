@@ -41,11 +41,20 @@ static Value exception_function(Value& ths, Value& fnc, vector<Value>& arg) {
 
 class TestClass : public Class {
 public:
-	TestClass(Class::Flags flags) : Class(flags) {}
+	Class::Flags getFlags() {
+		return Class::FlagAll;
+	}
 
-	bool  del      (Value& obj, string name) {
+	Value del      (Value& obj, string name) {
 		assert(obj.isObject());
-		return obj.setPrivate("test", (void *) name.length());
+		obj.setPrivate("test", (void *) name.length());
+		return obj.newBool(true);
+	}
+
+	Value del      (Value& obj, long idx) {
+		assert(obj.isObject());
+		obj.setPrivate("test", (void *) idx);
+		return obj.newBool(true);
 	}
 
 	Value get      (Value& obj, string name) {
@@ -58,14 +67,16 @@ public:
 		return obj.newNumber(idx);
 	}
 
-	bool  set      (Value& obj, string name, Value& value) {
+	Value  set      (Value& obj, string name, Value& value) {
 		assert(obj.isObject());
-		return obj.setPrivate("test", (void *) value.toInt());
+		obj.setPrivate("test", (void *) value.toInt());
+		return obj.newBool(true);
 	}
 
-	bool  set      (Value& obj, long idx, Value& value) {
+	Value  set      (Value& obj, long idx, Value& value) {
 		assert(obj.isObject());
-		return obj.setPrivate("test", (void *) value.toInt());
+		obj.setPrivate("test", (void *) value.toInt());
+		return obj.newBool(true);
 	}
 
 	Value enumerate(Value& obj) {
@@ -190,13 +201,14 @@ int main(int argc, char **argv) {
 	assert(global.del("x"));
 
 	//// Object
-	assert(global.set("x", global.newObject(new TestClass(Class::Callable))));
+	assert(global.set("x", global.newObject(new TestClass())));
 	x = global.get("x");
 	assert(x.isObject());
 	// TODO: enum
 
 	// Delete
-	// TODO: delete from array
+	assert(x.del(7));
+	assert(7 == (long) x.getPrivate("test"));
 	assert(x.del("foo"));
 	assert(string("foo").length() == (size_t) x.getPrivate("test"));
 

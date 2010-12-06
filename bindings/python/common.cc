@@ -52,26 +52,29 @@ typedef struct {
 
 class PythonObjectClass : public Class {
 public:
-	PythonObjectClass(Class::Flags flags=Class::Object) : Class(flags) {}
+	virtual Class::Flags getFlags () {
+		return (Class::Flags) (Class::FlagArray | Class::FlagObject);
+	}
 
-	virtual bool  del(Value& obj, long idx) {
+	virtual Value del(Value& obj, long idx) {
 		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* key = PyLong_FromLong(idx);
-		if (!key) return false;
+		if (!key) return obj.newBool(false);
 
-		bool result = PyObject_DelItem(pyobj, key) != -1;
+		PyObject_DelItem(pyobj, key);
 		Py_XDECREF(key);
 
-		return result;
+		return obj.newBool(true);
 	}
 
-	virtual bool  del(Value& obj, string name) {
+	virtual Value del(Value& obj, string name) {
 		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
-		return PyObject_DelAttrString(pyobj, name.c_str()) != -1;
+		PyObject_DelAttrString(pyobj, name.c_str());
+		return obj.newBool(true);
 	}
 
 	virtual Value get(Value& obj, long idx) {
@@ -106,17 +109,17 @@ public:
 		return value_from_pyobject(obj, rval);
 	}
 
-	virtual bool  set(Value& obj, long idx, Value& value) {
+	virtual Value set(Value& obj, long idx, Value& value) {
 		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* val = pyobject_from_value(value);
-		if (!val) return false;
+		if (!val) return obj.newBool(false);
 
 		PyObject* key = PyLong_FromLong(idx);
 		if (!key) {
 			Py_XDECREF(val);
-			return false;
+			return obj.newBool(false);
 		}
 
 		bool rval = PyObject_SetItem(pyobj, key, val) != -1;
@@ -124,21 +127,21 @@ public:
 		Py_XDECREF(key);
 		if (PyErr_Occurred())
 			PyErr_Clear();
-		return rval;
+		return obj.newBool(rval);
 	}
 
-	virtual bool  set(Value& obj, string name, Value& value) {
+	virtual Value set(Value& obj, string name, Value& value) {
 		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
 		PyObject* val = pyobject_from_value(value);
-		if (!val) return false;
+		if (!val) return obj.newBool(false);
 
 		bool rval = PyObject_SetAttrString(pyobj, name.c_str(), val) != -1;
 		Py_XDECREF(val);
 		if (PyErr_Occurred())
 			PyErr_Clear();
-		return rval;
+		return obj.newBool(rval);
 	}
 
 	virtual Value enumerate(Value& obj) {
@@ -161,7 +164,9 @@ public:
 
 class PythonCallableClass : public PythonObjectClass {
 public:
-	PythonCallableClass() : PythonObjectClass(Class::Callable) {}
+	virtual Class::Flags getFlags () {
+		return Class::FlagAll;
+	}
 
 	virtual Value call     (Value& obj, vector<Value> args) {
 		PyObject* pyobj = (PyObject*) obj.getPrivate("python");

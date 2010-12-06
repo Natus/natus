@@ -24,6 +24,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/engine.h>
@@ -38,16 +39,34 @@ using namespace natus;
 #endif
 
 static JSClassDefinition fncdef;
-static JSClassDefinition objdef;
-static JSClassDefinition clldef;
-static JSClassDefinition stkdef;
 static JSClassRef fnccls;
-static JSClassRef objcls;
-static JSClassRef cllcls;
-static JSClassRef stkcls;
 
 static JSValueRef getJSValue(Value& value);
 static string JSStringToString(JSStringRef str, bool release=false);
+static void finalize(JSObjectRef object);
+static JSValueRef fnc_call(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exc);
+static JSObjectRef fnc_new(JSContextRef ctx, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
+static bool obj_del(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef *exc);
+static JSValueRef obj_get(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef *exc);
+static bool obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef *exc);
+static void obj_enum(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef propertyNames);
+static JSValueRef obj_call(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exc);
+static JSObjectRef obj_new(JSContextRef ctx, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
+
+class CFP : public ClassFuncPrivate {
+public:
+	JSClassDefinition jscdef;
+	JSClassRef        jsccls;
+
+	CFP() {
+		memset(&jscdef, 0, sizeof(JSClassDefinition));
+		jscdef.className = "Object";
+	}
+
+	virtual ~CFP() {
+		JSClassRelease(jsccls);
+	}
+};
 
 class JavaScriptCoreEngineValue : public EngineValue {
 	friend JSValueRef getJSValue(Value& value);
@@ -113,27 +132,35 @@ public:
 	}
 
 	virtual Value   newObject(Class* cls) {
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
+		CFP *cfp = new CFP();
 		cfp->clss = cls;
 		cfp->func = NULL;
 		cfp->glbl = glb;
 
-		// Pick what type of object to build
-		JSClassRef wkcls = NULL;
-		if (!cls)
-			wkcls = stkcls; // Stock class, just a finalizer
-		else if (cls->getFlags() & Class::Callable)
-			wkcls = cllcls; // Full class, all methods
-		else if (cls->getFlags() & Class::Object)
-			wkcls = objcls; // Property methods only
-		else
-			assert(false);
+		cfp->jscdef.finalize = finalize;
+		if (cls) {
+			Class::Flags flags            = cls->getFlags();
+			cfp->jscdef.className         = flags & Class::FlagFunction  ? "NativeCallable" : "NativeObject";
+			cfp->jscdef.getProperty       = flags & Class::FlagGet       ? obj_get  : NULL;
+			cfp->jscdef.setProperty       = flags & Class::FlagSet       ? obj_set  : NULL;
+			cfp->jscdef.deleteProperty    = flags & Class::FlagDelete    ? obj_del  : NULL;
+			cfp->jscdef.getPropertyNames  = flags & Class::FlagEnumerate ? obj_enum : NULL;
+			cfp->jscdef.callAsFunction    = flags & Class::FlagCall      ? obj_call : NULL;
+			cfp->jscdef.callAsConstructor = flags & Class::FlagNew       ? obj_new  : NULL;
+		}
+		cfp->jsccls = JSClassCreate(&cfp->jscdef);
+		if (!cfp->jsccls) {
+			delete cfp;
+			return newUndefined().toException();
+		}
 
 		// Build the object
-		JSObjectRef obj = JSObjectMake(ctx, wkcls, cfp);
-		if (!obj) delete cfp;
-		Value val = Value(new JavaScriptCoreEngineValue(glb, obj));
-		return val;
+		JSObjectRef obj = JSObjectMake(ctx, cfp->jsccls, cfp);
+		if (!obj) {
+			delete cfp;
+			return newUndefined().toException();
+		}
+		return Value(new JavaScriptCoreEngineValue(glb, obj));
 	}
 
 	virtual Value   newNull() {
@@ -398,6 +425,8 @@ static JSObjectRef fnc_new(JSContextRef ctx, JSObjectRef constructor, size_t arg
 }
 
 static bool obj_del(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef *exc) {
+	Value res;
+
 	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(object);
 	if (!cfp || !cfp->clss) {
 		*exc = JSValueMakeString(ctx, JSStringCreateWithUTF8CString("Unable to find native function info!"));
@@ -415,15 +444,31 @@ static bool obj_del(JSContextRef ctx, JSObjectRef object, JSStringRef propertyNa
 	// We have numeric
 	if (end && *end == '\0') {
 		delete[] skey;
-		return cfp->clss->del(obj, idx);
+		if (!(cfp->clss->getFlags() & Class::FlagDeleteItem))
+			return false;
+		res = cfp->clss->del(obj, idx);
+		goto out;
 	}
 
 	// We have string
 	delete[] skey;
-	return cfp->clss->del(obj, JSStringToString(propertyName));
+	if (!(cfp->clss->getFlags() & Class::FlagDeleteProperty))
+		return false;
+	res = cfp->clss->del(obj, JSStringToString(propertyName));
+
+	out:
+		if (res.isException()) {
+			if (res.isUndefined())
+				return false;
+			*exc = getJSValue(res);
+			return true;
+		}
+		return true;
 }
 
 static JSValueRef obj_get(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef *exc) {
+	Value res;
+
 	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(object);
 	if (!cfp || !cfp->clss) {
 		*exc = JSValueMakeString(ctx, JSStringCreateWithUTF8CString("Unable to find native function info!"));
@@ -441,29 +486,34 @@ static JSValueRef obj_get(JSContextRef ctx, JSObjectRef object, JSStringRef prop
 	// We have numeric
 	if (end && *end == '\0') {
 		delete[] skey;
-		Value res = cfp->clss->get(obj, idx);
-		if (res.isException()) {
-			*exc = getJSValue(res);
+		if (!(cfp->clss->getFlags() & Class::FlagGetItem))
 			return NULL;
-		}
-		return getJSValue(res);
+		res = cfp->clss->get(obj, idx);
+		goto out;
 	}
 
 	// We have string
 	delete[] skey;
-	Value res = cfp->clss->get(obj, JSStringToString(propertyName));
-	if (res.isException()) {
-		*exc = getJSValue(res);
+	if (!(cfp->clss->getFlags() & Class::FlagGetProperty))
 		return NULL;
-	}
-	return getJSValue(res);
+	res = cfp->clss->get(obj, JSStringToString(propertyName));
+
+	out:
+		if (res.isException()) {
+			if (!res.isUndefined())
+				*exc = getJSValue(res);
+			return NULL;
+		}
+		return getJSValue(res);
 }
 
 static bool obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef *exc) {
+	Value res;
+
 	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(object);
 	if (!cfp || !cfp->clss) {
 		*exc = JSValueMakeString(ctx, JSStringCreateWithUTF8CString("Unable to find native function info!"));
-		return NULL;
+		return false;
 	}
 
 	Value obj = Value(new JavaScriptCoreEngineValue(cfp->glbl, object));
@@ -478,12 +528,26 @@ static bool obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyNa
 	// We have numeric
 	if (end && *end == '\0') {
 		delete skey;
-		return cfp->clss->set(obj, idx, val);
+		if (!(cfp->clss->getFlags() & Class::FlagSetItem))
+			return false;
+		res = cfp->clss->set(obj, idx, val);
+		goto out;
 	}
 
 	// We have string
 	delete skey;
-	return cfp->clss->set(obj, JSStringToString(propertyName), val);
+	if (!(cfp->clss->getFlags() & Class::FlagSetProperty))
+		return false;
+	res = cfp->clss->set(obj, JSStringToString(propertyName), val);
+
+	out:
+		if (res.isException()) {
+			if (res.isUndefined())
+				return false;
+			*exc = getJSValue(res);
+			return true;
+		}
+		return true;
 }
 
 static void obj_enum(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef propertyNames) {
@@ -534,12 +598,7 @@ static EngineValue* engine_newg(void *engine) {
 }
 
 static void engine_free(void *engine) {
-	JSClassRelease(stkcls);
-	JSClassRelease(cllcls);
-	JSClassRelease(objcls);
 	JSClassRelease(fnccls);
-
-	delete (char *) engine;
 }
 
 static void *engine_init() {
@@ -547,32 +606,7 @@ static void *engine_init() {
 	fncdef.finalize = finalize;
 	fncdef.callAsFunction = fnc_call;
 	fncdef.callAsConstructor = fnc_new;
-
-	objdef.version = 0;
-	objdef.finalize = finalize;
-	objdef.getProperty = obj_get;
-	objdef.setProperty = obj_set;
-	objdef.deleteProperty = obj_del;
-	objdef.getPropertyNames = obj_enum;
-
-	clldef.version = 0;
-	clldef.finalize = finalize;
-	clldef.getProperty = obj_get;
-	clldef.setProperty = obj_set;
-	clldef.deleteProperty = obj_del;
-	clldef.getPropertyNames = obj_enum;
-	clldef.callAsFunction = obj_call;
-	clldef.callAsConstructor = obj_new;
-
-	stkdef.version = 0;
-	stkdef.finalize = finalize;
-
-    fnccls = JSClassCreate(&fncdef);
-    objcls = JSClassCreate(&objdef);
-    cllcls = JSClassCreate(&clldef);
-    stkcls = JSClassCreate(&stkdef);
-
-	return new char;
+    return fnccls = JSClassCreate(&fncdef);
 }
 
 NATUS_ENGINE("JavaScriptCore", "JSObjectMakeFunctionWithCallback", engine_init, engine_newg, engine_free);

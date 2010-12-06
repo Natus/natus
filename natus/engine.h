@@ -45,7 +45,7 @@ struct ClassFuncPrivate {
 	PrivateMap     priv;
 	EngineValue*   glbl;
 
-	~ClassFuncPrivate() {
+	virtual ~ClassFuncPrivate() {
 		if (clss)
 			delete clss;
 		for (map<string, pair<void*, FreeFunction> >::iterator it=priv.begin() ; it != priv.end() ; it++)

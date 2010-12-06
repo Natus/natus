@@ -169,18 +169,20 @@ public:
 		v8::Handle<v8::ObjectTemplate> ot = v8::ObjectTemplate::New();
 		V8Class *v8cls = new V8Class(ctx, cfp);
 		if (cls) {
-			if (cls->getFlags() & Class::Object) {
-				ot->SetNamedPropertyHandler(V8Class::property_get,
-						                    V8Class::property_set, NULL,
-						                    V8Class::property_del,
-						                    V8Class::enumerate, v8cls->data);
-				ot->SetIndexedPropertyHandler(V8Class::item_get,
-											  V8Class::item_set, NULL,
-											  V8Class::item_del,
-											  V8Class::enumerate, v8cls->data);
-			}
+			Class::Flags flags = cls->getFlags();
 
-			if (cls->getFlags() & Class::Function) {
+			if (flags & Class::FlagObject)
+				ot->SetNamedPropertyHandler(flags & Class::FlagGetProperty    ? V8Class::property_get : NULL,
+						                    flags & Class::FlagSetProperty    ? V8Class::property_set : NULL, NULL,
+											flags & Class::FlagDeleteProperty ? V8Class::property_del : NULL,
+											flags & Class::FlagEnumerate      ? V8Class::enumerate    : NULL, v8cls->data);
+			if (flags & Class::FlagArray)
+				ot->SetIndexedPropertyHandler(flags & Class::FlagGetItem    ? V8Class::item_get  : NULL,
+                                              flags & Class::FlagSetItem    ? V8Class::item_set  : NULL, NULL,
+											  flags & Class::FlagDeleteItem ? V8Class::item_del  : NULL,
+											  flags & Class::FlagEnumerate  ? V8Class::enumerate : NULL, v8cls->data);
+
+			if (flags & Class::FlagFunction) {
 				ot->SetCallAsFunctionHandler(V8Class::call, v8cls->data);
 				v8::Handle<v8::FunctionTemplate> ft = v8::FunctionTemplate::New(V8Class::call, v8cls->data);
 				v8::Handle<v8::Function> fnc = ft->GetFunction();
@@ -447,6 +449,11 @@ v8::Handle<v8::Value> V8Class::item_get(uint32_t index, const v8::AccessorInfo& 
 
 	Value obj = Value(new V8EngineValue(cfp->glbl, info.This()));
 	Value res = cfp->clss->get(obj, index);
+	if (res.isException()) {
+		if (res.isUndefined())
+			return v8::Handle<v8::Value>();
+		v8::ThrowException(getJSValue(res));
+	}
 	return getJSValue(res);
 }
 
@@ -456,6 +463,11 @@ v8::Handle<v8::Value> V8Class::property_get(v8::Local<v8::String> property, cons
 
 	Value obj = Value(new V8EngineValue(cfp->glbl, info.This()));
 	Value res = cfp->clss->get(obj, getString(static_cast<V8EngineValue*>(cfp->glbl)->ctx, property));
+	if (res.isException()) {
+		if (res.isUndefined())
+			return v8::Handle<v8::Value>();
+		v8::ThrowException(getJSValue(res));
+	}
 	return getJSValue(res);
 }
 
@@ -464,7 +476,13 @@ v8::Handle<v8::Boolean> V8Class::item_del(uint32_t index, const v8::AccessorInfo
 	ClassFuncPrivate* cfp = (ClassFuncPrivate*) info.Data()->ToObject()->GetPointerFromInternalField(0);
 
 	Value obj = Value(new V8EngineValue(cfp->glbl, info.This()));
-	return v8::Boolean::New(cfp->clss->del(obj, index));
+	Value res = cfp->clss->del(obj, index);
+	if (res.isException()) {
+		if (res.isUndefined())
+			return v8::Handle<v8::Boolean>();
+		v8::ThrowException(getJSValue(res));
+	}
+	return v8::Handle<v8::Boolean>(v8::Boolean::New(true));
 }
 
 v8::Handle<v8::Boolean> V8Class::property_del(v8::Local<v8::String> property, const v8::AccessorInfo& info) {
@@ -472,7 +490,13 @@ v8::Handle<v8::Boolean> V8Class::property_del(v8::Local<v8::String> property, co
 	ClassFuncPrivate* cfp = (ClassFuncPrivate*) info.Data()->ToObject()->GetPointerFromInternalField(0);
 
 	Value obj = Value(new V8EngineValue(cfp->glbl, info.This()));
-	return v8::Boolean::New(cfp->clss->del(obj, getString(static_cast<V8EngineValue*>(cfp->glbl)->ctx, property)));
+	Value res = cfp->clss->del(obj, getString(static_cast<V8EngineValue*>(cfp->glbl)->ctx, property));
+	if (res.isException()) {
+		if (res.isUndefined())
+			return v8::Handle<v8::Boolean>();
+		v8::ThrowException(getJSValue(res));
+	}
+	return v8::Handle<v8::Boolean>(v8::Boolean::New(true));
 }
 
 v8::Handle<v8::Value> V8Class::item_set(uint32_t index, v8::Local<v8::Value> value, const v8::AccessorInfo& info) {
@@ -481,7 +505,13 @@ v8::Handle<v8::Value> V8Class::item_set(uint32_t index, v8::Local<v8::Value> val
 
 	Value obj = Value(new V8EngineValue(cfp->glbl, info.This()));
 	Value val = Value(new V8EngineValue(cfp->glbl, value));
-	return v8::Boolean::New(cfp->clss->set(obj, index, val));
+	Value res = cfp->clss->set(obj, index, val);
+	if (res.isException()) {
+		if (res.isUndefined())
+			return v8::Handle<v8::Value>();
+		v8::ThrowException(getJSValue(res));
+	}
+	return getJSValue(res);
 }
 
 v8::Handle<v8::Value> V8Class::property_set(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::AccessorInfo& info) {
@@ -490,7 +520,13 @@ v8::Handle<v8::Value> V8Class::property_set(v8::Local<v8::String> property, v8::
 
 	Value obj = Value(new V8EngineValue(cfp->glbl, info.This()));
 	Value val = Value(new V8EngineValue(cfp->glbl, value));
-	return v8::Boolean::New(cfp->clss->set(obj, getString(static_cast<V8EngineValue*>(cfp->glbl)->ctx, property), val));
+	Value res = cfp->clss->set(obj, getString(static_cast<V8EngineValue*>(cfp->glbl)->ctx, property), val);
+	if (res.isException()) {
+		if (res.isUndefined())
+			return v8::Handle<v8::Value>();
+		v8::ThrowException(getJSValue(res));
+	}
+	return getJSValue(res);
 }
 
 v8::Handle<v8::Array> V8Class::enumerate(const v8::AccessorInfo& info) {

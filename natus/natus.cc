@@ -250,20 +250,16 @@ static Value require_js(Value& ths, Value& fnc, vector<Value>& arg) {
 	return ths.require(module, ((RequireInternal*) msc)->peek(), path);
 }
 
-Class::Class(Class::Flags flags) {
-	this->flags = flags;
-}
-
 Class::Flags Class::getFlags() {
-	return flags;
+	return Class::FlagNone;
 }
 
-bool Class::del(Value& obj, string name) {
-	return false;
+Value Class::del(Value& obj, string name) {
+	return obj.newUndefined();
 }
 
-bool Class::del(Value& obj, long idx) {
-	return false;
+Value Class::del(Value& obj, long idx) {
+	return obj.newUndefined();
 }
 
 Value Class::get(Value& obj, string name) {
@@ -274,12 +270,12 @@ Value Class::get(Value& obj, long idx) {
 	return obj.newUndefined();
 }
 
-bool Class::set(Value& obj, string name, Value& value) {
-	return false;
+Value Class::set(Value& obj, string name, Value& value) {
+	return obj.newUndefined();
 }
 
-bool Class::set(Value& obj, long idx, Value& value) {
-	return false;
+Value Class::set(Value& obj, long idx, Value& value) {
+	return obj.newUndefined();
 }
 
 Value Class::enumerate(Value& obj) {
@@ -423,92 +419,92 @@ Value Value::operator[](string name) {
 	return get(name);
 }
 
-Value Value::newBool(bool b) {
+Value Value::newBool(bool b) const {
 	return internal->newBool(b);
 }
 
-Value Value::newNumber(double n) {
+Value Value::newNumber(double n) const {
 	return internal->newNumber(n);
 }
 
-Value Value::newString(string string) {
+Value Value::newString(string string) const {
 	return internal->newString(string);
 }
 
-Value Value::newArray(vector<Value> array) {
+Value Value::newArray(vector<Value> array) const {
 	return internal->newArray(array);
 }
 
-Value Value::newFunction(NativeFunction func) {
+Value Value::newFunction(NativeFunction func) const {
 	return internal->newFunction(func);
 }
 
-Value Value::newObject(Class* cls) {
+Value Value::newObject(Class* cls) const {
 	return internal->newObject(cls);
 }
 
-Value Value::newNull() {
+Value Value::newNull() const {
 	return internal->newNull();
 }
 
-Value Value::newUndefined() {
+Value Value::newUndefined() const {
 	return internal->newUndefined();
 }
 
-Value Value::getGlobal() {
+Value Value::getGlobal() const {
 	return internal->getGlobal();
 }
 
-void Value::getContext(void **context, void **value) {
+void Value::getContext(void **context, void **value) const {
 	internal->getContext(context, value);
 }
 
-bool Value::isGlobal() {
+bool Value::isGlobal() const {
 	return internal->isGlobal();
 }
 
-bool Value::isException() {
+bool Value::isException() const {
 	return internal->isException();
 }
 
-bool Value::isArray() {
+bool Value::isArray() const {
 	return internal->isArray();
 }
 
-bool Value::isBool() {
+bool Value::isBool() const {
 	return internal->isBool();
 }
 
-bool Value::isFunction() {
+bool Value::isFunction() const {
 	return internal->isFunction();
 }
 
-bool Value::isNull() {
+bool Value::isNull() const {
 	return internal->isNull();
 }
 
-bool Value::isNumber() {
+bool Value::isNumber() const {
 	return internal->isNumber();
 }
 
-bool Value::isObject() {
+bool Value::isObject() const {
 	return internal->isObject();
 }
 
-bool Value::isString() {
+bool Value::isString() const {
 	return internal->isString();
 }
 
-bool Value::isUndefined() {
+bool Value::isUndefined() const {
 	return internal->isUndefined();
 }
 
-bool Value::toBool() {
+bool Value::toBool() const {
 	if (isUndefined()) return false;
 	return internal->toBool();
 }
 
-double Value::toDouble() {
+double Value::toDouble() const {
 	if (isUndefined()) return 0;
 	return internal->toDouble();
 }
@@ -517,21 +513,21 @@ Value Value::toException() {
 	return internal->toException(*this);
 }
 
-int Value::toInt() {
+int Value::toInt() const {
 	if (isUndefined()) return 0;
 	return (int) toDouble();
 }
 
-long Value::toLong() {
+long Value::toLong() const {
 	if (isUndefined()) return 0;
 	return (long) toDouble();
 }
 
-string Value::toString() {
+string Value::toString() const {
 	return internal->toString();
 }
 
-vector<string> Value::toStringVector() {
+vector<string> Value::toStringVector() const {
 	vector<string> strv = vector<string>();
 	long len = length();
 	for (long i=0 ; i < len ; i++)
@@ -551,7 +547,7 @@ bool Value::del(long idx) {
 	return internal->del(idx);
 }
 
-Value Value::get(string name) {
+Value Value::get(string name) const {
 	if (!isArray() && !isFunction() && !isObject())
 		return newUndefined();
 
@@ -561,20 +557,20 @@ Value Value::get(string name) {
 	return get(name.substr(0, name.find_first_of('.'))).get(name.substr(name.find_first_of('.')+1));
 }
 
-Value Value::get(long idx) {
+Value Value::get(long idx) const {
 	if (!isObject() && !isArray())
 		return newUndefined();
 	return internal->get(idx);
 }
 
-bool Value::has(string name) {
+bool Value::has(string name) const {
 	if (!isArray() && !isFunction() && !isObject())
 		return false;
 	Value v = get(name);
 	return !v.isUndefined();
 }
 
-bool Value::has(long idx) {
+bool Value::has(long idx) const {
 	if (!isObject() && !isArray())
 		return false;
 	Value v = get(idx);
@@ -597,13 +593,13 @@ bool Value::set(long idx, Value value) {
 	return internal->set(idx, value);
 }
 
-set<string> Value::enumerate() {
+set<string> Value::enumerate() const {
 	if (!isArray() && !isFunction() && !isObject())
 		return std::set<string>();
 	return internal->enumerate();
 }
 
-long Value::length() {
+long Value::length() const {
 	return get("length").toLong();
 }
 
@@ -642,7 +638,7 @@ bool Value::setPrivate(string key, void *priv) {
 	return setPrivate(key, priv, NULL);
 }
 
-void* Value::getPrivate(string key) {
+void* Value::getPrivate(string key) const {
 	PrivateMap* pm;
 	if (!internal->supportsPrivate()) return NULL;
 	if (!(pm = internal->getPrivateMap())) return NULL;

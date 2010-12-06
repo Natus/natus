@@ -59,11 +59,13 @@ static bool setup_argv(Value& base) {
 
 class EnvClass : public Class {
 public:
-	EnvClass() : Class(Class::Object) {}
+	virtual Class::Flags getFlags () {
+		return Class::FlagObject;
+	}
 
-	virtual bool del(Value& obj, string name) {
+	virtual Value del(Value& obj, string name) {
 		unsetenv(name.c_str());
-		return true;
+		return obj.newBool(true);
 	}
 
 	virtual Value get(Value& obj, string name) {
@@ -71,9 +73,9 @@ public:
 		return value ? obj.newString(value) : obj.newUndefined();
 	}
 
-	virtual bool set(Value& obj, string name, Value& value) {
+	virtual Value set(Value& obj, string name, Value& value) {
 		setenv(name.c_str(), value.toString().c_str(), true);
-		return true;
+		return obj.newBool(true);
 	}
 
 	virtual Value enumerate(Value& obj) {

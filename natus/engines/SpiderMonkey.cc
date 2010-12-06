@@ -22,7 +22,7 @@
  */
 
 #include <cassert>
-#include <iostream>
+#include <cstring>
 
 #include <jsapi.h>
 
@@ -38,6 +38,24 @@ static JSBool obj_call(JSContext *ctx, uintN argc, jsval *vp);
 static JSBool obj_new (JSContext *ctx, uintN argc, jsval *vp);
 static JSBool fnc_call(JSContext *ctx, uintN argc, jsval *vp);
 
+class CFP : public ClassFuncPrivate {
+public:
+	JSClass smcls;
+	CFP() {
+		memset(&smcls, 0, sizeof(JSClass));
+		smcls.name        = "Object";
+		smcls.flags       = JSCLASS_HAS_PRIVATE;
+		smcls.addProperty = JS_PropertyStub;
+		smcls.delProperty = JS_PropertyStub;
+		smcls.getProperty = JS_PropertyStub;
+		smcls.setProperty = JS_PropertyStub;
+		smcls.enumerate   = JS_EnumerateStub;
+		smcls.resolve     = JS_ResolveStub;
+		smcls.convert     = JS_ConvertStub;
+		smcls.finalize    = JS_FinalizeStub;
+	}
+};
+
 static void finalize(JSContext *ctx, JSObject *obj) {
 	if (JS_ObjectIsFunction(ctx, obj)) {
 		jsval val;
@@ -46,7 +64,7 @@ static void finalize(JSContext *ctx, JSObject *obj) {
 		if (!obj) return;
 	}
 
-	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JS_GetPrivate(ctx, obj);
+	CFP *cfp = (CFP *) JS_GetPrivate(ctx, obj);
 	delete cfp;
 }
 
@@ -54,19 +72,7 @@ static JSClass glbdef = { "global", JSCLASS_GLOBAL_FLAGS, JS_PropertyStub,
 		JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_EnumerateStub,
 		JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub, };
 
-static JSClass stkdef = { "Object", JSCLASS_HAS_PRIVATE, JS_PropertyStub,
-		JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_EnumerateStub,
-		JS_ResolveStub, JS_ConvertStub, finalize };
-
-static JSClass clldef = { "CallableObject", JSCLASS_HAS_PRIVATE | JSCLASS_NEW_ENUMERATE, JS_PropertyStub,
-		obj_del, obj_get, obj_set, (JSEnumerateOp) obj_enum,
-		JS_ResolveStub, JS_ConvertStub, finalize, NULL, NULL, obj_call, obj_new };
-
-static JSClass objdef = { "Object", JSCLASS_HAS_PRIVATE | JSCLASS_NEW_ENUMERATE, JS_PropertyStub,
-		obj_del, obj_get, obj_set, (JSEnumerateOp) obj_enum,
-		JS_ResolveStub, JS_ConvertStub, finalize };
-
-static ClassFuncPrivate* getCFP(JSContext* ctx, jsval val) {
+static CFP* getCFP(JSContext* ctx, jsval val) {
 	JSObject *obj = NULL;
 	if (!JS_ValueToObject(ctx, val, &obj)) return NULL;
 
@@ -81,7 +87,7 @@ static ClassFuncPrivate* getCFP(JSContext* ctx, jsval val) {
 	}
 	if (!obj) return NULL;
 
-	return (ClassFuncPrivate *) JS_GetPrivate(ctx, obj);
+	return (CFP *) JS_GetPrivate(ctx, obj);
 }
 
 static void report_error(JSContext *cx, const char *message,
@@ -146,49 +152,50 @@ public:
 	}
 
 	virtual Value   newFunction(NativeFunction func) {
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
+		CFP *cfp = new CFP();
 		cfp->clss = NULL;
 		cfp->func = func;
 		cfp->glbl = glb;
+		cfp->smcls.finalize = finalize;
+		cfp->smcls.name     = "NativeFunctionInternal";
 
 		JSFunction *fnc = JS_NewFunction(ctx, fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, NULL);
 		JSObject   *obj = JS_GetFunctionObject(fnc);
-		JSObject   *prv = JS_NewObject(ctx, &stkdef, NULL, NULL);
+		JSObject   *prv = JS_NewObject(ctx, &cfp->smcls, NULL, NULL);
 		if (!fnc || !obj || !prv) return newUndefined();
 
 		if (!JS_SetPrivate(ctx, prv, cfp) || !JS_SetReservedSlot(ctx, obj, 0, OBJECT_TO_JSVAL(prv))) {
 			delete cfp;
-			return newUndefined();
+			return newUndefined().toException();
 		}
-
 		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
 	virtual Value   newObject(Class* cls) {
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
+		CFP *cfp = new CFP();
 		cfp->clss = cls;
 		cfp->func = NULL;
 		cfp->glbl = glb;
 
-		// Pick what type of object to build
-		JSClass* clsp;
-		if (!cls)
-			clsp = &stkdef; // Stock object, just a finalizer
-		else if (cls->getFlags() & Class::Callable)
-			clsp = &clldef; // Full class, all methods
-		else if (cls->getFlags() & Class::Object)
-			clsp = &objdef; // Property methods only
-		else
-			assert(false);
+		cfp->smcls.finalize = finalize;
+		if (cls) {
+			Class::Flags flags = cls->getFlags();
+			cfp->smcls.name        = flags & Class::FlagFunction  ? "NativeCallable" : "NativeObject";
+			cfp->smcls.flags       = flags & Class::FlagEnumerate ? JSCLASS_HAS_PRIVATE | JSCLASS_NEW_ENUMERATE : JSCLASS_HAS_PRIVATE;
+			cfp->smcls.delProperty = flags & Class::FlagDelete    ? obj_del  : JS_PropertyStub;
+			cfp->smcls.getProperty = flags & Class::FlagGet       ? obj_get  : JS_PropertyStub;
+			cfp->smcls.setProperty = flags & Class::FlagSet       ? obj_set  : JS_PropertyStub;
+			cfp->smcls.enumerate   = flags & Class::FlagEnumerate ? (JSEnumerateOp) obj_enum : JS_EnumerateStub;
+			cfp->smcls.call        = flags & Class::FlagCall      ? obj_call : NULL;
+			cfp->smcls.construct   = flags & Class::FlagNew       ? obj_new  : NULL;
+		}
 
 		// Build the object
-		JSObject *obj = JS_NewObject(ctx, clsp, NULL, NULL);
+		JSObject* obj = JS_NewObject(ctx, &cfp->smcls, NULL, NULL);
 		if (!obj || !JS_SetPrivate(ctx, obj, cls ? cfp : NULL)) {
 			delete cfp;
-			return newUndefined();
-		} else if (!cls)
-			delete cfp;
-
+			return newUndefined().toException();
+		}
 		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
@@ -371,7 +378,7 @@ public:
 	}
 
 	virtual PrivateMap* getPrivateMap() {
-		ClassFuncPrivate *cfp = getCFP(ctx, val);
+		CFP *cfp = getCFP(ctx, val);
 		if (!cfp) return NULL;
 		return &cfp->priv;
 	}
@@ -453,7 +460,7 @@ static jsval getJSValue(Value& value) {
 }
 
 static JSBool obj_del(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
-	ClassFuncPrivate *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
+	CFP *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
 	if (!cfp || !cfp->clss)
 		return JS_FALSE;
 
@@ -461,16 +468,33 @@ static JSBool obj_del(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 	JS_IdToValue(ctx, id, &key);
 	Value obj  = Value(new SpiderMonkeyEngineValue(cfp->glbl, OBJECT_TO_JSVAL(object)));
 	Value vkey = Value(new SpiderMonkeyEngineValue(cfp->glbl, key));
+	Value res;
 
 	if (vkey.isString())
-		return cfp->clss->del(obj, vkey.toString());
-	//else if (vkey.isNumber())
-	//	return cfp->clss->del(obj, vkey.toLong());
-	assert(false);
+		res = cfp->clss->del(obj, vkey.toString());
+	else if (vkey.isNumber())
+		res = cfp->clss->del(obj, vkey.toLong());
+	else
+		assert(false);
+
+	if (res.isException()) {
+		if (res.isUndefined()) {
+			if (vkey.isString())
+				JS_DeleteProperty(ctx, object, vkey.toString().c_str());
+			else if (vkey.isNumber())
+				JS_DeleteElement(ctx, object, vkey.toInt());
+			else
+				assert(false);
+			return true;
+		}
+		JS_SetPendingException(ctx, getJSValue(res));
+		return false;
+	}
+	return true;
 }
 
 static JSBool obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
-	ClassFuncPrivate *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
+	CFP *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
 	if (!cfp || !cfp->clss) {
 		JS_SetPendingException(ctx, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, "Unable to find native info!")));
 		return JS_FALSE;
@@ -488,12 +512,27 @@ static JSBool obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 	else
 		assert(false);
 
-	*vp = getJSValue(res);
-	return JS_TRUE;
+	if (res.isException()) {
+		if (res.isUndefined()) {
+			if (vkey.isString()) {
+				if (JS_GetProperty(ctx, object, vkey.toString().c_str(), vp))
+					return true;
+			} else if (vkey.isNumber()) {
+				if (JS_GetElement(ctx, object, vkey.toInt(), vp))
+					return true;
+			} else
+				assert(false);
+			*vp = JSVAL_VOID;
+			return true;
+		}
+		JS_SetPendingException(ctx, getJSValue(res));
+		return false;
+	}
+	return true;
 }
 
 static JSBool obj_set(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
-	ClassFuncPrivate *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
+	CFP *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
 	if (!cfp || !cfp->clss) {
 		JS_SetPendingException(ctx, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, "Unable to find native info!")));
 		return JS_FALSE;
@@ -504,12 +543,31 @@ static JSBool obj_set(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 	Value obj  = Value(new SpiderMonkeyEngineValue(cfp->glbl, OBJECT_TO_JSVAL(object)));
 	Value vkey = Value(new SpiderMonkeyEngineValue(cfp->glbl, key));
 	Value val  = Value(new SpiderMonkeyEngineValue(cfp->glbl, *vp));
+	Value res;
 	if (vkey.isString())
-		return cfp->clss->set(obj, vkey.toString(), val);
+		res = cfp->clss->set(obj, vkey.toString(), val);
 	else if (vkey.isNumber())
-		return cfp->clss->set(obj, vkey.toLong(), val);
+		res = cfp->clss->set(obj, vkey.toLong(), val);
 	else
 		assert(false);
+
+	if (res.isException()) {
+		if (res.isUndefined()) {
+			if (vkey.isString()) {
+				if (JS_SetProperty(ctx, object, vkey.toString().c_str(), vp))
+					return true;
+			} else if (vkey.isNumber()) {
+				if (JS_SetElement(ctx, object, vkey.toInt(), vp))
+					return true;
+			} else
+				assert(false);
+			*vp = JSVAL_VOID;
+			return true;
+		}
+		JS_SetPendingException(ctx, getJSValue(res));
+		return false;
+	}
+	return true;
 }
 
 static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, jsval *statep, jsid *idp) {
@@ -535,7 +593,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 	assert(enum_op == JSENUMERATE_INIT);
 	assert(statep);
 
-	ClassFuncPrivate *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
+	CFP *cfp = getCFP(ctx, OBJECT_TO_JSVAL(object));
 	if (!cfp || !cfp->clss) {
 		JS_SetPendingException(ctx, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, "Unable to find native info!")));
 		return JS_FALSE;
@@ -560,7 +618,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 }
 
 static inline JSBool int_call(JSContext *ctx, uintN argc, jsval *vp, bool constr) {
-	ClassFuncPrivate *cfp = getCFP(ctx, JS_CALLEE(ctx, vp));
+	CFP *cfp = getCFP(ctx, JS_CALLEE(ctx, vp));
 	if (!cfp || (!cfp->func && !cfp->clss)){
 		JS_SetPendingException(ctx, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, "Unable to find native info!")));
 		return JS_FALSE;

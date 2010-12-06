@@ -34,6 +34,7 @@
 
 namespace natus {
 using namespace std;
+
 class Value;
 class EngineValue;
 
@@ -66,34 +67,55 @@ public:
 	 * actually do anything.  We may change this later.
 	 */
 	typedef enum {
-		None      = 0,
-		Delete    = 1 << 0,
-		Get       = 1 << 1,
-		Set       = 1 << 2,
-		Enumerate = 1 << 3,
-		Call      = 1 << 4,
-		New       = 1 << 5,
-		Object    = Delete | Get | Set | Enumerate,
-		Function  = Call | New,
-		Callable  = Function | Object
+		FlagNone           = 0,
+		FlagDeleteItem     = 1 << 0,
+		FlagDeleteProperty = 1 << 1,
+		FlagGetItem        = 1 << 2,
+		FlagGetProperty    = 1 << 3,
+		FlagSetItem        = 1 << 4,
+		FlagSetProperty    = 1 << 5,
+		FlagEnumerate      = 1 << 6,
+		FlagCall           = 1 << 7,
+		FlagNew            = 1 << 8,
+		FlagDelete         = FlagDeleteItem | FlagDeleteProperty,
+		FlagGet            = FlagGetItem    | FlagGetProperty,
+		FlagSet            = FlagSetItem    | FlagSetProperty,
+		FlagArray          = FlagDeleteItem     | FlagGetItem     | FlagSetItem     | FlagEnumerate,
+		FlagObject         = FlagDeleteProperty | FlagGetProperty | FlagSetProperty | FlagEnumerate,
+		FlagFunction       = FlagCall | FlagNew,
+		FlagAll            = FlagArray | FlagObject | FlagFunction,
 	} Flags;
 
-	Class(Class::Flags flags=Callable);
-	Class::Flags getFlags();
+	virtual Class::Flags getFlags ();
+	/*
+	 * * Undefined Exception: don't intercept
+	 * * Other Exception: throw exception
+	 * * Otherwise: success
+	 */
+	virtual Value        del      (Value& obj, string name);
+	virtual Value        del      (Value& obj, long idx);
 
-	virtual bool  del      (Value& obj, string name);
-	virtual bool  del      (Value& obj, long idx);
-	virtual Value get      (Value& obj, string name);
-	virtual Value get      (Value& obj, long idx);
-	virtual bool  set      (Value& obj, string name, Value& value);
-	virtual bool  set      (Value& obj, long idx, Value& value);
-	virtual Value enumerate(Value& obj);
-	virtual Value call     (Value& obj, vector<Value> args);
-	virtual Value callNew  (Value& obj, vector<Value> args);
+	/*
+	 * * Undefined Exception: don't intercept
+	 * * Other Exception: throw exception
+	 * * Otherwise: returns value
+	 */
+	virtual Value        get      (Value& obj, string name);
+	virtual Value        get      (Value& obj, long idx);
+
+	/*
+	 * * Undefined Exception: don't intercept
+	 * * Other Exception: throw exception
+	 * * Otherwise: success
+	 */
+	virtual Value        set      (Value& obj, string name, Value& value);
+	virtual Value        set      (Value& obj, long idx, Value& value);
+
+
+	virtual Value        enumerate(Value& obj);
+	virtual Value        call     (Value& obj, vector<Value> args);
+	virtual Value        callNew  (Value& obj, vector<Value> args);
 	virtual ~Class();
-
-protected:
-	Class::Flags flags;
 };
 
 class Engine {
@@ -133,53 +155,53 @@ public:
 	Value            operator[](long index);
 	Value            operator[](string index);
 
-	Value            newBool(bool b);
-	Value            newNumber(double n);
-	Value            newString(string string);
-	Value            newArray(vector<Value> array=vector<Value>());
-	Value            newFunction(NativeFunction func);
-	Value            newObject(Class* cls=NULL);
-	Value            newNull();
-	Value            newUndefined();
-	Value            getGlobal();
-	void             getContext(void **context, void **value);
+	Value            newBool(bool b) const;
+	Value            newNumber(double n) const;
+	Value            newString(string string) const;
+	Value            newArray(vector<Value> array=vector<Value>()) const;
+	Value            newFunction(NativeFunction func) const;
+	Value            newObject(Class* cls=NULL) const;
+	Value            newNull() const;
+	Value            newUndefined() const;
+	Value            getGlobal() const;
+	void             getContext(void **context, void **value) const;
 
-	bool             isGlobal();
-	bool             isException();
-	bool             isArray();
-	bool             isBool();
-	bool             isFunction();
-	bool             isNull();
-	bool             isNumber();
-	bool             isObject();
-	bool             isString();
-	bool             isUndefined();
+	bool             isGlobal() const;
+	bool             isException() const;
+	bool             isArray() const;
+	bool             isBool() const;
+	bool             isFunction() const;
+	bool             isNull() const;
+	bool             isNumber() const;
+	bool             isObject() const;
+	bool             isString() const;
+	bool             isUndefined() const;
 
-	bool             toBool();
-	double           toDouble();
+	bool             toBool() const;
+	double           toDouble() const;
 	Value            toException();
-	int              toInt();
-	long             toLong();
-	string           toString();
-	vector<string>   toStringVector();
+	int              toInt() const;
+	long             toLong() const;
+	string           toString() const;
+	vector<string>   toStringVector() const;
 
 	bool             del(string name);
 	bool             del(long idx);
-	Value            get(string name);
-	Value            get(long idx);
-	bool             has(string name);
-	bool             has(long idx);
+	Value            get(string name) const;
+	Value            get(long idx) const;
+	bool             has(string name) const;
+	bool             has(long idx) const;
 	bool             set(string name, Value value, Value::PropAttrs attrs=None);
 	bool             set(long idx, Value value);
-	std::set<string> enumerate();
+	std::set<string> enumerate() const;
 
-	long             length();
+	long             length() const;
 	long             push(Value value);
 	Value            pop();
 
 	bool             setPrivate(string key, void *priv, FreeFunction free);
 	bool             setPrivate(string key, void *priv);
-	void*            getPrivate(string key);
+	void*            getPrivate(string key) const;
 
 	Value            evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false);
 	Value            call(Value func);
