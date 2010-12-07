@@ -530,6 +530,7 @@ static JSBool obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 		JS_SetPendingException(ctx, getJSValue(res));
 		return false;
 	}
+	*vp = getJSValue(res);
 	return true;
 }
 
