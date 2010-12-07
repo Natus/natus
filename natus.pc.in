@@ -1,9 +1,10 @@
 prefix=@prefix@
 libdir=@libdir@
 includedir=@includedir@
+moduledir=@MODULEDIR@
  
 Name: natus 
 Description: JavaScript meta-engine
 Version: @VERSION@
-Libs: -L${libdir} -lnatus -DNATUS_MODULEDIR=@MODULEDIR@
+Libs: -L${libdir} -lnatus
 Cflags: -I${includedir}
