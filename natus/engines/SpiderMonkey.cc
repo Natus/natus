@@ -274,9 +274,11 @@ public:
 		JSString *s = NULL;
 
 		if (JSVAL_IS_OBJECT(val)) {
-			Value x = this->call(this->get("toString"), vector<Value>());
-			if (x.isString()) {
-				s = JS_ValueToString(ctx, getJSValue(x));
+			Value tmp = this->get("toString");
+			if (tmp.isFunction()) {
+				tmp = this->call(tmp, vector<Value>());
+				if (tmp.isString())
+					s = JS_ValueToString(ctx, getJSValue(tmp));
 			}
 		}
 		if (!s)
