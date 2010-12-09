@@ -38,6 +38,24 @@ static JSBool obj_call(JSContext *ctx, uintN argc, jsval *vp);
 static JSBool obj_new (JSContext *ctx, uintN argc, jsval *vp);
 static JSBool fnc_call(JSContext *ctx, uintN argc, jsval *vp);
 
+static JSBool convert(JSContext *ctx, JSObject *obj, JSType type, jsval *vp) {
+	jsid vid;
+	JS_ValueToId(ctx, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, "toString")), &vid);
+
+	jsval v = JSVAL_VOID;
+	JSClass* jsc = NULL;
+	if ((((jsc = JS_GetClass(ctx, obj))
+			&& jsc->getProperty
+			&& jsc->getProperty != JS_PropertyStub
+			&& jsc->getProperty(ctx, obj, vid, &v))
+			|| JS_GetProperty(ctx, obj, "toString", &v))
+			&& JS_CallFunctionValue(ctx, obj, v, 0, NULL, &v)) {
+		*vp = v;
+		return JS_TRUE;
+	}
+	return JS_FALSE;
+}
+
 class CFP : public ClassFuncPrivate {
 public:
 	JSClass smcls;
@@ -53,6 +71,7 @@ public:
 		smcls.resolve     = JS_ResolveStub;
 		smcls.convert     = JS_ConvertStub;
 		smcls.finalize    = JS_FinalizeStub;
+		smcls.convert     = convert;
 	}
 };
 
@@ -271,22 +290,14 @@ public:
 	}
 
 	virtual string  toString() {
-		JSString *s = NULL;
-
-		if (JSVAL_IS_OBJECT(val)) {
-			Value tmp = this->get("toString");
-			if (tmp.isFunction()) {
-				tmp = this->call(tmp, vector<Value>());
-				if (tmp.isString())
-					s = JS_ValueToString(ctx, getJSValue(tmp));
-			}
-		}
-		if (!s)
-			s = JS_ValueToString(ctx, val);
-		assert(s);
-		string foo = string(JS_GetStringBytes(s));
-
-		return foo;
+		JSClass* jsc = NULL;
+		jsval v;
+		if (!JSVAL_IS_OBJECT(val)
+				|| !(jsc = JS_GetClass(ctx, toJSObject()))
+				|| !jsc->convert
+				|| !jsc->convert(ctx, toJSObject(), JSTYPE_STRING, &v))
+			JS_ConvertValue(ctx, val, JSTYPE_STRING, &v);
+		return JS_GetStringBytes(JS_ValueToString(ctx, v));
 	}
 
 	virtual bool    del(string name) {
