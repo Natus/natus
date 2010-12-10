@@ -43,6 +43,7 @@
 #define PKGSUFFIX  "__init__" SCRSUFFIX
 #define URIPREFIX  "file://"
 #define NFSUFFIX   " not found!"
+#define NATUS_REQUIRE "natus.require"
 
 namespace natus {
 
@@ -154,71 +155,94 @@ static bool do_load_dir(string dirname, bool reqsym, EngineSpec** enginespec, vo
 	return res;
 }
 
-static Value require_file(Value *ctx, string abspath, string id, bool sandbox) {
+static Value require_file(Value base, string abspath) {
 	// Stat our file
 	struct stat st;
 	if (stat(abspath.c_str(), &st))
-		return ctx->newUndefined().toException();
+		return base.newUndefined().toException();
 
-	// Setup our import environment
-	Value::PropAttrs fixed = (Value::PropAttrs) (Value::DontDelete | Value::ReadOnly);
-	Value base    = ctx->newObject();
-	Value exports = ctx->newObject();
-	Value module  = ctx->newObject();
-	if (base.isUndefined() || exports.isUndefined() || module.isUndefined()) return ctx->newUndefined().toException();
-	if (!base.set("exports", exports, fixed))                                return ctx->newUndefined().toException();
-	if (!base.set("module", module, fixed))                                  return ctx->newUndefined().toException();
-	if (!module.set("id", ctx->newString(id), fixed))                        return ctx->newUndefined().toException();
-	if (!base.set("require", ctx->get("require"), fixed))                    return ctx->newUndefined().toException();
-	if (!sandbox)
-		if (!module.set("uri", ctx->newString(URIPREFIX+abspath), fixed))
-			return ctx->newUndefined().toException();
+	Value require = base.getGlobal().get("require");
+
+	if (!require.get("paths").isUndefined())
+		base.get("module").set("uri", base.newString(URIPREFIX+abspath), Value::Constant);
 
 	// If we have a binary module -- .so/.dll
 	if (abspath.substr(abspath.length() - string(MODSUFFIX).length(), string(MODSUFFIX).length()) == MODSUFFIX) {
 		void *dll = dlopen(abspath.c_str(), RTLD_NOW | RTLD_GLOBAL);
 		if (!dll)
-			return ctx->newString(dlerror()).toException();
+			return base.newString(dlerror()).toException();
 
-
-		RequireInternal* ri = ((RequireInternal*) ctx->getGlobal().get("require").getPrivate("natus_require"));
+		RequireInternal* ri = ((RequireInternal*) base.getGlobal().get("require").getPrivate(NATUS_REQUIRE));
 		if (ri) ri->push(abspath);
 		bool (*load)(Value&) = (bool (*)(Value&)) dlsym(dll, "natus_require");
 		if (!load || !load(base)) {
 			if (ri) ri->pop();
 			dlclose(dll);
-			return ctx->newString("Module initialization failed!").toException();
+			return base.newString("Module initialization failed!").toException();
 		}
 		if (ri) ri->pop();
-		// Leak the dll, maybe tackle this later?
+		base.get("exports").setPrivate("natus.Module", dll, (FreeFunction) dlclose);
 
-		exports.set("module", module, fixed);
-		return exports;
+		return base;
 	}
 
 	// If we have a javascript text module
 	ifstream file(abspath.c_str());
-	if (!file.is_open()) return ctx->newUndefined().toException();
+	if (!file.is_open()) return base.newUndefined().toException();
 	char *jscript = new char[st.st_size + 1];
 	file.read(jscript, st.st_size);
 	if (!file.good() && !file.eof()) {
 		file.close();
 		delete jscript;
-		return ctx->newString("Error reading file!").toException();
+		return base.newString("Error reading file!").toException();
 	}
 	file.close();
 
-	Value res = ctx->evaluate(jscript, abspath, 0, true);
+	Value res = base.evaluate(jscript, abspath, 0, true);
 	delete[] jscript;
 	if (res.isException())
 		return res;
-	exports.set("module", module, fixed);
-	return exports;
+	return base;
+}
+
+static Value internal_require(Value& module, string& name, string& reldir, vector<string>& path) {
+	vector<string> relpath;
+	if (reldir.size() > 0)
+		relpath.push_back(reldir);
+
+	// Use the relative path
+	if (name.substr(0, 2) == "./" || name.substr(0, 3) == "../")
+		path = relpath;
+
+	Value res;
+	for (unsigned int i=0 ; i < path.size() ; i++) {
+		string abspath = path[i] + "/" + name;
+		abspath = abspath.substr(0, abspath.find_last_not_of('/')+1); // rstrip '/'
+
+		// .so/.dll
+		res = require_file(module, abspath+MODSUFFIX);
+
+		// .js
+		if (res.isUndefined()) {
+			res = require_file(module, abspath+SCRSUFFIX);
+
+			// /__init__.js
+			if (res.isUndefined())
+				res = require_file(module, abspath+"/"+PKGSUFFIX);
+		}
+		if (!res.isUndefined()) break;
+	}
+
+	if (!res.isUndefined())
+		return res;
+
+	// Throw not found exception
+	return module.newString(name + NFSUFFIX).toException();
 }
 
 static Value require_js(Value& ths, Value& fnc, vector<Value>& arg) {
 	// Get the private value
-	void* msc = fnc.getPrivate("natus_require");
+	void* msc = fnc.getPrivate(NATUS_REQUIRE);
 
 	// Get the required name argument
 	if (arg.size() < 1 || !arg[0].isString())
@@ -354,7 +378,7 @@ Value Engine::newGlobal(vector<string> path, vector<string> whitelist) {
 	if (path.size() > 0) {
 		RequireInternal* ri = new RequireInternal(path, whitelist);
 		Value require = global.newFunction(require_js);
-		require.setPrivate("natus_require", ri, RequireInternal::free);
+		require.setPrivate(NATUS_REQUIRE, ri, RequireInternal::free);
 
 		if (whitelist.size() == 0) {
 			vector<Value> pathv;
@@ -655,7 +679,7 @@ Value Value::evaluate(string jscript, string filename, unsigned int lineno, bool
 		jscript = jscript.substr(jscript.find_first_of('\n')+1);
 
 	Value gl = getGlobal();
-	RequireInternal* ri = (RequireInternal*) gl.get("require").getPrivate("natus_require");
+	RequireInternal* ri = (RequireInternal*) gl.get("require").getPrivate(NATUS_REQUIRE);
 	if (ri && !filename.empty()) ri->push(filename);
 
 	Value v = internal->evaluate(jscript, filename, lineno, shift);
@@ -705,41 +729,6 @@ Value Value::callNew(string func, vector<Value> args) {
 	return get(func).callNew(args);
 }
 
-Value Value::require(string name, string reldir, vector<string> path) {
-	vector<string> relpath;
-	if (reldir.size() > 0)
-		relpath.push_back(reldir);
-
-	// Use the relative path
-	if (name.substr(0, 2) == "./" || name.substr(0, 3) == "../")
-		path = relpath;
-
-	Value module = newUndefined();
-	for (unsigned int i=0 ; i < path.size() ; i++) {
-		string abspath = path[i] + "/" + name;
-		abspath = abspath.substr(0, abspath.find_last_not_of('/')+1); // rstrip '/'
-
-		// .so/.dll
-		module = require_file(this, abspath+MODSUFFIX, name, false);
-
-		// .js
-		if (module.isUndefined()) {
-			module = require_file(this, abspath+SCRSUFFIX, name, false);
-
-			// /__init__.js
-			if (module.isUndefined())
-				module = require_file(this, abspath+"/"+PKGSUFFIX, name, false);
-		}
-		if (!module.isUndefined()) break;
-	}
-
-	if (!module.isUndefined())
-		return module;
-
-	// Throw not found exception
-	return newString(name + NFSUFFIX).toException();
-}
-
 Value   Value::fromJSON(string json) {
 	vector<Value> args;
 	args.push_back(newString(json));
@@ -754,10 +743,23 @@ string  Value::toJSON() {
 	return obj.call("stringify", args).toString();
 }
 
+Value Value::require(string name, string reldir, vector<string> path) {
+	return internal->require(name, reldir, path);
+}
+
+void Value::addRequireHook(bool post, RequireFunction func, void* misc, FreeFunction free) {
+	internal->addRequireHook(post, func, misc, free);
+}
+
+void Value::delRequireHook(RequireFunction func) {
+	internal->delRequireHook(func);
+}
+
 EngineValue::EngineValue(EngineValue* glb, bool exception) {
 	this->glb = glb;
 	refCnt = 0;
 	exc = exception;
+	if (this != glb) glb->incRef();
 }
 
 void EngineValue::incRef() {
@@ -781,6 +783,70 @@ bool EngineValue::isException() {
 
 Value EngineValue::getGlobal() {
 	return Value(glb);
+}
+
+Value EngineValue::require(string name, string reldir, vector<string> path) {
+	// Setup our import environment
+	Value res;
+	Value base    = glb->newObject(NULL);
+	Value exports = glb->newObject(NULL);
+	Value module  = glb->newObject(NULL);
+	if (base.isUndefined() || exports.isUndefined() || module.isUndefined()) goto notfound;
+	if (!base.set("exports", exports, Value::Constant))                      goto notfound;
+	if (!base.set("module", module, Value::Constant))                        goto notfound;
+	if (!module.set("id", glb->newString(name), Value::Constant))            goto notfound;
+	if (!base.set("require", glb->get("require"), Value::Constant))          goto notfound;
+
+	// Go through the pre hooks
+	for (list<RequireHook>::iterator hook=hooks.begin() ; hook != hooks.end() ; hook++) {
+		if (hook->post) continue;
+		res = hook->func(base, name, reldir, path, hook->misc);
+		if (res.isException())
+			return res;
+		else if (!res.isUndefined())
+			goto modfound;
+	}
+
+	// If none of the pre-hooks found the module, use the internal loader
+	res = internal_require(base, name, reldir, path);
+	if (res.isException())
+		return res;
+	else if (!res.isUndefined())
+		goto modfound;
+
+	// Module not found
+	notfound:
+		return newString(name + NFSUFFIX).toException();
+
+	// Module found
+	modfound:
+		exports.set("module", module, Value::Constant);
+		for (list<RequireHook>::iterator hook=hooks.begin() ; hook != hooks.end() ; hook++) {
+			if (!hook->post) continue;
+			Value exc = hook->func(exports, name, reldir, path, hook->misc);
+			if (exc.isException())
+				return exc;
+		}
+		return exports;
+}
+
+void EngineValue::addRequireHook(bool post, RequireFunction func, void* misc, FreeFunction free) {
+	RequireHook hook = { post, func, free, misc };
+	hooks.push_back(hook);
+}
+
+void EngineValue::delRequireHook(RequireFunction func) {
+	for (list<RequireHook>::iterator hook=hooks.begin() ; hook != hooks.end() ; hook++) {
+		if (hook->func == func) {
+			if (hook->free && hook->misc)
+				hook->free(hook->misc);
+			hooks.erase(hook);
+		}
+	}
+}
+
+EngineValue::~EngineValue() {
+	if (this != glb) glb->decRef();
 }
 
 }

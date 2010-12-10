@@ -148,6 +148,18 @@ static char** completion(const char* text, int start, int end) {
 	return rl_completion_matches(text, completion_generator);
 }
 
+Value set_path(Value& module, string& name, string& reldir, vector<string>& path, void* misc) {
+	const char** argv = (const char **) misc;
+	Value ret = module.newUndefined();
+	if (name != "system") return ret;
+	Value args = module.get("args");
+	if (!args.isArray()) return ret;
+
+	for (int i=0 ; argv[i] ; i++)
+		args.push(module.newString(argv[i]));
+	return ret;
+}
+
 int main(int argc, char** argv) {
 	const char *eng = NULL;
 	const char *eval = NULL;
@@ -155,9 +167,11 @@ int main(int argc, char** argv) {
 
 	vector<string> path = pathparser(string(__str(MODULEDIR)) + ":" + (getenv("NATUS_PATH") ? getenv("NATUS_PATH") : ""));
 	vector<string> whitelist = pathparser(getenv("NATUS_WHITELIST") ? getenv("NATUS_WHITELIST") : "");
+	if (strstr(argv[0], "natus-") == argv[0])
+		eng = strchr(argv[0], '-')+1;
 
 	opterr = 0;
-	while ((c = getopt (argc, argv, "c:e:n")) != -1) {
+	while ((c = getopt (argc, argv, "+c:e:n")) != -1) {
 		switch (c) {
 		case 'c':
 			eval = optarg;
@@ -289,6 +303,7 @@ int main(int argc, char** argv) {
 	jscript[st.st_size] = '\0';
 
 	// Evaluate it
+	global.addRequireHook(true, set_path, argv+optind);
 	Value res = global.evaluate(jscript, filename ? filename : "");
 	delete[] jscript;
 
