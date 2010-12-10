@@ -57,6 +57,8 @@ typedef ntValue *(*ntNativeFunction)(ntValue *ths, ntValue *fnc, ntValue **arg);
  */
 typedef void (*ntFreeFunction)(void *mem);
 
+typedef ntValue* (*ntRequireFunction)(ntValue* module, const char* name, const char* reldir, const char** path, void* misc);
+
 typedef enum {
 	ntPropAttrNone       = 0,
 	ntPropAttrReadOnly   = 1 << 0,
@@ -142,9 +144,11 @@ ntValue          *nt_call_name(ntValue *ths, const char *name, ntValue **args);
 ntValue          *nt_new(ntValue *func, ntValue **args);
 ntValue          *nt_new_name(ntValue *ths, const char *name, ntValue **args);
 
-ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir, const char **path);
 ntValue          *nt_from_json(ntValue *ctx, const char *json);
 char             *nt_to_json(ntValue *obj);
+
+ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir, const char **path);
+void              nt_add_require_hook(ntValue* ctx, bool post, ntRequireFunction func, void* misc=NULL, ntFreeFunction free=NULL);
 
 #ifdef __cplusplus
 } /* extern "C" */

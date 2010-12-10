@@ -751,10 +751,6 @@ void Value::addRequireHook(bool post, RequireFunction func, void* misc, FreeFunc
 	internal->addRequireHook(post, func, misc, free);
 }
 
-void Value::delRequireHook(RequireFunction func) {
-	internal->delRequireHook(func);
-}
-
 EngineValue::EngineValue(EngineValue* glb, bool exception) {
 	this->glb = glb;
 	refCnt = 0;
@@ -833,16 +829,6 @@ Value EngineValue::require(string name, string reldir, vector<string> path) {
 void EngineValue::addRequireHook(bool post, RequireFunction func, void* misc, FreeFunction free) {
 	RequireHook hook = { post, func, free, misc };
 	hooks.push_back(hook);
-}
-
-void EngineValue::delRequireHook(RequireFunction func) {
-	for (list<RequireHook>::iterator hook=hooks.begin() ; hook != hooks.end() ; hook++) {
-		if (hook->func == func) {
-			if (hook->free && hook->misc)
-				hook->free(hook->misc);
-			hooks.erase(hook);
-		}
-	}
 }
 
 EngineValue::~EngineValue() {

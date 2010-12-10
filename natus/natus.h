@@ -219,7 +219,6 @@ public:
 
 	Value            require(string name, string reldir, vector<string> path);
 	void             addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
-	void             delRequireHook(RequireFunction func);
 
 protected:
 	EngineValue *internal;

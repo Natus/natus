@@ -110,7 +110,6 @@ public:
 	// Methods that mirror Value's methods and are implemented here
 	Value                    require(string name, string reldir, vector<string> path);
 	void                     addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
-	void                     delRequireHook(RequireFunction func);
 
 	// Non-Value methods that need to be implemented by Engines
 	virtual bool             supportsPrivate()=0;
