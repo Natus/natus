@@ -611,10 +611,42 @@ bool Value::set(string name, Value value, Value::PropAttrs attrs) {
 	return get(name.substr(0, name.find_first_of('.'))).set(name.substr(name.find_first_of('.')+1), value, attrs);
 }
 
+bool Value::set(string name, int value, Value::PropAttrs attrs) {
+	return set(name, newNumber(value), attrs);
+}
+
+bool Value::set(string name, double value, Value::PropAttrs attrs) {
+	return set(name, newNumber(value), attrs);
+}
+
+bool Value::set(string name, string value, Value::PropAttrs attrs) {
+	return set(name, newString(value), attrs);
+}
+
+bool Value::set(string name, NativeFunction value, Value::PropAttrs attrs) {
+	return set(name, newFunction(value), attrs);
+}
+
 bool Value::set(long idx, Value value) {
 	if (!isArray() && !isFunction() && !isObject())
 		return false;
 	return internal->set(idx, value);
+}
+
+bool Value::set(long idx, int value) {
+	return set(idx, newNumber(value));
+}
+
+bool Value::set(long idx, double value) {
+	return set(idx, newNumber(value));
+}
+
+bool Value::set(long idx, string value) {
+	return set(idx, newString(value));
+}
+
+bool Value::set(long idx, NativeFunction value) {
+	return set(idx, newFunction(value));
 }
 
 set<string> Value::enumerate() const {

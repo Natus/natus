@@ -193,7 +193,15 @@ public:
 	bool             has(string name) const;
 	bool             has(long idx) const;
 	bool             set(string name, Value value, Value::PropAttrs attrs=None);
+	bool             set(string name, int value, Value::PropAttrs attrs=None);
+	bool             set(string name, double value, Value::PropAttrs attrs=None);
+	bool             set(string name, string value, Value::PropAttrs attrs=None);
+	bool             set(string name, NativeFunction value, Value::PropAttrs attrs=None);
 	bool             set(long idx, Value value);
+	bool             set(long idx, int value);
+	bool             set(long idx, double value);
+	bool             set(long idx, string value);
+	bool             set(long idx, NativeFunction value);
 	std::set<string> enumerate() const;
 
 	long             length() const;
