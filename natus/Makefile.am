@@ -5,7 +5,7 @@ natincdir = $(includedir)/$(PACKAGE_NAME)
 noinst_PROGRAMS = tests
 bin_PROGRAMS    = natus
 lib_LTLIBRARIES = libnatus.la
-natinc_HEADERS  = natus.h engine.h
+natinc_HEADERS  = natus.h natusc.h engine.h
 
 libnatus_la_SOURCES = natus.cc natusc.cc natus.h natusc.h engine.h 
 libnatus_la_CXXFLAGS = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir)
