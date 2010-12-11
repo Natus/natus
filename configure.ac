@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(natus, 0.1.2)
+AC_INIT(natus, 0.1.3)
 AC_SUBST(PACKAGE_NAME)
 
 AC_CANONICAL_SYSTEM
