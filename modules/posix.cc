@@ -9,6 +9,8 @@
 #include <sys/statvfs.h>
 #include <sys/times.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
+#include <utime.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <signal.h>
@@ -22,6 +24,62 @@ using namespace natus;
 #define doexc() ths.newString(strerror(errno)).toException()
 #define doval(code, val) (code == 0 ? val : doexc())
 #define doerr(code) return doval(code, ths.newUndefined())
+
+static Value posix_WCOREDUMP(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newBool(WCOREDUMP(status));
+}
+
+static Value posix_WEXITSTATUS(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newNumber(WEXITSTATUS(status));
+}
+
+static Value posix_WIFCONTINUED(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newBool(WIFCONTINUED(status));
+}
+
+static Value posix_WIFEXITED(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newBool(WIFEXITED(status));
+}
+
+static Value posix_WIFSIGNALED(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newBool(WIFSIGNALED(status));
+}
+
+static Value posix_WIFSTOPPED(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newBool(WIFSTOPPED(status));
+}
+
+static Value posix_WSTOPSIG(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newNumber(WSTOPSIG(status));
+}
+
+static Value posix_WTERMSIG(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	int status = arg[0].toInt();
+	return ths.newNumber(WTERMSIG(status));
+}
 
 static Value posix_abort(Value& ths, Value& fnc, vector<Value>& arg) {
 	abort();
@@ -809,7 +867,7 @@ static Value posix_tmpnam(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_ttyname(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
 	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
 
 	const char* name = ttyname(arg[0].toInt());
@@ -818,7 +876,7 @@ static Value posix_ttyname(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_umask(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
+	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
 	if (!arg[0].isNumber()) return ths.newString("mask must be a number!").toException();
 
 	return ths.newNumber(umask(arg[0].toInt()));
@@ -844,6 +902,54 @@ static Value posix_unlink(Value& ths, Value& fnc, vector<Value>& arg) {
 	doerr(unlink(arg[0].toString().c_str()));
 }
 
+static Value posix_utime(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	if (arg[1].isNull())
+		doerr(utime(arg[0].toString().c_str(), NULL));
+	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[1].isNumber()) return ths.newString("atime must be a number!").toException();
+	if (!arg[2].isNumber()) return ths.newString("mtime must be a number!").toException();
+
+	struct utimbuf buf = {
+		arg[1].toInt(),
+		arg[2].toInt(),
+	};
+	doerr(utime(arg[0].toString().c_str(), &buf));
+}
+
+static Value posix_wait(Value& ths, Value& fnc, vector<Value>& arg) {
+	int status;
+	pid_t pid = wait(&status);
+	if (pid < 0) return doexc();
+	Value ret = ths.newArray();
+	ret.push(ths.newNumber(pid));
+	ret.push(ths.newNumber(status));
+	return ret;
+}
+
+static Value posix_waitpid(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("pid must be a number!").toException();
+	if (!arg[1].isNumber()) return ths.newString("options must be a number!").toException();
+	int status;
+	pid_t pid = waitpid(arg[0].toInt(), &status, arg[1].toInt());
+	if (pid < 0) return doexc();
+	Value ret = ths.newArray();
+	ret.push(ths.newNumber(pid));
+	ret.push(ths.newNumber(status));
+	return ret;
+}
+
+static Value posix_write(Value& ths, Value& fnc, vector<Value>& arg) {
+	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
+	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	if (!arg[1].isString()) return ths.newString("string must be a string!").toException();
+	string str = arg[1].toString();
+	ssize_t size = write(arg[0].toInt(), str.c_str(), str.length());
+	if (size < 0) return doexc();
+	return ths.newNumber(size);
+}
 
 #define OK(x) ok = (x) || ok
 #define NCONST(macro) OK(base.set("exports." # macro, macro))
@@ -853,6 +959,14 @@ extern "C" bool natus_require(Value& base) {
 	bool ok = false;
 
 	// Functions
+	NFUNC(WCOREDUMP);
+	NFUNC(WEXITSTATUS);
+	NFUNC(WIFCONTINUED);
+	NFUNC(WIFEXITED);
+	NFUNC(WIFSIGNALED);
+	NFUNC(WIFSTOPPED);
+	NFUNC(WSTOPSIG);
+	NFUNC(WTERMSIG);
 	NFUNC(abort);
 	NFUNC(access);
 	NFUNC(chdir);
@@ -943,6 +1057,10 @@ extern "C" bool natus_require(Value& base) {
 	NFUNC(umask);
 	NFUNC(uname);
 	NFUNC(unlink);
+	NFUNC(utime);
+	NFUNC(wait);
+	NFUNC(waitpid);
+	NFUNC(write);
 
 	// Constants
 	NCONST(EX_CANTCREAT);
