@@ -97,14 +97,25 @@ public:
 		PyObject* pyobj = (PyObject*) obj.getPrivate("python");
 		assert(pyobj);
 
-		// Translate to python's __str__() method
-		if (name == "toString")
-			name = "__str__";
-
-		PyObject *rval = PyObject_GetAttrString(pyobj, name.c_str());
+		// First check to see if the attribute exists
+		const char* attr = name.c_str();
+		PyObject *rval = PyObject_GetAttrString(pyobj, attr);
 		if (PyErr_Occurred()) {
 			PyErr_Clear();
-			return obj.newUndefined();
+			// If the attribute doesn't exist, lets try to do some fun
+			// translations to python standard methods
+			bool call = false;
+			if (string(attr) == "toString") attr = "__str__";          else
+			if (string(attr) == "length")   call = (attr = "__len__");
+
+			if (call)
+				rval = PyObject_CallMethod(pyobj, (char*) attr, NULL);
+			else
+				rval = PyObject_GetAttrString(pyobj, attr);
+			if (PyErr_Occurred()) {
+				PyErr_Clear();
+				return obj.newUndefined();
+			}
 		}
 		return value_from_pyobject(obj, rval);
 	}
@@ -184,10 +195,13 @@ public:
 		PyObject *res = PyObject_Call(pyobj, argt, NULL);
 		Py_XDECREF(argt);
 		if (!res) {
-			res = PyErr_Occurred();
-			if (res) {
-				Py_XINCREF(res);
-				return value_from_pyobject(obj, res).toException();
+			if (PyErr_Occurred()) {
+				PyObject *type=NULL, *val=NULL, *tb=NULL;
+				PyErr_Fetch(&type, &val, &tb);
+				if (val) {
+					Py_XINCREF(val);
+					return value_from_pyobject(obj, val).toException();
+				}
 			}
 			return obj.newUndefined();
 		}

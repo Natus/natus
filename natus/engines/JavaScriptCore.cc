@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/engine.h>
@@ -71,6 +72,13 @@ public:
 class JavaScriptCoreEngineValue : public EngineValue {
 	friend JSValueRef getJSValue(Value& value);
 public:
+	static EngineValue* getInstance(EngineValue* glb, JSValueRef val, bool exc=false)  {
+		JSContextRef ctx = static_cast<JavaScriptCoreEngineValue*>(glb)->ctx;
+		if (JSContextGetGlobalObject(ctx) == val)
+			return glb;
+		return new JavaScriptCoreEngineValue(glb, val, exc);
+	}
+
 	JavaScriptCoreEngineValue(JSContextRef ctx) : EngineValue(this, false) {
 		isArrayType = 0;
 		this->ctx = ctx;
@@ -100,15 +108,15 @@ public:
 	}
 
 	virtual Value   newBool(bool b) {
-		return Value(new JavaScriptCoreEngineValue(glb, JSValueMakeBoolean(ctx, b)));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, JSValueMakeBoolean(ctx, b)));
 	}
 
 	virtual Value   newNumber(double n) {
-		return Value(new JavaScriptCoreEngineValue(glb, JSValueMakeNumber(ctx, n)));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, JSValueMakeNumber(ctx, n)));
 	}
 
 	virtual Value   newString(string str) {
-		return Value(new JavaScriptCoreEngineValue(glb, JSValueMakeString(ctx, JSStringCreateWithUTF8CString(str.c_str()))));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, JSValueMakeString(ctx, JSStringCreateWithUTF8CString(str.c_str()))));
 	}
 
 	virtual Value   newArray(vector<Value> array) {
@@ -117,7 +125,7 @@ public:
 			vals[i] = getJSValue(array[i]);
 		JSObjectRef obj = JSObjectMakeArray(ctx, array.size(), vals, NULL);
 		delete[] vals;
-		return Value(new JavaScriptCoreEngineValue(glb, obj));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, obj));
 	}
 
 	virtual Value   newFunction(NativeFunction func) {
@@ -128,7 +136,7 @@ public:
 
 		JSValueRef val = (JSValueRef) JSObjectMake(ctx, fnccls, cfp);
 		if (!val) delete cfp;
-		return Value(new JavaScriptCoreEngineValue(glb, val));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, val));
 	}
 
 	virtual Value   newObject(Class* cls) {
@@ -160,15 +168,15 @@ public:
 			delete cfp;
 			return newUndefined().toException();
 		}
-		return Value(new JavaScriptCoreEngineValue(glb, obj));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, obj));
 	}
 
 	virtual Value   newNull() {
-		return Value(new JavaScriptCoreEngineValue(glb, JSValueMakeNull(ctx)));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, JSValueMakeNull(ctx)));
 	}
 
 	virtual Value   newUndefined() {
-		return Value(new JavaScriptCoreEngineValue(glb, JSValueMakeUndefined(ctx)));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, JSValueMakeUndefined(ctx)));
 	}
 
 	virtual Value   evaluate(string jscript, string filename, unsigned int lineno=0, bool shift=false) {
@@ -179,7 +187,7 @@ public:
 		JSStringRelease(strjscript);
 		JSStringRelease(strfilename);
 
-		return Value(new JavaScriptCoreEngineValue(glb, exc == NULL ? rval : exc, exc != NULL));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, exc == NULL ? rval : exc, exc != NULL));
 	}
 
 	virtual Value   getGlobal() {
@@ -192,7 +200,7 @@ public:
 	}
 
 	virtual bool    isGlobal() {
-		return JSContextGetGlobalObject(ctx) == val;
+		return JSContextGetGlobalObject(ctx) == toJSObject();
 	}
 
 	virtual bool    isArray() {
@@ -284,13 +292,13 @@ public:
 		JSStringRef str = JSStringCreateWithUTF8CString(name.c_str());
 		JSValueRef  val = JSObjectGetProperty(ctx, toJSObject(), str, NULL);
 		JSStringRelease(str);
-		return Value(new JavaScriptCoreEngineValue(glb, val));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, val));
 	}
 
 	virtual Value   get(long idx) {
 		JSValueRef val = JSObjectGetPropertyAtIndex(ctx, toJSObject(), idx, NULL);
 		if (!val) return newUndefined();
-		return Value(new JavaScriptCoreEngineValue(glb, val));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, val));
 	}
 
 	virtual bool    set(string name, Value value, Value::PropAttrs attrs) {
@@ -350,7 +358,7 @@ public:
 				toJSObject(), args.size(), argv, &exc);
 		delete[] argv;
 
-		return Value(new JavaScriptCoreEngineValue(glb, exc == NULL ? rval : exc, exc != NULL));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, exc == NULL ? rval : exc, exc != NULL));
 	}
 
 	virtual Value   callNew(vector<Value> args) {
@@ -365,7 +373,7 @@ public:
 		rval = JSObjectCallAsConstructor(ctx, toJSObject(), args.size(), argv, &exc);
 		delete[] argv;
 
-		return Value(new JavaScriptCoreEngineValue(glb, exc == NULL ? rval : exc, exc != NULL));
+		return Value(JavaScriptCoreEngineValue::getInstance(glb, exc == NULL ? rval : exc, exc != NULL));
 	}
 
 private:
@@ -408,10 +416,10 @@ static JSValueRef fnc_call(JSContextRef ctx, JSObjectRef function, JSObjectRef t
 	// Allocate our array of arguments
 	vector<Value> args = vector<Value>();
 	for (unsigned int i=0; i < argumentCount ; i++)
-		args.push_back(Value(new JavaScriptCoreEngineValue(cfp->glbl, arguments[i])));
+		args.push_back(Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, arguments[i])));
 
-	Value fnc = Value(new JavaScriptCoreEngineValue(cfp->glbl, function));
-	Value ths = thisObject ? Value(new JavaScriptCoreEngineValue(cfp->glbl, thisObject)) : fnc.newUndefined();
+	Value fnc = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, function));
+	Value ths = thisObject ? Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, thisObject)) : fnc.newUndefined();
 	Value res = cfp->func(ths, fnc, args);
 	if (res.isException()) {
 		*exc = getJSValue(res);
@@ -433,7 +441,7 @@ static bool obj_del(JSContextRef ctx, JSObjectRef object, JSStringRef propertyNa
 		return false;
 	}
 
-	Value obj = Value(new JavaScriptCoreEngineValue(cfp->glbl, object));
+	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, object));
 
 	// Find out if we are a numeric or string property
 	char *skey = new char[JSStringGetMaximumUTF8CStringSize(propertyName) + 1];
@@ -475,7 +483,7 @@ static JSValueRef obj_get(JSContextRef ctx, JSObjectRef object, JSStringRef prop
 		return NULL;
 	}
 
-	Value obj = Value(new JavaScriptCoreEngineValue(cfp->glbl, object));
+	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, object));
 
 	// Find out if we are a numeric or string property
 	char *skey = new char[JSStringGetMaximumUTF8CStringSize(propertyName) + 1];
@@ -516,8 +524,8 @@ static bool obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyNa
 		return false;
 	}
 
-	Value obj = Value(new JavaScriptCoreEngineValue(cfp->glbl, object));
-	Value val = Value(new JavaScriptCoreEngineValue(cfp->glbl, value));
+	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, object));
+	Value val = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, value));
 
 	// Find out if we are a numeric or string property
 	char *skey = new char[JSStringGetMaximumUTF8CStringSize(propertyName) + 1];
@@ -527,7 +535,7 @@ static bool obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyNa
 
 	// We have numeric
 	if (end && *end == '\0') {
-		delete skey;
+		delete[] skey;
 		if (!(cfp->clss->getFlags() & Class::FlagSetItem))
 			return false;
 		res = cfp->clss->set(obj, idx, val);
@@ -535,7 +543,7 @@ static bool obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyNa
 	}
 
 	// We have string
-	delete skey;
+	delete[] skey;
 	if (!(cfp->clss->getFlags() & Class::FlagSetProperty))
 		return false;
 	res = cfp->clss->set(obj, JSStringToString(propertyName), val);
@@ -554,7 +562,7 @@ static void obj_enum(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumul
 	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(object);
 	if (!cfp || !cfp->clss) return;
 
-	Value obj = Value(new JavaScriptCoreEngineValue(cfp->glbl, object));
+	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, object));
 	Value res = cfp->clss->enumerate(obj);
 	long len = res.length();
 	for (long i=0 ; i < len ; i++) {
@@ -577,10 +585,10 @@ static JSValueRef obj_call(JSContextRef ctx, JSObjectRef function, JSObjectRef t
 	// Prepare the arguments
 	vector<Value> args = vector<Value>();
 	for (size_t i=0 ; i < argumentCount ; i++)
-		args.push_back(Value(new JavaScriptCoreEngineValue(cfp->glbl, arguments[i])));
+		args.push_back(Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, arguments[i])));
 
 	// Call the function
-	Value obj = Value(new JavaScriptCoreEngineValue(cfp->glbl, function));
+	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, function));
 	Value res = thisObject ? cfp->clss->call(obj, args) : cfp->clss->callNew(obj, args);
 	if (res.isException()) {
 		*exc = getJSValue(res);

@@ -38,6 +38,24 @@ static JSBool obj_call(JSContext *ctx, uintN argc, jsval *vp);
 static JSBool obj_new (JSContext *ctx, uintN argc, jsval *vp);
 static JSBool fnc_call(JSContext *ctx, uintN argc, jsval *vp);
 
+static JSBool convert(JSContext *ctx, JSObject *obj, JSType type, jsval *vp) {
+	jsid vid;
+	JS_ValueToId(ctx, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, "toString")), &vid);
+
+	jsval v = JSVAL_VOID;
+	JSClass* jsc = NULL;
+	if ((((jsc = JS_GetClass(ctx, obj))
+			&& jsc->getProperty
+			&& jsc->getProperty != JS_PropertyStub
+			&& jsc->getProperty(ctx, obj, vid, &v))
+			|| JS_GetProperty(ctx, obj, "toString", &v))
+			&& JS_CallFunctionValue(ctx, obj, v, 0, NULL, &v)) {
+		*vp = v;
+		return JS_TRUE;
+	}
+	return JS_FALSE;
+}
+
 class CFP : public ClassFuncPrivate {
 public:
 	JSClass smcls;
@@ -53,6 +71,7 @@ public:
 		smcls.resolve     = JS_ResolveStub;
 		smcls.convert     = JS_ConvertStub;
 		smcls.finalize    = JS_FinalizeStub;
+		smcls.convert     = convert;
 	}
 };
 
@@ -99,6 +118,12 @@ static void report_error(JSContext *cx, const char *message,
 class SpiderMonkeyEngineValue : public EngineValue {
 	friend jsval getJSValue(Value& value);
 public:
+	static EngineValue* getInstance(EngineValue* glb, jsval val, bool exc=false)  {
+		if (JS_GetGlobalObject(static_cast<SpiderMonkeyEngineValue*>(glb)->ctx) == JSVAL_TO_OBJECT(val))
+			return glb;
+		return new SpiderMonkeyEngineValue(glb, val, exc);
+	}
+
 	SpiderMonkeyEngineValue(JSContext* ctx) : EngineValue(this) {
 		if (!ctx) throw bad_alloc();
 		JS_SetOptions(ctx, JSOPTION_VAROBJFIX | JSOPTION_DONT_REPORT_UNCAUGHT | JSOPTION_XML);
@@ -129,17 +154,17 @@ public:
 	}
 
 	virtual Value   newBool(bool b) {
-		return Value(new SpiderMonkeyEngineValue(glb, BOOLEAN_TO_JSVAL(b)));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, BOOLEAN_TO_JSVAL(b)));
 	}
 
 	virtual Value   newNumber(double n) {
 		jsval v;
 		assert(JS_NewNumberValue(ctx, n, &v));
-		return Value(new SpiderMonkeyEngineValue(glb, v));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, v));
 	}
 
 	virtual Value   newString(string str) {
-		return Value(new SpiderMonkeyEngineValue(glb, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, str.c_str()))));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, STRING_TO_JSVAL(JS_NewStringCopyZ(ctx, str.c_str()))));
 	}
 
 	virtual Value   newArray(vector<Value> array) {
@@ -148,7 +173,7 @@ public:
 			valv[i] = getJSValue(array[i]);
 		JSObject* obj = JS_NewArrayObject(ctx, array.size(), valv);
 		delete[] valv;
-		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
 	virtual Value   newFunction(NativeFunction func) {
@@ -168,7 +193,7 @@ public:
 			delete cfp;
 			return newUndefined().toException();
 		}
-		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
 	virtual Value   newObject(Class* cls) {
@@ -196,25 +221,25 @@ public:
 			delete cfp;
 			return newUndefined().toException();
 		}
-		return Value(new SpiderMonkeyEngineValue(glb, OBJECT_TO_JSVAL(obj)));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, OBJECT_TO_JSVAL(obj)));
 	}
 
 	virtual Value   newNull() {
-		return Value(new SpiderMonkeyEngineValue(glb, JSVAL_NULL));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, JSVAL_NULL));
 	}
 
 	virtual Value   newUndefined() {
-		return Value(new SpiderMonkeyEngineValue(glb, JSVAL_VOID));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, JSVAL_VOID));
 	}
 
 	virtual Value   evaluate(string jscript, string filename, unsigned int lineno=0, bool shift=false) {
 		jsval val;
 		if (JS_EvaluateScript(ctx, shift ? toJSObject() : JS_GetGlobalObject(ctx), jscript.c_str(), jscript.length(), filename.c_str(), lineno, &val) == JS_FALSE) {
 			if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &val))
-				return Value(new SpiderMonkeyEngineValue(glb, val)).toException();
+				return Value(SpiderMonkeyEngineValue::getInstance(glb, val)).toException();
 			return newUndefined();
 		}
-		return Value(new SpiderMonkeyEngineValue(glb, val));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, val));
 	}
 
 	void getContext(void **context, void **value) {
@@ -271,20 +296,14 @@ public:
 	}
 
 	virtual string  toString() {
-		JSString *s = NULL;
-
-		if (JSVAL_IS_OBJECT(val)) {
-			Value x = this->call(this->get("toString"), vector<Value>());
-			if (x.isString()) {
-				s = JS_ValueToString(ctx, getJSValue(x));
-			}
-		}
-		if (!s)
-			s = JS_ValueToString(ctx, val);
-		assert(s);
-		string foo = string(JS_GetStringBytes(s));
-
-		return foo;
+		JSClass* jsc = NULL;
+		jsval v;
+		if (!JSVAL_IS_OBJECT(val)
+				|| !(jsc = JS_GetClass(ctx, toJSObject()))
+				|| !jsc->convert
+				|| !jsc->convert(ctx, toJSObject(), JSTYPE_STRING, &v))
+			JS_ConvertValue(ctx, val, JSTYPE_STRING, &v);
+		return JS_GetStringBytes(JS_ValueToString(ctx, v));
 	}
 
 	virtual bool    del(string name) {
@@ -315,7 +334,7 @@ public:
 				||  jsc->getProperty == JS_PropertyStub
 				|| !jsc->getProperty(ctx, toJSObject(), toJSID(name), &v))
 			JS_GetProperty(ctx, toJSObject(), name.c_str(), &v);
-		return Value(new SpiderMonkeyEngineValue(glb, v));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, v));
 	}
 
 	virtual Value   get(long idx) {
@@ -326,7 +345,7 @@ public:
 				||  jsc->getProperty == JS_PropertyStub
 				|| !jsc->getProperty(ctx, toJSObject(), toJSID(idx), &val))
 			JS_GetElement(ctx, toJSObject(), idx, &val);
-		return Value(new SpiderMonkeyEngineValue(glb, val));
+		return Value(SpiderMonkeyEngineValue::getInstance(glb, val));
 	}
 
 	virtual bool    set(string name, Value value, Value::PropAttrs attrs) {
@@ -402,7 +421,7 @@ public:
 		}
 		delete[] argv;
 
-		Value v = Value(new SpiderMonkeyEngineValue(glb, rval));
+		Value v = Value(SpiderMonkeyEngineValue::getInstance(glb, rval));
 		return exception ? v.toException() : v;
 
 	}
@@ -426,8 +445,9 @@ public:
 			delete[] argv;
 			return newUndefined();
 		}
+		delete[] argv;
 
-		Value v = Value(new SpiderMonkeyEngineValue(glb, rval));
+		Value v = Value(SpiderMonkeyEngineValue::getInstance(glb, rval));
 		return exception ? v.toException() : v;
 	}
 
@@ -466,8 +486,8 @@ static JSBool obj_del(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 
 	jsval key;
 	JS_IdToValue(ctx, id, &key);
-	Value obj  = Value(new SpiderMonkeyEngineValue(cfp->glbl, OBJECT_TO_JSVAL(object)));
-	Value vkey = Value(new SpiderMonkeyEngineValue(cfp->glbl, key));
+	Value obj  = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, OBJECT_TO_JSVAL(object)));
+	Value vkey = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, key));
 	Value res;
 
 	if (vkey.isString())
@@ -502,8 +522,8 @@ static JSBool obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 
 	jsval key;
 	JS_IdToValue(ctx, id, &key);
-	Value obj  = Value(new SpiderMonkeyEngineValue(cfp->glbl, OBJECT_TO_JSVAL(object)));
-	Value vkey = Value(new SpiderMonkeyEngineValue(cfp->glbl, key));
+	Value obj  = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, OBJECT_TO_JSVAL(object)));
+	Value vkey = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, key));
 	Value res;
 	if (vkey.isString())
 		res = cfp->clss->get(obj, vkey.toString());
@@ -528,6 +548,7 @@ static JSBool obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 		JS_SetPendingException(ctx, getJSValue(res));
 		return false;
 	}
+	*vp = getJSValue(res);
 	return true;
 }
 
@@ -540,9 +561,9 @@ static JSBool obj_set(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 
 	jsval key;
 	JS_IdToValue(ctx, id, &key);
-	Value obj  = Value(new SpiderMonkeyEngineValue(cfp->glbl, OBJECT_TO_JSVAL(object)));
-	Value vkey = Value(new SpiderMonkeyEngineValue(cfp->glbl, key));
-	Value val  = Value(new SpiderMonkeyEngineValue(cfp->glbl, *vp));
+	Value obj  = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, OBJECT_TO_JSVAL(object)));
+	Value vkey = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, key));
+	Value val  = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, *vp));
 	Value res;
 	if (vkey.isString())
 		res = cfp->clss->set(obj, vkey.toString(), val);
@@ -600,7 +621,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 	}
 
 	// Call our callback
-	Value obj = Value(new SpiderMonkeyEngineValue(cfp->glbl, OBJECT_TO_JSVAL(object)));
+	Value obj = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, OBJECT_TO_JSVAL(object)));
 	Value res = cfp->clss->enumerate(obj);
 
 	// Handle the results
@@ -627,11 +648,11 @@ static inline JSBool int_call(JSContext *ctx, uintN argc, jsval *vp, bool constr
 	// Allocate our array of arguments
 	vector<Value> args = vector<Value>();
 	for (unsigned int i=0; i < argc ; i++)
-		args.push_back(Value(new SpiderMonkeyEngineValue(cfp->glbl, JS_ARGV(ctx, vp)[i])));
+		args.push_back(Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, JS_ARGV(ctx, vp)[i])));
 
 	// Make the call
-	Value fnc = Value(new SpiderMonkeyEngineValue(cfp->glbl, JS_CALLEE(ctx, vp)));
-	Value ths = constr ? fnc.newUndefined() : Value(new SpiderMonkeyEngineValue(cfp->glbl, JS_THIS(ctx, vp)));
+	Value fnc = Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, JS_CALLEE(ctx, vp)));
+	Value ths = constr ? fnc.newUndefined() : Value(SpiderMonkeyEngineValue::getInstance(cfp->glbl, JS_THIS(ctx, vp)));
 	Value res = cfp->clss
 					? (constr
 						? cfp->clss->callNew(fnc, args)

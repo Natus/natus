@@ -244,6 +244,7 @@ public:
 	}
 
 	virtual bool    isGlobal() {
+		v8::HandleScope hs;
 		return ctx->Global() == val;
 	}
 

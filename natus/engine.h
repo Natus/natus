@@ -24,6 +24,7 @@
 #ifndef NATUS_ENGINE_H_
 #define NATUS_ENGINE_H_
 #include <map>
+#include <list>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "natus.h"
@@ -38,6 +39,17 @@ class EngineValue;
 
 typedef pair<void*, FreeFunction> PrivateItem;
 typedef map<string, PrivateItem>  PrivateMap;
+
+struct RequireHook {
+	bool            post;
+	RequireFunction func;
+	FreeFunction    free;
+	void*           misc;
+	~RequireHook() {
+		if (free && misc)
+			free(misc);
+	}
+};
 
 struct ClassFuncPrivate {
 	Class*         clss;
@@ -56,7 +68,7 @@ struct ClassFuncPrivate {
 
 class EngineValue {
 public:
-	// Methods that mirror Value's methods
+	// Methods that mirror Value's methods and must be implemented by subclasses
 	virtual Value            newBool(bool b)=0;
 	virtual Value            newNumber(double n)=0;
 	virtual Value            newString(string string)=0;
@@ -95,6 +107,10 @@ public:
 	virtual Value            call(Value func, vector<Value> args)=0;
 	virtual Value            callNew(vector<Value> args)=0;
 
+	// Methods that mirror Value's methods and are implemented here
+	Value                    require(string name, string reldir, vector<string> path);
+	void                     addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
+
 	// Non-Value methods that need to be implemented by Engines
 	virtual bool             supportsPrivate()=0;
 
@@ -104,11 +120,14 @@ public:
 	void                     decRef();
 	Value                    toException(Value& value);
 	virtual PrivateMap*      getPrivateMap()=0;
+	virtual ~EngineValue();
+
 
 protected:
-	unsigned long  refCnt;
-	bool           exc;
-	EngineValue*   glb;
+	unsigned long     refCnt;
+	bool              exc;
+	EngineValue*      glb;
+	list<RequireHook> hooks;
 
 	template <class T> static T* borrowInternal(Value& value) {
 		return static_cast<T*>(value.internal);

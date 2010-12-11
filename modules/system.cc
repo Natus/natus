@@ -22,40 +22,10 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <string.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/natus.h>
 using namespace natus;
-
-static bool setup_argv(Value& base) {
-    int size;
-    char buffer[4*1024]; // This is the maximum size of a procfile
-	char procfile[36];
-
-    // Open the procfile
-	snprintf(procfile, 36, "/proc/%d/cmdline", getpid());
-	FILE *cmdline = fopen(procfile, "r");
-	if (!cmdline) return false;
-
-	// Read the file
-	size = fread(buffer, 1, 4*1024, cmdline);
-	fclose(cmdline);
-
-	// Count the items
-	char *start = buffer;
-	vector<Value> params;
-	for (int i=0 ; i < size ; i++)
-		if (buffer[i] == '\0') {
-			params.push_back(base.newString(start));
-			start = buffer+i+1;
-		}
-
-	return base.set("exports.args", base.newArray(params));
-}
 
 class EnvClass : public Class {
 public:
@@ -93,7 +63,7 @@ public:
 };
 
 extern "C" bool natus_require(Value& base) {
-	bool ok = setup_argv(base);
+	bool ok = base.set("exports.args", base.newArray());
 	     ok = base.set("exports.env", base.newObject(new EnvClass())) || ok;
 	return ok;
 }

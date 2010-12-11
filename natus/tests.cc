@@ -101,13 +101,19 @@ public:
 };
 
 int main(int argc, char **argv) {
-	Value x, y;
+	Engine engine;
+
+	Value x;
+	Value y;
 	vector<string> strv;
 	vector<Value> valv;
 
-	Engine engine;
 	assert(engine.initialize(argv[1]));
 	Value global = engine.newGlobal(vector<string>(), vector<string>());
+
+	//// Global
+	assert(global.isGlobal());
+	assert(!global.get("JSON").isGlobal());
 
 	//// Array
 	valv = vector<Value>();

@@ -133,6 +133,36 @@ Value cNativeFunction(Value& ths, Value& fnc, vector<Value>& arg) {
 	return ret;
 }
 
+struct cRequireMisc {
+	ntRequireFunction func;
+	ntFreeFunction    free;
+	void*             misc;
+	~cRequireMisc() {
+		if (free && misc)
+			free(misc);
+	}
+};
+
+static Value cRequireFunction(Value& module, string& name, string& reldir, vector<string>& path, cRequireMisc* crhs) {
+	const char **vpath = (const char**) malloc(sizeof(char *) * (path.size()+1));
+	if (!vpath) return module.newUndefined();
+	memset(vpath, 0, sizeof(char *) * (path.size()+1));
+	int i=0;
+	for (vector<string>::iterator it=path.begin() ; it != path.end() ; it++)
+		vpath[i++] = it->c_str();
+	ntValue* res = crhs->func((ntValue*) &module, name.c_str(), reldir.c_str(), vpath, crhs->misc);
+	delete[] vpath;
+	if (res == NULL)
+		return module.newUndefined();
+	Value ret = res->value;
+	nt_free(res);
+	return ret;
+}
+
+static void cRequireFree(cRequireMisc* crhs) {
+	delete crhs;
+}
+
 ntEngine         *nt_engine_init(const char *name_or_path) {
 	_ntEngine* e = new _ntEngine;
 	if (e->engine.initialize(name_or_path))
@@ -396,6 +426,14 @@ ntValue          *nt_new_name(ntValue *ths, const char *name, ntValue **args) {
 	return to_ntValue(ths->value.callNew(name, vargs));
 }
 
+ntValue          *nt_from_json(ntValue *ctx, const char *json) {
+	return to_ntValue(ctx->value.fromJSON(json));
+}
+
+char             *nt_to_json(ntValue *obj) {
+	return strdup(obj->value.toJSON().c_str());
+}
+
 ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir, const char **path) {
 	vector<string> vpath;
 	for (int i=0 ; path && path[i] ; i++)
@@ -403,10 +441,10 @@ ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir,
 	return to_ntValue(ctx->value.require(name, reldir, vpath));
 }
 
-ntValue          *nt_from_json(ntValue *ctx, const char *json) {
-	return to_ntValue(ctx->value.fromJSON(json));
-}
-
-char             *nt_to_json(ntValue *obj) {
-	return strdup(obj->value.toJSON().c_str());
+void              nt_add_require_hook(ntValue* ctx, bool post, ntRequireFunction func, void* misc, ntFreeFunction free) {
+	cRequireMisc* crhs = new cRequireMisc;
+	crhs->func = func;
+	crhs->free = free;
+	crhs->misc = misc;
+	ctx->value.addRequireHook(post, (RequireFunction) cRequireFunction, crhs, (FreeFunction) cRequireFree);
 }

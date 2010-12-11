@@ -115,8 +115,8 @@ echo -e "\tpython\t\t\t${with_python:-no}"
 echo
 echo
 
-MODULEDIR=${libdir}/${PACKAGE_NAME}/modules
+MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
-AC_CONFIG_FILES(Makefile natus/Makefile natus/engines/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
+AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
 AC_OUTPUT
 

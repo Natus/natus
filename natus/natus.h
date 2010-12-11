@@ -46,7 +46,6 @@ class EngineValue;
  *           ths has a value of 'Undefined' when being run as a constructor.
  *     fnc - The object representing the function itself.
  *     arg - The argument vector.
- *     msc - Misc. data, usually specified at function creation time.
  *
  * Returns:
  *     The return value, which may be an exception.
@@ -60,6 +59,8 @@ typedef Value (*NativeFunction)(Value& ths, Value& fnc, vector<Value>& arg);
  *     mem - The memory to free.
  */
 typedef void (*FreeFunction)(void *mem);
+
+typedef Value (*RequireFunction)(Value& module, string& name, string& reldir, vector<string>& path, void* misc);
 
 class Class {
 public:
@@ -192,7 +193,15 @@ public:
 	bool             has(string name) const;
 	bool             has(long idx) const;
 	bool             set(string name, Value value, Value::PropAttrs attrs=None);
+	bool             set(string name, int value, Value::PropAttrs attrs=None);
+	bool             set(string name, double value, Value::PropAttrs attrs=None);
+	bool             set(string name, string value, Value::PropAttrs attrs=None);
+	bool             set(string name, NativeFunction value, Value::PropAttrs attrs=None);
 	bool             set(long idx, Value value);
+	bool             set(long idx, int value);
+	bool             set(long idx, double value);
+	bool             set(long idx, string value);
+	bool             set(long idx, NativeFunction value);
 	std::set<string> enumerate() const;
 
 	long             length() const;
@@ -213,9 +222,11 @@ public:
 	Value            callNew(vector<Value> args);
 	Value            callNew(string func, vector<Value> args);
 
-	Value            require(string name, string reldir, vector<string> path);
 	Value            fromJSON(string json);
 	string           toJSON();
+
+	Value            require(string name, string reldir, vector<string> path);
+	void             addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
 
 protected:
 	EngineValue *internal;
