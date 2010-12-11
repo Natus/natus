@@ -16,11 +16,11 @@ AM_PROG_LIBTOOL
 AM_DISABLE_STATIC
 
 PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
-        [PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2.0, have_spidermonkey=yes, 
-    	[PKG_CHECK_MODULES(SpiderMonkey, firefox-js >= 2.0,   have_spidermonkey=yes,
-		[PKG_CHECK_MODULES(SpiderMonkey, mozilla-js >= 2.0,   have_spidermonkey=yes, 
-		[PKG_CHECK_MODULES(SpiderMonkey, seamonkey-js >= 2.0, have_spidermonkey=yes,
-		[PKG_CHECK_MODULES(SpiderMonkey, mozilla2-js >= 2.0,  have_spidermonkey=yes, have_spidermonkey=no)])])])])])
+        [PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2, have_spidermonkey=yes, 
+    	[PKG_CHECK_MODULES(SpiderMonkey, firefox-js   >= 2, have_spidermonkey=yes,
+		[PKG_CHECK_MODULES(SpiderMonkey, mozilla-js   >= 2, have_spidermonkey=yes, 
+		[PKG_CHECK_MODULES(SpiderMonkey, seamonkey-js >= 2, have_spidermonkey=yes,
+		[PKG_CHECK_MODULES(SpiderMonkey, mozilla2-js  >= 2, have_spidermonkey=yes, have_spidermonkey=no)])])])])])
 AC_ARG_WITH([SpiderMonkey],
             [AS_HELP_STRING([--with-spidermonkey],
               [disable the SpiderMonkey (Mozilla) engine @<:@automatic@:>@])],
