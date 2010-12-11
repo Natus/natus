@@ -109,6 +109,7 @@ echo -e "\tV8\t\t\t${with_v8:-no}"
 echo 
 echo "Building Modules:"
 echo -e "\tsystem\t\t\tyes"
+echo -e "\tposix\t\t\tyes"
 echo
 echo "Building Bindings:"
 echo -e "\tpython\t\t\t${with_python:-no}"
