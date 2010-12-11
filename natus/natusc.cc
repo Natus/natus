@@ -145,7 +145,7 @@ struct cRequireMisc {
 
 static Value cRequireFunction(Value& module, string& name, string& reldir, vector<string>& path, cRequireMisc* crhs) {
 	const char **vpath = (const char**) malloc(sizeof(char *) * (path.size()+1));
-	if (!vpath) return NULL;
+	if (!vpath) return module.newUndefined();
 	memset(vpath, 0, sizeof(char *) * (path.size()+1));
 	int i=0;
 	for (vector<string>::iterator it=path.begin() ; it != path.end() ; it++)
