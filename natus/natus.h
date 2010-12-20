@@ -169,6 +169,7 @@ public:
 
 	bool             isGlobal() const;
 	bool             isException() const;
+	bool             isOOM() const;
 	bool             isArray() const;
 	bool             isBool() const;
 	bool             isFunction() const;

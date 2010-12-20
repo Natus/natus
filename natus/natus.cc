@@ -279,40 +279,39 @@ Class::Flags Class::getFlags() {
 }
 
 Value Class::del(Value& obj, string name) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::del(Value& obj, long idx) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::get(Value& obj, string name) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::get(Value& obj, long idx) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::set(Value& obj, string name, Value& value) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::set(Value& obj, long idx, Value& value) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::enumerate(Value& obj) {
-	vector<Value> args = vector<Value>();
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::call(Value& obj, vector<Value> args) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Value Class::callNew(Value& obj, vector<Value> args) {
-	return obj.newUndefined();
+	return obj.newUndefined().toException();
 }
 
 Class::~Class() {}
@@ -488,7 +487,11 @@ bool Value::isGlobal() const {
 }
 
 bool Value::isException() const {
-	return internal->isException();
+	return internal == NULL || internal->isException();
+}
+
+bool Value::isOOM() const {
+	return internal == NULL;
 }
 
 bool Value::isArray() const {

@@ -101,6 +101,7 @@ void              nt_get_context(const ntValue *ctx, void **context, void **valu
 
 bool              nt_is_global(const ntValue *val);
 bool              nt_is_exception(const ntValue *val);
+bool              nt_is_oom(const ntValue *val);
 bool              nt_is_array(const ntValue *val);
 bool              nt_is_bool(const ntValue *val);
 bool              nt_is_function(const ntValue *val);

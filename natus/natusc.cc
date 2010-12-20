@@ -40,6 +40,7 @@ public:
 	}
 
 	virtual Value        del      (Value& obj, string name) {
+		if (!ccls->del_prop) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->del_prop((ntValue*) &obj, name.c_str());
 		Value  ret = *tmp;
 		delete tmp;
@@ -47,6 +48,7 @@ public:
 	}
 
 	virtual Value        del      (Value& obj, long idx) {
+		if (!ccls->del_item) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->del_item((ntValue*) &obj, idx);
 		Value  ret = *tmp;
 		delete tmp;
@@ -54,6 +56,7 @@ public:
 	}
 
 	virtual Value        get      (Value& obj, string name) {
+		if (!ccls->get_prop) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->get_prop((ntValue*) &obj, name.c_str());
 		Value  ret = *tmp;
 		delete tmp;
@@ -61,6 +64,7 @@ public:
 	}
 
 	virtual Value        get      (Value& obj, long idx) {
+		if (!ccls->get_item) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->get_item((ntValue*) &obj, idx);
 		Value  ret = *tmp;
 		delete tmp;
@@ -68,6 +72,7 @@ public:
 	}
 
 	virtual Value        set      (Value& obj, string name, Value& value) {
+		if (!ccls->set_prop) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->set_prop((ntValue*) &obj, name.c_str(), (ntValue*) &value);
 		Value  ret = *tmp;
 		delete tmp;
@@ -75,6 +80,7 @@ public:
 	}
 
 	virtual Value        set      (Value& obj, long idx, Value& value) {
+		if (!ccls->set_item) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->set_item((ntValue*) &obj, idx, (ntValue*) &value);
 		Value  ret = *tmp;
 		delete tmp;
@@ -82,6 +88,7 @@ public:
 	}
 
 	virtual Value        enumerate(Value& obj) {
+		if (!ccls->enumerate) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->enumerate((ntValue*) &obj);
 		Value  ret = *tmp;
 		delete tmp;
@@ -89,6 +96,7 @@ public:
 	}
 
 	virtual Value        call     (Value& obj, vector<Value> args) {
+		if (!ccls->call) return obj.newUndefined().toException();
 		ntValue** argv = new ntValue*[args.size()+1];
 		for (size_t i=0 ; i < args.size() ; i++)
 			argv[i] = (ntValue*) &args[i];
@@ -101,6 +109,7 @@ public:
 	}
 
 	virtual Value        callNew  (Value& obj, vector<Value> args) {
+		if (!ccls->call_new) return obj.newUndefined().toException();
 		ntValue** argv = new ntValue*[args.size()+1];
 		for (size_t i=0 ; i < args.size() ; i++)
 			argv[i] = (ntValue*) &args[i];
@@ -250,6 +259,10 @@ bool              nt_is_global(const ntValue *val) {
 
 bool              nt_is_exception(const ntValue *val) {
 	return val->value.isException();
+}
+
+bool              nt_is_oom(const ntValue *val) {
+	return val->value.isOOM();
 }
 
 bool              nt_is_array(const ntValue *val) {
