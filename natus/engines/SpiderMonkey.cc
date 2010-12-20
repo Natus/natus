@@ -533,18 +533,8 @@ static JSBool obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 		assert(false);
 
 	if (res.isException()) {
-		if (res.isUndefined()) {
-			if (vkey.isString()) {
-				if (JS_GetProperty(ctx, object, vkey.toString().c_str(), vp))
-					return true;
-			} else if (vkey.isNumber()) {
-				if (JS_GetElement(ctx, object, vkey.toInt(), vp))
-					return true;
-			} else
-				assert(false);
-			*vp = JSVAL_VOID;
+		if (res.isUndefined())
 			return true;
-		}
 		JS_SetPendingException(ctx, getJSValue(res));
 		return false;
 	}
@@ -573,22 +563,12 @@ static JSBool obj_set(JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
 		assert(false);
 
 	if (res.isException()) {
-		if (res.isUndefined()) {
-			if (vkey.isString()) {
-				if (JS_SetProperty(ctx, object, vkey.toString().c_str(), vp))
-					return true;
-			} else if (vkey.isNumber()) {
-				if (JS_SetElement(ctx, object, vkey.toInt(), vp))
-					return true;
-			} else
-				assert(false);
-			*vp = JSVAL_VOID;
+		if (res.isUndefined())
 			return true;
-		}
 		JS_SetPendingException(ctx, getJSValue(res));
 		return false;
 	}
-	return true;
+	return false;
 }
 
 static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, jsval *statep, jsid *idp) {
