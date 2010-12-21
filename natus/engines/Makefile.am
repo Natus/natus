@@ -1,5 +1,6 @@
 enginesdir=$(libdir)/$(PACKAGE_NAME)/engines
-AM_LDFLAGS = -module -avoid-version -no-undefined -shared -L../ -lnatus
+AM_LDFLAGS = -module -avoid-version -no-undefined -shared
+AM_LDADD = ../natus/libnatus.la
 
 engines_LTLIBRARIES=
 if WITH_SPIDERMONKEY

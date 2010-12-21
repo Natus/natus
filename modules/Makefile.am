@@ -1,5 +1,6 @@
 moduledir = @MODULEDIR@
-AM_LDFLAGS = -module -avoid-version -no-undefined -shared -L../natus -lnatus
+AM_LDFLAGS = -module -avoid-version -no-undefined -shared
+AM_LDADD = ../natus/natus.la
 
 module_LTLIBRARIES = system.la posix.la socket.la
 
