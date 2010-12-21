@@ -14,7 +14,3 @@ natus_la_LDFLAGS  = $(AM_LDFLAGS) @python_LIBS@
 python_la_SOURCES  = natusmod.cc common.cc
 python_la_CXXFLAGS = -Wall -I../../ @python_CFLAGS@
 python_la_LDFLAGS  = $(AM_LDFLAGS) @python_LIBS@
-
-install-data-hook:
-	rm -f $(DESTDIR)$(pyexecdir)/natus.a $(DESTDIR)$(pyexecdir)/natus.la
-	rm -f $(DESTDIR)$(moduledir)/python.a $(DESTDIR)$(moduledir)/python.la

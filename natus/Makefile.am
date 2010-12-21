@@ -22,6 +22,3 @@ tests_LDFLAGS  = $(AM_LDFLAGS)
 tests_LDADD = libnatus.la
 
 SUBDIRS = . engines
-
-install-data-hook:
-	rm -f $(DESTDIR)$(libdir)/libnatus*.a $(DESTDIR)$(libdir)/libnatus*.la

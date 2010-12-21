@@ -15,6 +15,3 @@ posix_la_LDFLAGS  = $(AM_LDFLAGS) -lutil
 socket_la_SOURCES  = socket.cc
 socket_la_CXXFLAGS = -Wall -I../
 socket_la_LDFLAGS  = $(AM_LDFLAGS)
-
-install-data-hook:
-	rm -f $(DESTDIR)$(moduledir)/*.a $(DESTDIR)$(moduledir)/*.la

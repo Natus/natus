@@ -27,6 +27,3 @@ V8_la_LDFLAGS  = $(AM_LDFLAGS) -lv8 -lpthread
 JavaScriptCore_la_SOURCES  = JavaScriptCore.cc
 JavaScriptCore_la_CXXFLAGS = $(AM_CXXFLAGS) @JavaScriptCore_CFLAGS@ -Wall -I../../
 JavaScriptCore_la_LDFLAGS  = $(AM_LDFLAGS)  @JavaScriptCore_LIBS@
-
-install-data-hook:
-	rm -f $(DESTDIR)$(enginesdir)/*.a $(DESTDIR)$(enginesdir)/*.la
