@@ -84,7 +84,7 @@ struct _ntClass {
 
 ntEngine         *nt_engine_init(const char *name_or_path);
 char             *nt_engine_name(ntEngine *engine);
-ntValue          *nt_engine_new_global(ntEngine *engine);
+ntValue          *nt_engine_new_global(ntEngine *engine, const char **path, const char **whitelist);
 void              nt_engine_free(ntEngine *engine);
 
 void              nt_free(ntValue *val);
