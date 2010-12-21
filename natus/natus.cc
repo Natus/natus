@@ -35,6 +35,7 @@
 #include <libgen.h>
 
 #include <iostream>
+#include <sstream>
 
 #define  _str(s) # s
 #define __str(s) _str(s)
@@ -652,6 +653,82 @@ Value Value::getGlobal() const {
 
 void Value::getContext(void **context, void **value) const {
 	internal->getContext(context, value);
+}
+
+Value Value::checkArguments(vector<Value>& arg, const char* fmt) const {
+	size_t len = arg.size();
+
+	bool minimum = 0;
+	for (size_t i=0,j=0 ; i < len ; i++) {
+		int depth = 0;
+		bool correct = false;
+		string types = "";
+
+		if (minimum == 0 && fmt[j] == '|')
+			minimum = j++;
+
+		do {
+			switch (fmt[j++]) {
+				case 'a':
+					correct = arg[i].isArray();
+					types += "array, ";
+					break;
+				case 'b':
+					correct = arg[i].isBool();
+					types += "boolean, ";
+					break;
+				case 'f':
+					correct = arg[i].isFunction();
+					types += "function, ";
+					break;
+				case 'N':
+					correct = arg[i].isNull();
+					types += "null, ";
+					break;
+				case 'n':
+					correct = arg[i].isNumber();
+					types += "number, ";
+					break;
+				case 'o':
+					correct = arg[i].isObject();
+					types += "object, ";
+					break;
+				case 's':
+					correct = arg[i].isString();
+					types += "string, ";
+					break;
+				case 'u':
+					correct = arg[i].isUndefined();
+					types += "undefined, ";
+					break;
+				case '(':
+					depth++;
+					break;
+				case ')':
+					depth--;
+					break;
+				default:
+					return this->newException("LogicError", "Invalid format character!");
+			}
+		} while (!correct && depth > 0);
+
+		if (types.length() > 2)
+			types = types.substr(0, types.length()-2);
+
+		if (types != "" && !correct) {
+			stringstream msg;
+			msg << "argument " << i << " must be one of these types: " << types;
+			return this->newException("TypeError", msg.str());
+		}
+	}
+
+	if (len < minimum) {
+		stringstream out;
+		out << minimum;
+		return this->newException("TypeError", "Function requires at least " + out.str() + " arguments!");
+	}
+
+	return this->newUndefined();
 }
 
 bool Value::isGlobal() const {

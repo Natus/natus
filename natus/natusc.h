@@ -101,6 +101,7 @@ ntValue          *nt_new_exception_code(const ntValue *ctx, const char *type, co
 ntValue          *nt_new_exception_errno(const ntValue *ctx, int errorno);
 ntValue          *nt_get_global(const ntValue *ctx);
 void              nt_get_context(const ntValue *ctx, void **context, void **value);
+ntValue          *nt_check_arguments(const ntValue *ctx, ntValue **arg, const char *fmt);
 
 bool              nt_is_global(const ntValue *val);
 bool              nt_is_exception(const ntValue *val);

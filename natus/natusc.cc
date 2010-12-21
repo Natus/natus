@@ -265,6 +265,13 @@ void              nt_get_context(const ntValue *ctx, void **context, void **valu
 	ctx->value.getContext(context, value);
 }
 
+ntValue          *nt_check_arguments(const ntValue *ctx, ntValue **args, const char *fmt) {
+	vector<Value> vargs;
+	for (int i=0 ; args && args[i] ; i++)
+		vargs.push_back(args[i]->value);
+	return to_ntValue(ctx->value.checkArguments(vargs, fmt));
+}
+
 bool              nt_is_global(const ntValue *val) {
 	return val->value.isGlobal();
 }

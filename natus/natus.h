@@ -169,6 +169,7 @@ public:
 	Value            newException(int errorno) const;
 	Value            getGlobal() const;
 	void             getContext(void **context, void **value) const;
+	Value            checkArguments(vector<Value>& arg, const char* fmt) const;
 
 	bool             isGlobal() const;
 	bool             isException() const;
