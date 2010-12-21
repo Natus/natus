@@ -45,10 +45,8 @@ struct RequireHook {
 	RequireFunction func;
 	FreeFunction    free;
 	void*           misc;
-	~RequireHook() {
-		if (free && misc)
-			free(misc);
-	}
+
+	~RequireHook();
 };
 
 struct ClassFuncPrivate {
@@ -57,13 +55,9 @@ struct ClassFuncPrivate {
 	PrivateMap     priv;
 	EngineValue*   glbl;
 
-	virtual ~ClassFuncPrivate() {
-		if (clss)
-			delete clss;
-		for (map<string, pair<void*, FreeFunction> >::iterator it=priv.begin() ; it != priv.end() ; it++)
-			if (it->second.second)
-				it->second.second(it->second.first);
-	}
+	ClassFuncPrivate(EngineValue* glbl, Class* clss);
+	ClassFuncPrivate(EngineValue* glbl, NativeFunction func);
+	virtual ~ClassFuncPrivate();
 };
 
 class EngineValue {

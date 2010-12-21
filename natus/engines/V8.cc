@@ -145,11 +145,7 @@ public:
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
-		cfp->clss = NULL;
-		cfp->func = func;
-		cfp->glbl = glb;
-
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, func);
 		V8Class *v8cls = new V8Class(ctx, cfp);
 		v8::Handle<v8::FunctionTemplate> ft = v8::FunctionTemplate::New(V8Class::call, v8cls->data);
 		v8::Handle<v8::Function>        fnc = ft->GetFunction();
@@ -161,11 +157,7 @@ public:
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
-		cfp->clss = cls;
-		cfp->func = NULL;
-		cfp->glbl = glb;
-
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, cls);
 		v8::Handle<v8::ObjectTemplate> ot = v8::ObjectTemplate::New();
 		V8Class *v8cls = new V8Class(ctx, cfp);
 		if (cls) {

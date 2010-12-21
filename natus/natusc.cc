@@ -241,8 +241,20 @@ ntValue          *nt_new_null(const ntValue *ctx) {
 	return to_ntValue(ctx->value.newNull());
 }
 
-ntValue          *nt_new_ndefined(const ntValue *ctx) {
+ntValue          *nt_new_undefined(const ntValue *ctx) {
 	return to_ntValue(ctx->value.newUndefined());
+}
+
+ntValue          *nt_new_exception(const ntValue *ctx, const char *type, const char *message) {
+	return to_ntValue(ctx->value.newException(type, message));
+}
+
+ntValue          *nt_new_exception_code(const ntValue *ctx, const char *type, const char *message, long code) {
+	return to_ntValue(ctx->value.newException(type, message, code));
+}
+
+ntValue          *nt_new_exception_errno(const ntValue *ctx, int errorno) {
+	return to_ntValue(ctx->value.newException(errorno));
 }
 
 ntValue          *nt_get_global(const ntValue *ctx) {

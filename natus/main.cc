@@ -42,8 +42,7 @@ using namespace natus;
 #define NPRMPT "... "
 #define HISTORYFILE ".natus_history"
 
-Engine engine;
-Value  global;
+Value* glbl;
 
 static Value alert(Value& ths, Value& fnc, vector<Value>& args) {
 	if (args.size() < 1)
@@ -117,7 +116,7 @@ static char* completion_generator(const char* text, int state) {
 	char* last = (char*) strrchr(text, '.');
 
 	if (state == 0) {
-		Value obj = global;
+		Value obj = *glbl;
 		if (last) {
 			char* base = new char[last-text+1];
 			memset(base, 0, sizeof(char) * (last-text+1));
@@ -161,9 +160,12 @@ Value set_path(Value& module, string& name, string& reldir, vector<string>& path
 }
 
 int main(int argc, char** argv) {
+	Engine engine;
+	Value  global;
 	const char *eng = NULL;
 	const char *eval = NULL;
 	int c=0, exitcode=0;
+	glbl = &global;
 
 	vector<string> path = pathparser(string(__str(MODULEDIR)) + ":" + (getenv("NATUS_PATH") ? getenv("NATUS_PATH") : ""));
 	vector<string> whitelist = pathparser(getenv("NATUS_WHITELIST") ? getenv("NATUS_WHITELIST") : "");

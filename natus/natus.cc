@@ -24,6 +24,7 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "engine.h"
 
+#include <cerrno>
 #include <dlfcn.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -48,9 +49,9 @@
 namespace natus {
 
 struct EngineInternal {
-	EngineSpec* espec;
-	void*       engine;
-	void*       dll;
+	EngineSpec*   espec;
+	void*         engine;
+	void*         dll;
 };
 
 struct RequireInternal {
@@ -415,12 +416,14 @@ Value::Value() {
 
 Value::Value(EngineValue* value) {
 	internal = value;
-	internal->incRef();
+	if (internal)
+		internal->incRef();
 }
 
 Value::Value(const Value& value) {
 	internal = value.internal;
-	internal->incRef();
+	if (internal)
+		internal->incRef();
 }
 
 Value::~Value() {
@@ -430,7 +433,7 @@ Value::~Value() {
 Value& Value::operator=(const Value& value) {
 	if (internal) internal->decRef();
 	internal = value.internal;
-	internal->incRef();
+	if (internal) internal->incRef();
 	return *this;
 }
 
@@ -472,6 +475,175 @@ Value Value::newNull() const {
 
 Value Value::newUndefined() const {
 	return internal->newUndefined();
+}
+
+static Value exception_toString(Value& ths, Value& fnc, vector<Value>& arg) {
+	string type = ths.get("type").toString();
+	string msg  = ths.get("msg").toString();
+	Value  code = ths.get("code");
+
+	string output = type + ": ";
+	if (!code.isUndefined())
+		output += code.toString() + ": ";
+	output += msg;
+	return ths.newString(output);
+}
+
+Value Value::newException(string type, string message) const {
+	Value exc = newObject();
+	exc.set("type",     type);
+	exc.set("msg",      message);
+	exc.set("toString", exception_toString);
+	return exc.toException();
+}
+
+Value Value::newException(string type, string message, long code) const {
+	Value exc = newException(type, message);
+	exc.set("code", (double) code);
+	return exc;
+}
+
+Value Value::newException(int errorno) const {
+	const char* type = "OSError";
+	switch (errorno) {
+		case ENOMEM:
+			return NULL;
+		case EPERM:
+			type = "PermissionError";
+			break;
+		case ENOENT:
+		case ESRCH:
+		case EINTR:
+		case EIO:
+		case ENXIO:
+		case E2BIG:
+		case ENOEXEC:
+		case EBADF:
+		case ECHILD:
+		case EAGAIN:
+		case EACCES:
+		case EFAULT:
+		case ENOTBLK:
+		case EBUSY:
+		case EEXIST:
+		case EXDEV:
+		case ENODEV:
+		case ENOTDIR:
+		case EISDIR:
+		case EINVAL:
+		case ENFILE:
+		case EMFILE:
+		case ENOTTY:
+		case ETXTBSY:
+		case EFBIG:
+		case ENOSPC:
+		case ESPIPE:
+		case EROFS:
+		case EMLINK:
+		case EPIPE:
+		case EDOM:
+		case ERANGE:
+		case EDEADLK:
+		case ENAMETOOLONG:
+		case ENOLCK:
+		case ENOSYS:
+		case ENOTEMPTY:
+		case ELOOP:
+		case ENOMSG:
+		case EIDRM:
+		case ECHRNG:
+		case EL2NSYNC:
+		case EL3HLT:
+		case EL3RST:
+		case ELNRNG:
+		case EUNATCH:
+		case ENOCSI:
+		case EL2HLT:
+		case EBADE:
+		case EBADR:
+		case EXFULL:
+		case ENOANO:
+		case EBADRQC:
+		case EBADSLT:
+		case EBFONT:
+		case ENOSTR:
+		case ENODATA:
+		case ETIME:
+		case ENOSR:
+		case ENONET:
+		case ENOPKG:
+		case EREMOTE:
+		case ENOLINK:
+		case EADV:
+		case ESRMNT:
+		case ECOMM:
+		case EPROTO:
+		case EMULTIHOP:
+		case EDOTDOT:
+		case EBADMSG:
+		case EOVERFLOW:
+		case ENOTUNIQ:
+		case EBADFD:
+		case EREMCHG:
+		case ELIBACC:
+		case ELIBBAD:
+		case ELIBSCN:
+		case ELIBMAX:
+		case ELIBEXEC:
+		case EILSEQ:
+		case ERESTART:
+		case ESTRPIPE:
+		case EUSERS:
+		case ENOTSOCK:
+		case EDESTADDRREQ:
+		case EMSGSIZE:
+		case EPROTOTYPE:
+		case ENOPROTOOPT:
+		case EPROTONOSUPPORT:
+		case ESOCKTNOSUPPORT:
+		case EOPNOTSUPP:
+		case EPFNOSUPPORT:
+		case EAFNOSUPPORT:
+		case EADDRINUSE:
+		case EADDRNOTAVAIL:
+		case ENETDOWN:
+		case ENETUNREACH:
+		case ENETRESET:
+		case ECONNABORTED:
+		case ECONNRESET:
+		case ENOBUFS:
+		case EISCONN:
+		case ENOTCONN:
+		case ESHUTDOWN:
+		case ETOOMANYREFS:
+		case ETIMEDOUT:
+		case ECONNREFUSED:
+		case EHOSTDOWN:
+		case EHOSTUNREACH:
+		case EALREADY:
+		case EINPROGRESS:
+		case ESTALE:
+		case EUCLEAN:
+		case ENOTNAM:
+		case ENAVAIL:
+		case EISNAM:
+		case EREMOTEIO:
+		case EDQUOT:
+		case ENOMEDIUM:
+		case EMEDIUMTYPE:
+		case ECANCELED:
+		case ENOKEY:
+		case EKEYEXPIRED:
+		case EKEYREVOKED:
+		case EKEYREJECTED:
+		case EOWNERDEAD:
+		case ENOTRECOVERABLE:
+		case ERFKILL:
+		default:
+			break;
+	}
+
+	return newException(type, strerror(errorno), errorno);
 }
 
 Value Value::getGlobal() const {
@@ -868,6 +1040,31 @@ void EngineValue::addRequireHook(bool post, RequireFunction func, void* misc, Fr
 
 EngineValue::~EngineValue() {
 	if (this != glb) glb->decRef();
+}
+
+RequireHook::~RequireHook() {
+	if (free && misc)
+		free(misc);
+}
+
+ClassFuncPrivate::ClassFuncPrivate(EngineValue* glbl, Class* clss) {
+	this->clss = clss;
+	this->func = NULL;
+	this->glbl = glbl;
+}
+
+ClassFuncPrivate::ClassFuncPrivate(EngineValue* glbl, NativeFunction func) {
+	this->clss = NULL;
+	this->func = func;
+	this->glbl = glbl;
+}
+
+ClassFuncPrivate::~ClassFuncPrivate() {
+	if (clss)
+		delete clss;
+	for (map<string, pair<void*, FreeFunction> >::iterator it=priv.begin() ; it != priv.end() ; it++)
+		if (it->second.first && it->second.second)
+			it->second.second(it->second.first);
 }
 
 }

@@ -164,6 +164,9 @@ public:
 	Value            newObject(Class* cls=NULL) const;
 	Value            newNull() const;
 	Value            newUndefined() const;
+	Value            newException(string type, string message) const;
+	Value            newException(string type, string message, long code) const;
+	Value            newException(int errorno) const;
 	Value            getGlobal() const;
 	void             getContext(void **context, void **value) const;
 

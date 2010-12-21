@@ -59,13 +59,18 @@ public:
 	JSClassDefinition jscdef;
 	JSClassRef        jsccls;
 
-	CFP() {
+	CFP(EngineValue* glbl, Class* clss) : ClassFuncPrivate(glbl, clss) {
+		memset(&jscdef, 0, sizeof(JSClassDefinition));
+		jscdef.className = "Object";
+	}
+
+	CFP(EngineValue* glbl, NativeFunction func) : ClassFuncPrivate(glbl, func) {
 		memset(&jscdef, 0, sizeof(JSClassDefinition));
 		jscdef.className = "Object";
 	}
 
 	virtual ~CFP() {
-		JSClassRelease(jsccls);
+		if (jsccls) JSClassRelease(jsccls);
 	}
 };
 
@@ -129,22 +134,14 @@ public:
 	}
 
 	virtual Value   newFunction(NativeFunction func) {
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
-		cfp->clss = NULL;
-		cfp->func = func;
-		cfp->glbl = glb;
-
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, func);
 		JSValueRef val = (JSValueRef) JSObjectMake(ctx, fnccls, cfp);
 		if (!val) delete cfp;
 		return Value(JavaScriptCoreEngineValue::getInstance(glb, val));
 	}
 
 	virtual Value   newObject(Class* cls) {
-		CFP *cfp = new CFP();
-		cfp->clss = cls;
-		cfp->func = NULL;
-		cfp->glbl = glb;
-
+		CFP *cfp = new CFP(glb, cls);
 		cfp->jscdef.finalize = finalize;
 		if (cls) {
 			Class::Flags flags            = cls->getFlags();
@@ -402,7 +399,7 @@ static string JSStringToString(JSStringRef str, bool release) {
 
 static void finalize(JSObjectRef object) {
 	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(object);
-	delete cfp;
+	if (cfp) delete cfp;
 }
 
 static JSValueRef fnc_call(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exc) {

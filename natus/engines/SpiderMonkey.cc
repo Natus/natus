@@ -59,7 +59,23 @@ static JSBool convert(JSContext *ctx, JSObject *obj, JSType type, jsval *vp) {
 class CFP : public ClassFuncPrivate {
 public:
 	JSClass smcls;
-	CFP() {
+
+	CFP(EngineValue* glbl, Class* clss) : ClassFuncPrivate(glbl, clss) {
+		memset(&smcls, 0, sizeof(JSClass));
+		smcls.name        = "Object";
+		smcls.flags       = JSCLASS_HAS_PRIVATE;
+		smcls.addProperty = JS_PropertyStub;
+		smcls.delProperty = JS_PropertyStub;
+		smcls.getProperty = JS_PropertyStub;
+		smcls.setProperty = JS_PropertyStub;
+		smcls.enumerate   = JS_EnumerateStub;
+		smcls.resolve     = JS_ResolveStub;
+		smcls.convert     = JS_ConvertStub;
+		smcls.finalize    = JS_FinalizeStub;
+		smcls.convert     = convert;
+	}
+
+	CFP(EngineValue* glbl, NativeFunction func) : ClassFuncPrivate(glbl, func) {
 		memset(&smcls, 0, sizeof(JSClass));
 		smcls.name        = "Object";
 		smcls.flags       = JSCLASS_HAS_PRIVATE;
@@ -177,10 +193,7 @@ public:
 	}
 
 	virtual Value   newFunction(NativeFunction func) {
-		CFP *cfp = new CFP();
-		cfp->clss = NULL;
-		cfp->func = func;
-		cfp->glbl = glb;
+		CFP *cfp = new CFP(glb, func);
 		cfp->smcls.finalize = finalize;
 		cfp->smcls.name     = "NativeFunctionInternal";
 
@@ -197,11 +210,7 @@ public:
 	}
 
 	virtual Value   newObject(Class* cls) {
-		CFP *cfp = new CFP();
-		cfp->clss = cls;
-		cfp->func = NULL;
-		cfp->glbl = glb;
-
+		CFP *cfp = new CFP(glb, cls);
 		cfp->smcls.finalize = finalize;
 		if (cls) {
 			Class::Flags flags = cls->getFlags();

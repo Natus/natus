@@ -95,7 +95,10 @@ ntValue          *nt_new_array(const ntValue *ctx, ntValue **array);
 ntValue          *nt_new_function(const ntValue *ctx, ntNativeFunction func);
 ntValue          *nt_new_object(const ntValue *ctx, ntClass* cls);
 ntValue          *nt_new_null(const ntValue *ctx);
-ntValue          *nt_new_ndefined(const ntValue *ctx);
+ntValue          *nt_new_undefined(const ntValue *ctx);
+ntValue          *nt_new_exception(const ntValue *ctx, const char *type, const char *message);
+ntValue          *nt_new_exception_code(const ntValue *ctx, const char *type, const char *message, long code);
+ntValue          *nt_new_exception_errno(const ntValue *ctx, int errorno);
 ntValue          *nt_get_global(const ntValue *ctx);
 void              nt_get_context(const ntValue *ctx, void **context, void **value);
 
