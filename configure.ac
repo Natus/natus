@@ -13,7 +13,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_PROG_LIBTOOL
-AM_DISABLE_STATIC
+AC_DISABLE_STATIC
 
 PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
         [PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2, have_spidermonkey=yes, 
