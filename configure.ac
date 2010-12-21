@@ -8,12 +8,13 @@ AC_CANONICAL_SYSTEM
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE()
 
+LT_INIT([disable-static])
+
 AC_PROG_CPP
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_PROG_LIBTOOL
-AC_DISABLE_STATIC
 
 PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
         [PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2, have_spidermonkey=yes, 
