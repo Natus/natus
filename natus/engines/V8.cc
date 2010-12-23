@@ -207,12 +207,12 @@ public:
 	virtual Value   evaluate(string jscript, string filename, unsigned int lineno=0, bool shift=false) {
 		v8::HandleScope hs;
 
-		v8::Persistent<v8::Context> context = ctx;
+		v8::Local<v8::Context> context = *ctx;
 		if (shift) {
 			// Create our new context (and the global object which will proxy values back into our main object)
 			v8::Handle<v8::ObjectTemplate> ot = v8::ObjectTemplate::New();
 			ot->SetNamedPropertyHandler(shft::get, shft::set, NULL, shft::del, shft::enumerate, val);
-			context = v8::Context::New(NULL, ot);
+			context = *v8::Context::New(NULL, ot);
 		}
 
 		// Execute the script
@@ -223,7 +223,6 @@ public:
 		v8::Handle<v8::Script> script = filename != "" ? v8::Script::Compile(source, &so) : v8::Script::Compile(source);
 		v8::Handle<v8::Value>     res = script->Run();
 		context->Exit();
-		context.Dispose();
 
 		if (tc.HasCaught())
 			res = tc.Exception();
