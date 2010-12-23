@@ -312,7 +312,8 @@ public:
 				|| !jsc->convert
 				|| !jsc->convert(ctx, toJSObject(), JSTYPE_STRING, &v))
 			JS_ConvertValue(ctx, val, JSTYPE_STRING, &v);
-		return JS_GetStringBytes(JS_ValueToString(ctx, v));
+
+		return JS_EncodeString(ctx, JS_ValueToString(ctx, v));
 	}
 
 	virtual bool    del(string name) {
