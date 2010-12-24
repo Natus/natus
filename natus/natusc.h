@@ -84,7 +84,7 @@ struct _ntClass {
 
 ntEngine         *nt_engine_init(const char *name_or_path);
 char             *nt_engine_name(ntEngine *engine);
-ntValue          *nt_engine_new_global(ntEngine *engine, const char **path, const char **whitelist);
+ntValue          *nt_engine_new_global(ntEngine *engine, const char *config);
 void              nt_engine_free(ntEngine *engine);
 
 void              nt_free(ntValue *val);
@@ -131,6 +131,7 @@ bool              nt_has_property(const ntValue *val, const char *name);
 bool              nt_has_item(const ntValue *val, long idx);
 bool              nt_set_property(ntValue *val, const char *name, ntValue *value);
 bool              nt_set_property_attr(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs);
+bool              nt_set_property_full(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs, bool makeParents);
 bool              nt_set_item(ntValue *val, long idx, ntValue *value);
 char            **nt_enumerate(const ntValue *val);
 

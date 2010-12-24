@@ -186,16 +186,10 @@ char             *nt_engine_name(ntEngine *engine) {
 
 #define to_ntValue(x) (_ntValue*) new Value(x)
 
-ntValue          *nt_engine_new_global(ntEngine *engine, const char **path, const char **whitelist) {
-	vector<string> vpath;
-	vector<string> vwhitelist;
-
-	for (int i=0 ; path && path[i] ; i++)
-		vpath.push_back(path[i]);
-	for (int i=0 ; whitelist && whitelist[i] ; i++)
-		vwhitelist.push_back(whitelist[i]);
-
-	return to_ntValue(engine->engine.newGlobal(vpath, vwhitelist));
+ntValue          *nt_engine_new_global(ntEngine *engine, const char *config) {
+	if (!config)
+		return to_ntValue(engine->engine.newGlobal());
+	return to_ntValue(engine->engine.newGlobal(config));
 }
 
 void              nt_engine_free(ntEngine *engine) {
@@ -381,6 +375,10 @@ bool              nt_set_property(ntValue *val, const char *name, ntValue *value
 
 bool              nt_set_property_attr(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs) {
 	return val->value.set(name, value->value, (Value::PropAttrs) attrs);
+}
+
+bool              nt_set_property_full(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs, bool makeParents) {
+	return val->value.set(name, value->value, (Value::PropAttrs) attrs, makeParents);
 }
 
 bool              nt_set_item(ntValue *val, long idx, ntValue *value) {

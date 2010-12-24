@@ -56,25 +56,14 @@ struct EngineInternal {
 };
 
 struct RequireInternal {
-	vector<string> whitelist;
-	vector<string> path;
 	stack<string>  exec;
 
 	static void free(void *ri) {
 		delete ((RequireInternal*) ri);
 	}
 
-	RequireInternal(vector<string> path, vector<string> whitelist) {
+	RequireInternal() {
 		this->exec      = stack<string>();
-		this->path      = vector<string>();
-		this->whitelist = vector<string>();
-
-		if (whitelist.size() > 0 && path.size() > 0) {
-			for (vector<string>::iterator i=path.begin() ; i < path.end() ; i++)
-				this->path.push_back(*i);
-			for (vector<string>::iterator i=whitelist.begin() ; i < whitelist.end() ; i++)
-				this->whitelist.push_back(*i);
-		}
 	}
 
 	void push(string filename) {
@@ -252,28 +241,19 @@ static Value require_js(Value& ths, Value& fnc, vector<Value>& arg) {
 	string module = arg[0].toString();
 
 	// Build our path and whitelist
-	vector<string> path;
-	vector<string> whitelist;
-	if (msc && ((RequireInternal*) msc)->path.size() > 0) {
-		path      = ((RequireInternal*) msc)->path;
-		whitelist = ((RequireInternal*) msc)->whitelist;
-	} else {
-		path      = fnc.get("paths").toStringVector();
-		whitelist = vector<string>();
-	}
+	Value config    = ths.getConfig();
+	Value path      = config.get("natus.path");
+	Value whitelist = config.get("natus.whitelist");
 
-	// Sanity check
-	if (path.size() == 0)
-		return ths.newString("No import paths found!").toException();
-	if (whitelist.size() > 0) {
+	// Security check
+	if (whitelist.isArray()) {
 		bool cleared = false;
-		for (unsigned int i=0 ; !cleared && i < whitelist.size() ; i++)
-			cleared = whitelist[i] == module;
-		if (!cleared)
-			return ths.newString("Module not in the whitelist!").toException();
+		for (unsigned int i=0 ; !cleared && i < whitelist.length() ; i++)
+			cleared = whitelist.get(i).toString() == module;
+		if (!cleared) return ths.newException("SecurityError", "Permission denied!");
 	}
 
-	return ths.require(module, ((RequireInternal*) msc)->peek(), path);
+	return ths.require(module, ((RequireInternal*) msc)->peek(), path.toStringVector());
 }
 
 Class::Flags Class::getFlags() {
@@ -369,25 +349,29 @@ bool Engine::initialize() {
 	return initialize(NULL);
 }
 
-Value Engine::newGlobal(vector<string> path, vector<string> whitelist) {
+void freevalue(Value* value) {
+	delete value;
+}
+
+Value Engine::newGlobal(string cfg) {
 	EngineInternal* ei = ((EngineInternal*) internal);
 	EngineValue* glbl = ei->espec->newg(ei->engine);
 	if (!glbl) throw bad_alloc();
 	Value global = Value(glbl);
+	Value config = global.fromJSON(cfg);
+	if (config.isException()) return config;
+	global.setPrivate("natus.config", new Value(config), (FreeFunction) freevalue);
 
 	// Add require function
-	if (path.size() > 0) {
-		RequireInternal* ri = new RequireInternal(path, whitelist);
+	Value path = global.getConfig().get("natus.path");
+	if (path.isArray() && path.length() > 0) {
+		RequireInternal* ri = new RequireInternal();
 		Value require = global.newFunction(require_js);
 		require.setPrivate(NATUS_REQUIRE, ri, RequireInternal::free);
 
-		if (whitelist.size() == 0) {
-			vector<Value> pathv;
-			for (vector<string>::iterator i=path.begin(); i < path.end() ; i++)
-				pathv.push_back(global.newString(*i));
-
-			require.set("paths", global.newArray(pathv));
-		}
+		Value whitelist = global.getConfig().get("natus.whitelist");
+		if (!whitelist.isArray())
+			require.set("paths", path);
 		global.set("require", require, Value::Constant);
 	}
 
@@ -396,14 +380,6 @@ Value Engine::newGlobal(vector<string> path, vector<string> whitelist) {
 	global.set("natus.engine", global.newObject(), Value::Constant);
 	global.set("natus.engine.name", global.newString(this->getName()), Value::Constant);
 	return global;
-}
-
-Value Engine::newGlobal(vector<string> path) {
-	return newGlobal(path, vector<string>());
-}
-
-Value Engine::newGlobal() {
-	return newGlobal(vector<string>(), vector<string>());
 }
 
 string Engine::getName() {
@@ -655,82 +631,6 @@ void Value::getContext(void **context, void **value) const {
 	internal->getContext(context, value);
 }
 
-Value Value::checkArguments(vector<Value>& arg, const char* fmt) const {
-	size_t len = arg.size();
-
-	bool minimum = 0;
-	for (size_t i=0,j=0 ; i < len ; i++) {
-		int depth = 0;
-		bool correct = false;
-		string types = "";
-
-		if (minimum == 0 && fmt[j] == '|')
-			minimum = j++;
-
-		do {
-			switch (fmt[j++]) {
-				case 'a':
-					correct = arg[i].isArray();
-					types += "array, ";
-					break;
-				case 'b':
-					correct = arg[i].isBool();
-					types += "boolean, ";
-					break;
-				case 'f':
-					correct = arg[i].isFunction();
-					types += "function, ";
-					break;
-				case 'N':
-					correct = arg[i].isNull();
-					types += "null, ";
-					break;
-				case 'n':
-					correct = arg[i].isNumber();
-					types += "number, ";
-					break;
-				case 'o':
-					correct = arg[i].isObject();
-					types += "object, ";
-					break;
-				case 's':
-					correct = arg[i].isString();
-					types += "string, ";
-					break;
-				case 'u':
-					correct = arg[i].isUndefined();
-					types += "undefined, ";
-					break;
-				case '(':
-					depth++;
-					break;
-				case ')':
-					depth--;
-					break;
-				default:
-					return this->newException("LogicError", "Invalid format character!");
-			}
-		} while (!correct && depth > 0);
-
-		if (types.length() > 2)
-			types = types.substr(0, types.length()-2);
-
-		if (types != "" && !correct) {
-			stringstream msg;
-			msg << "argument " << i << " must be one of these types: " << types;
-			return this->newException("TypeError", msg.str());
-		}
-	}
-
-	if (len < minimum) {
-		stringstream out;
-		out << minimum;
-		return this->newException("TypeError", "Function requires at least " + out.str() + " arguments!");
-	}
-
-	return this->newUndefined();
-}
-
 bool Value::isGlobal() const {
 	return internal->isGlobal();
 }
@@ -853,30 +753,37 @@ bool Value::has(long idx) const {
 	return !v.isUndefined();
 }
 
-bool Value::set(string name, Value value, Value::PropAttrs attrs) {
+bool Value::set(string name, Value value, Value::PropAttrs attrs, bool makeParents) {
 	if (!isArray() && !isFunction() && !isObject())
 		return false;
 
 	if (name.find_first_of('.') == string::npos)
 		return internal->set(name, value, attrs);
 
-	return get(name.substr(0, name.find_first_of('.'))).set(name.substr(name.find_first_of('.')+1), value, attrs);
+	Value next = get(name.substr(0, name.find_first_of('.')));
+	if (makeParents && next.isUndefined()) {
+		next = newObject();
+		if (!set(name.substr(0, name.find_first_of('.')), next))
+			return false;
+	}
+
+	return next.set(name.substr(name.find_first_of('.')+1), value, attrs, makeParents);
 }
 
-bool Value::set(string name, int value, Value::PropAttrs attrs) {
-	return set(name, newNumber(value), attrs);
+bool Value::set(string name, int value, Value::PropAttrs attrs, bool makeParents) {
+	return set(name, newNumber(value), attrs, makeParents);
 }
 
-bool Value::set(string name, double value, Value::PropAttrs attrs) {
-	return set(name, newNumber(value), attrs);
+bool Value::set(string name, double value, Value::PropAttrs attrs, bool makeParents) {
+	return set(name, newNumber(value), attrs, makeParents);
 }
 
-bool Value::set(string name, string value, Value::PropAttrs attrs) {
-	return set(name, newString(value), attrs);
+bool Value::set(string name, string value, Value::PropAttrs attrs, bool makeParents) {
+	return set(name, newString(value), attrs, makeParents);
 }
 
-bool Value::set(string name, NativeFunction value, Value::PropAttrs attrs) {
-	return set(name, newFunction(value), attrs);
+bool Value::set(string name, NativeFunction value, Value::PropAttrs attrs, bool makeParents) {
+	return set(name, newFunction(value), attrs, makeParents);
 }
 
 bool Value::set(long idx, Value value) {
@@ -1025,6 +932,88 @@ string  Value::toJSON() {
 	args.push_back(*this);
 	Value obj = getGlobal().get("JSON");
 	return obj.call("stringify", args).toString();
+}
+
+Value Value::getConfig() const {
+	Value* config = static_cast<Value*>(getGlobal().getPrivate("natus.config"));
+	if (!config) return newUndefined();
+	return *config;
+}
+
+Value Value::checkArguments(vector<Value>& arg, const char* fmt) const {
+	size_t len = arg.size();
+
+	bool minimum = 0;
+	for (size_t i=0,j=0 ; i < len ; i++) {
+		int depth = 0;
+		bool correct = false;
+		string types = "";
+
+		if (minimum == 0 && fmt[j] == '|')
+			minimum = j++;
+
+		do {
+			switch (fmt[j++]) {
+				case 'a':
+					correct = arg[i].isArray();
+					types += "array, ";
+					break;
+				case 'b':
+					correct = arg[i].isBool();
+					types += "boolean, ";
+					break;
+				case 'f':
+					correct = arg[i].isFunction();
+					types += "function, ";
+					break;
+				case 'N':
+					correct = arg[i].isNull();
+					types += "null, ";
+					break;
+				case 'n':
+					correct = arg[i].isNumber();
+					types += "number, ";
+					break;
+				case 'o':
+					correct = arg[i].isObject();
+					types += "object, ";
+					break;
+				case 's':
+					correct = arg[i].isString();
+					types += "string, ";
+					break;
+				case 'u':
+					correct = arg[i].isUndefined();
+					types += "undefined, ";
+					break;
+				case '(':
+					depth++;
+					break;
+				case ')':
+					depth--;
+					break;
+				default:
+					return this->newException("LogicError", "Invalid format character!");
+			}
+		} while (!correct && depth > 0);
+
+		if (types.length() > 2)
+			types = types.substr(0, types.length()-2);
+
+		if (types != "" && !correct) {
+			stringstream msg;
+			msg << "argument " << i << " must be one of these types: " << types;
+			return this->newException("TypeError", msg.str());
+		}
+	}
+
+	if (len < minimum) {
+		stringstream out;
+		out << minimum;
+		return this->newException("TypeError", "Function requires at least " + out.str() + " arguments!");
+	}
+
+	return this->newUndefined();
 }
 
 Value Value::require(string name, string reldir, vector<string> path) {

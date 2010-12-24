@@ -21,6 +21,10 @@
  * 
  */
 
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
@@ -162,19 +166,28 @@ Value set_path(Value& module, string& name, string& reldir, vector<string>& path
 int main(int argc, char** argv) {
 	Engine engine;
 	Value  global;
+	vector<string> configs;
 	const char *eng = NULL;
 	const char *eval = NULL;
 	int c=0, exitcode=0;
 	glbl = &global;
 
-	vector<string> path = pathparser(string(__str(MODULEDIR)) + ":" + (getenv("NATUS_PATH") ? getenv("NATUS_PATH") : ""));
-	vector<string> whitelist = pathparser(getenv("NATUS_WHITELIST") ? getenv("NATUS_WHITELIST") : "");
+	// The engine argument can be embedded in a symlink
 	if (strstr(argv[0], "natus-") == argv[0])
 		eng = strchr(argv[0], '-')+1;
 
+	// Get the path
+	string path;
+	if (getenv("NATUS_PATH"))
+		path = string(getenv("NATUS_PATH")) + ":";
+	path += __str(MODULEDIR);
+
 	opterr = 0;
-	while ((c = getopt (argc, argv, "+c:e:n")) != -1) {
+	while ((c = getopt (argc, argv, "+C:c:e:n")) != -1) {
 		switch (c) {
+		case 'C':
+			configs.push_back(optarg);
+			break;
 		case 'c':
 			eval = optarg;
 			break;
@@ -182,13 +195,13 @@ int main(int argc, char** argv) {
 			eng = optarg;
 			break;
 		case 'n':
-			path.erase(path.begin());
+			path.clear();
 			break;
 		case '?':
 			if (optopt == 'e')
 				fprintf(stderr, "Option -%c requires an engine name.\n", optopt);
 			else {
-				fprintf(stderr, "Usage: %s [-c <javascript>|-e <engine>|-n|<scriptfile>]\n\n", argv[0]);
+				fprintf(stderr, "Usage: %s [-C <config>=<jsonval>|-c <javascript>|-e <engine>|-n|<scriptfile>]\n\n", argv[0]);
 				fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 			}
 			return 1;
@@ -197,12 +210,46 @@ int main(int argc, char** argv) {
 	   }
 	}
 
+	// Initialize the engine
 	if (!engine.initialize(eng))
 		error(1, 0, "Unable to init engine!");
 
-	global = engine.newGlobal(path, whitelist);
-	if (global.isUndefined())
+	// Setup our config (using a temporary global)
+	global = engine.newGlobal();
+	if (global.isUndefined() || global.isException())
+			error(2, 0, "Unable to init global!");
+	Value cfg = global.newObject();
+	if (!path.empty()) {
+		while (path.find(':') != string::npos)
+			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
+		cfg.set("natus.path", global.fromJSON("[\"" + path + "\"]"), Value::None, true);
+	}
+	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
+		if (access(it->c_str(), R_OK) == 0) {
+			ifstream file(it->c_str());
+			for (string line ; getline(file, line) ; ) {
+				if (line.find('=') == string::npos) continue;
+				string key = line.substr(0, line.find('='));
+				Value  val = global.fromJSON(line.substr(line.find('=')+1));
+				if (val.isException()) continue;
+				cfg.set(key, val, Value::None, true);
+			}
+			file.close();
+		} else if (it->find("=") != string::npos) {
+			string key = it->substr(0, it->find('='));
+			Value  val = global.fromJSON(it->substr(it->find('=')+1));
+			if (val.isException()) continue;
+			cfg.set(key, val, Value::None, true);
+		}
+	}
+	string config = cfg.toJSON();
+
+	// Create our (new) execution global
+	global = engine.newGlobal(config);
+	if (global.isUndefined() || global.isException())
 		error(2, 0, "Unable to init global!");
+
+	// Export some basic functions
 	global.set("alert", global.newFunction(alert));
 	global.set("dir",   global.newFunction(dir));
 

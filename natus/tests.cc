@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 	vector<Value> valv;
 
 	assert(engine.initialize(argv[1]));
-	Value global = engine.newGlobal(vector<string>(), vector<string>());
+	Value global = engine.newGlobal();
 
 	//// Global
 	assert(global.isGlobal());

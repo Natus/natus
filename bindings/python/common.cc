@@ -450,12 +450,11 @@ static int Engine_init(natus_Engine* self, PyObject* args, PyObject* kwds) {
 }
 
 static PyObject* Engine_newGlobal(PyObject* self, PyObject* args) {
-	vector<string> path;
-	vector<string> whitelist;
-	if (!PyArg_ParseTuple(args, "|O&O&", append_striter_to_strvect, &path, append_striter_to_strvect, &whitelist))
+	const char* config = NULL;
+	if (!PyArg_ParseTuple(args, "|s", &config))
 		return NULL;
 
-	return pyobject_from_value_exc(((natus_Engine*) self)->engine.newGlobal(path, whitelist));
+	return pyobject_from_value_exc(((natus_Engine*) self)->engine.newGlobal(config));
 }
 
 static PyMethodDef Engine_methods[] = {

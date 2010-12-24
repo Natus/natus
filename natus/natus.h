@@ -127,9 +127,7 @@ public:
 	bool   initialize();
 	string getName();
 
-	Value  newGlobal(vector<string> path, vector<string> whitelist);
-	Value  newGlobal(vector<string> path);
-	Value  newGlobal();
+	Value  newGlobal(string config="{}");
 
 private:
 	void *internal;
@@ -169,7 +167,6 @@ public:
 	Value            newException(int errorno) const;
 	Value            getGlobal() const;
 	void             getContext(void **context, void **value) const;
-	Value            checkArguments(vector<Value>& arg, const char* fmt) const;
 
 	bool             isGlobal() const;
 	bool             isException() const;
@@ -197,11 +194,11 @@ public:
 	Value            get(long idx) const;
 	bool             has(string name) const;
 	bool             has(long idx) const;
-	bool             set(string name, Value value, Value::PropAttrs attrs=None);
-	bool             set(string name, int value, Value::PropAttrs attrs=None);
-	bool             set(string name, double value, Value::PropAttrs attrs=None);
-	bool             set(string name, string value, Value::PropAttrs attrs=None);
-	bool             set(string name, NativeFunction value, Value::PropAttrs attrs=None);
+	bool             set(string name, Value value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, int value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, double value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, string value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, NativeFunction value, Value::PropAttrs attrs=None, bool makeParents=false);
 	bool             set(long idx, Value value);
 	bool             set(long idx, int value);
 	bool             set(long idx, double value);
@@ -230,6 +227,8 @@ public:
 	Value            fromJSON(string json);
 	string           toJSON();
 
+	Value            getConfig() const;
+	Value            checkArguments(vector<Value>& arg, const char* fmt) const;
 	Value            require(string name, string reldir, vector<string> path);
 	void             addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
 
