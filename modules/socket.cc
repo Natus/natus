@@ -22,7 +22,7 @@ static Value throwexc_eai(const Value& ctx, int error) {
 	const char* type = "IOError";
 	switch (error) {
 	case EAI_SYSTEM:
-		return ctx.newException(errno);
+		return throwException(ctx, errno);
 	case EAI_MEMORY:
 		return NULL;
 	case EAI_ADDRFAMILY:
@@ -38,7 +38,7 @@ static Value throwexc_eai(const Value& ctx, int error) {
 		break;
 	}
 
-	return ctx.newException(type, gai_strerror(error), error);
+	return throwException(ctx, type, gai_strerror(error), error);
 }
 
 class SocketClass : public Class {
@@ -61,7 +61,7 @@ class SocketClass : public Class {
 		else
 			return obj.newUndefined().toException(); // Don't intercept on other properties
 		if (status < 0)
-			return obj.newException(errno);
+			return throwException(obj, errno);
 
 		status = getnameinfo((sockaddr*) &addr, len, name, 1024, port, 21, NI_NUMERICHOST | NI_NUMERICSERV);
 		if (status < 0)
@@ -77,12 +77,12 @@ static Value socket_accept(Value& ths, Value& fnc, vector<Value>& arg) {
 	int fd = (long) ths.getPrivate("posix.fd");
 
 	int newsock = accept(fd, NULL, NULL);
-	if (newsock < 0) return ths.newException(errno);
+	if (newsock < 0) return throwException(ths, errno);
 	return socket_from_sock(ths, newsock, ths.get("domain").toInt(), ths.get("type").toInt(), ths.get("protocol").toInt());
 }
 
 static Value socket_bind(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "|s(sn)");
+	Value exc = checkArguments(ths, arg, "|s(sn)");
 	if (exc.isException()) return exc;
 
 	int    fd = (long) ths.getPrivate("posix.fd");
@@ -103,14 +103,14 @@ static Value socket_bind(Value& ths, Value& fnc, vector<Value>& arg) {
 	}
 	if (bind(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
 		freeaddrinfo(ai);
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	}
 	freeaddrinfo(ai);
 	return ths.newUndefined();
 }
 
 static Value socket_connect(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "s(sn)");
+	Value exc = checkArguments(ths, arg, "s(sn)");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
@@ -123,24 +123,24 @@ static Value socket_connect(Value& ths, Value& fnc, vector<Value>& arg) {
 	}
 	if (connect(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
 		freeaddrinfo(ai);
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	}
 	freeaddrinfo(ai);
 	return ths.newUndefined();
 }
 
 static Value socket_listen(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "|n");
+	Value exc = checkArguments(ths, arg, "|n");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
 	if (listen(fd, arg.size() > 0 ? arg[0].toInt() : 1024) < 0)
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
 static Value fd_read(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "|n");
+	Value exc = checkArguments(ths, arg, "|n");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
@@ -150,7 +150,7 @@ static Value fd_read(Value& ths, Value& fnc, vector<Value>& arg) {
 	ssize_t rcvd = read(fd, buff, bs);
 	if (rcvd < 0) {
 		delete[] buff;
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	}
 	string ret = string(buff, rcvd);
 	delete[] buff;
@@ -158,7 +158,7 @@ static Value fd_read(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value socket_receive(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "|n");
+	Value exc = checkArguments(ths, arg, "|n");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
@@ -168,7 +168,7 @@ static Value socket_receive(Value& ths, Value& fnc, vector<Value>& arg) {
 	ssize_t rcvd = recv(fd, buff, bs, 0);
 	if (rcvd < 0) {
 		delete[] buff;
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	}
 	string ret = string(buff, rcvd);
 	delete[] buff;
@@ -176,47 +176,47 @@ static Value socket_receive(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value socket_send(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "s");
+	Value exc = checkArguments(ths, arg, "s");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
 
 	string buff = arg[0].toString();
 	ssize_t snt = send(fd, buff.c_str(), buff.length(), 0);
-	if (snt < 0) return ths.newException(errno);
+	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
 }
 
 static Value socket_shutdown(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "|n");
+	Value exc = checkArguments(ths, arg, "|n");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
 	if (shutdown(fd, arg.size() > 0 ? arg[0].toInt() : SHUT_RDWR) < 0)
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
 static Value fd_write(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "s");
+	Value exc = checkArguments(ths, arg, "s");
 	if (exc.isException()) return exc;
 
 	int fd = (long) ths.getPrivate("posix.fd");
 	string buff = arg[0].toString();
 	ssize_t snt = write(fd, buff.c_str(), buff.length());
-	if (snt < 0) return ths.newException(errno);
+	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
 }
 
 static Value fd_close(Value& ths, Value& fnc, vector<Value>& arg) {
 	int fd = (long) ths.getPrivate("posix.fd");
 	if (close(fd) < 0)
-		return ths.newException(errno);
+		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
 static Value socket_ctor(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = ths.checkArguments(arg, "|nnn");
+	Value exc = checkArguments(ths, arg, "|nnn");
 	if (exc.isException()) return exc;
 
 	int domain = AF_INET, type = SOCK_STREAM, prot = 0;
@@ -230,7 +230,7 @@ static Value socket_ctor(Value& ths, Value& fnc, vector<Value>& arg) {
 	}
 
 	int fd = socket(domain, type, prot);
-	if (fd < 0) return ths.newException(errno);
+	if (fd < 0) return throwException(ths, errno);
 	return socket_from_sock(ths, fd, domain, type, prot);
 }
 
