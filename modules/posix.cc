@@ -25,58 +25,72 @@ using namespace natus;
 #define doval(code, val) (code == 0 ? val : doexc())
 #define doerr(code) return doval(code, ths.newUndefined())
 
+static long push(Value& array, Value item) {
+	vector<Value> pushargs;
+	pushargs.push_back(item);
+	return array.call("push", pushargs).toLong();
+}
+
 static Value posix_WCOREDUMP(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newBool(WCOREDUMP(status));
 }
 
 static Value posix_WEXITSTATUS(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newNumber(WEXITSTATUS(status));
 }
 
 static Value posix_WIFCONTINUED(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newBool(WIFCONTINUED(status));
 }
 
 static Value posix_WIFEXITED(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newBool(WIFEXITED(status));
 }
 
 static Value posix_WIFSIGNALED(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newBool(WIFSIGNALED(status));
 }
 
 static Value posix_WIFSTOPPED(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newBool(WIFSTOPPED(status));
 }
 
 static Value posix_WSTOPSIG(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newNumber(WSTOPSIG(status));
 }
 
 static Value posix_WTERMSIG(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("status must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int status = arg[0].toInt();
 	return ths.newNumber(WTERMSIG(status));
 }
@@ -87,9 +101,11 @@ static Value posix_abort(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_access(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("pathname must be a string!").toException();
-	if (!arg[1].isNumber()) return ths.newString("mode must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "sn");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	int res = access(arg[0].toString().c_str(), arg[1].toInt());
 	if (res == 0)        return ths.newBool(true);
 	if (errno == EACCES) return ths.newBool(false);
@@ -97,35 +113,45 @@ static Value posix_access(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_chdir(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	doerr(chdir(arg[0].toString().c_str()));
 }
 
 static Value posix_chmod(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
-	if (!arg[1].isNumber()) return ths.newString("mode must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "sn");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	doerr(chmod(arg[0].toString().c_str(), arg[1].toInt()));
 }
 
 static Value posix_chown(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
-	if (!arg[1].isNumber()) return ths.newString("uid must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("gid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "snn");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	doerr(chown(arg[0].toString().c_str(), arg[1].toInt(), arg[2].toInt()));
 }
 
 static Value posix_chroot(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	doerr(chroot(arg[0].toString().c_str()));
 }
 
 static Value posix_close(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(close(arg[0].toInt()));
 }
 
@@ -134,30 +160,30 @@ static Value posix_ctermid(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_dup(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	int fd = dup(arg[0].toInt());
 	if (fd < 0) return doexc();
 	return ths.newNumber(fd);
 }
 
 static Value posix_dup2(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("newfd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	int fd = dup2(arg[0].toInt(), arg[1].toInt());
 	if (fd < 0) return doexc();
 	return ths.newNumber(fd);
 }
 
 static Value posix_execv(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
-	if (!arg[1].isArray())  return ths.newString("arguments must be an array!").toException();
+	Value exc = checkArguments(ths, arg, "sa");
+	if (exc.isException()) return exc;
 
-	const char** argv = new const char*[arg[1].length()+1];
-	memset(argv, 0, sizeof(char*) * (arg[1].length() + 1));
-	for (int i=0,j=0 ; i < arg[1].length() ; i++) {
+	const char** argv = new const char*[arg[1].get("length").toLong()+1];
+	memset(argv, 0, sizeof(char*) * (arg[1].get("length").toLong() + 1));
+	for (int i=0,j=0 ; i < arg[1].get("length").toLong() ; i++) {
 		if (!arg[1][i].isString()) continue;
 		argv[j++] = arg[1][i].toString().c_str();
 	}
@@ -168,14 +194,12 @@ static Value posix_execv(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_execve(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
-	if (!arg[1].isArray())  return ths.newString("arguments must be an array!").toException();
-	if (!arg[2].isObject()) return ths.newString("env must be an object!").toException();
+	Value exc = checkArguments(ths, arg, "sao");
+	if (exc.isException()) return exc;
 
-	const char** argv = new const char*[arg[1].length()+1];
-	memset(argv, 0, sizeof(char*) * (arg[1].length() + 1));
-	for (int i=0,j=0 ; i < arg[1].length() ; i++) {
+	const char** argv = new const char*[arg[1].get("length").toLong()+1];
+	memset(argv, 0, sizeof(char*) * (arg[1].get("length").toLong() + 1));
+	for (int i=0,j=0 ; i < arg[1].get("length").toLong() ; i++) {
 		if (!arg[1][i].isString()) continue;
 		argv[j++] = arg[1][i].toString().c_str();
 	}
@@ -196,29 +220,30 @@ static Value posix_execve(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_fchdir(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(fchdir(arg[0].toInt()));
 }
 
 static Value posix_fchmod(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("mode must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(fchmod(arg[0].toInt(), arg[1].toInt()));
 }
 
 static Value posix_fchown(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("uid must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("gid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nnn");
+	if (exc.isException()) return exc;
+
 	doerr(fchown(arg[0].toInt(), arg[1].toInt(), arg[2].toInt()));
 }
 
 static Value posix_fdatasync(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(fdatasync(arg[0].toInt()));
 }
 
@@ -233,15 +258,15 @@ static Value posix_forkpty(Value& ths, Value& fnc, vector<Value>& arg) {
 	pid_t pid = forkpty(&amaster, NULL, NULL, NULL);
 	if (pid < 0) return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(pid));
-	ret.push(ths.newNumber(amaster));
+	push(ret, ths.newNumber(pid));
+	push(ret, ths.newNumber(amaster));
 	return ret;
 }
 
 static Value posix_fpathconf(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("mode must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	errno = 0;
 	int res = fpathconf(arg[0].toInt(), arg[1].toInt());
 	if (res == -1 && errno != 0) doexc();
@@ -249,8 +274,9 @@ static Value posix_fpathconf(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_fstat(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	struct stat st;
 	int res = fstat(arg[0].toInt(), &st);
 	if (res == -1) return doexc();
@@ -273,8 +299,9 @@ static Value posix_fstat(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_fstatvfs(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	struct statvfs st;
 	int res = fstatvfs(arg[0].toInt(), &st);
 	if (res == -1) return doexc();
@@ -295,15 +322,16 @@ static Value posix_fstatvfs(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_fsync(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(fsync(arg[0].toInt()));
 }
 
 static Value posix_ftruncate(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("length must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(ftruncate(arg[0].toInt(), arg[1].toInt()));
 }
 
@@ -336,7 +364,7 @@ static Value posix_getgroups(Value& ths, Value& fnc, vector<Value>& arg) {
 
 	Value ret = ths.newArray();
 	for (gid_t i=0 ; i < size ; i++)
-		ret.push(ths.newNumber(i));
+		push(ret, ths.newNumber(i));
 	delete[] gids;
 	return ret;
 }
@@ -346,9 +374,9 @@ static Value posix_getloadavg(Value& ths, Value& fnc, vector<Value>& arg) {
 	if (getloadavg(ldavg, 3) < 0)
 		return ths.newString("Unknown error!").toException();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(ldavg[0]));
-	ret.push(ths.newNumber(ldavg[1]));
-	ret.push(ths.newNumber(ldavg[2]));
+	push(ret, ths.newNumber(ldavg[0]));
+	push(ret, ths.newNumber(ldavg[1]));
+	push(ret, ths.newNumber(ldavg[2]));
 	return ret;
 }
 
@@ -359,8 +387,9 @@ static Value posix_getlogin(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_getpgid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("pid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	pid_t pgid = getpgid(arg[0].toInt());
 	if (pgid < 0) doexc();
 	return ths.newNumber(pgid);
@@ -383,9 +412,9 @@ static Value posix_getresgid(Value& ths, Value& fnc, vector<Value>& arg) {
 	if (getresgid(&rgid, &egid, &sgid) < 0)
 		return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(rgid));
-	ret.push(ths.newNumber(egid));
-	ret.push(ths.newNumber(sgid));
+	push(ret, ths.newNumber(rgid));
+	push(ret, ths.newNumber(egid));
+	push(ret, ths.newNumber(sgid));
 	return ret;
 }
 
@@ -394,15 +423,16 @@ static Value posix_getresuid(Value& ths, Value& fnc, vector<Value>& arg) {
 	if (getresgid(&ruid, &euid, &suid) < 0)
 		return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(ruid));
-	ret.push(ths.newNumber(euid));
-	ret.push(ths.newNumber(suid));
+	push(ret, ths.newNumber(ruid));
+	push(ret, ths.newNumber(euid));
+	push(ret, ths.newNumber(suid));
 	return ret;
 }
 
 static Value posix_getsid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("pid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	pid_t sid = getsid(arg[0].toInt());
 	if (sid < 0) doexc();
 	return ths.newNumber(sid);
@@ -413,60 +443,60 @@ static Value posix_getuid(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_initgroups(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("user must be a string!").toException();
-	if (!arg[1].isNumber()) return ths.newString("group must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "sn");
+	if (exc.isException()) return exc;
+
 	doerr(initgroups(arg[0].toString().c_str(), arg[1].toInt()));
 }
 
 static Value posix_isatty(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	return ths.newBool(isatty(arg[0].toInt()));
 }
 
 static Value posix_kill(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("pid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("signal must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(kill(arg[0].toInt(), arg[0].toInt()));
 }
 
 static Value posix_killpg(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("pgrp must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("signal must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(kill(arg[0].toInt(), arg[0].toInt()));
 }
 
 static Value posix_lchown(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
-	if (!arg[1].isNumber()) return ths.newString("owner must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("group must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "snn");
+	if (exc.isException()) return exc;
+
 	doerr(lchown(arg[0].toString().c_str(), arg[1].toInt(), arg[2].toInt()));
 }
 
 static Value posix_link(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("src must be a string!").toException();
-	if (!arg[1].isString()) return ths.newString("dst must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "ss");
+	if (exc.isException()) return exc;
+
 	doerr(link(arg[0].toString().c_str(), arg[1].toString().c_str()));
 }
 
 static Value posix_lseek(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("pos must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("how must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nnn");
+	if (exc.isException()) return exc;
+
 	off_t offset = lseek(arg[0].toInt(), arg[1].toInt(), arg[2].toInt());
 	if (offset < 0) return doexc();
 	return ths.newNumber(offset);
 }
 
 static Value posix_lstat(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+
 	struct stat st;
 	int res = lstat(arg[0].toString().c_str(), &st);
 	if (res == -1) return doexc();
@@ -489,27 +519,32 @@ static Value posix_lstat(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_major(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("device must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	return ths.newNumber(major(arg[0].toInt()));
 }
 
 static Value posix_makedev(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("major must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("minor must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	return ths.newNumber(makedev(arg[0].toInt(), arg[0].toInt()));
 }
 
 static Value posix_minor(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("device must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	return ths.newNumber(minor(arg[0].toInt()));
 }
 
 static Value posix_mkdir(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	mode_t mode = 0777;
 	if (arg.size() > 1) {
 		if (!arg[1].isNumber())
@@ -520,8 +555,11 @@ static Value posix_mkdir(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_mkfifo(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	mode_t mode = 0666;
 	if (arg.size() > 1) {
 		if (!arg[1].isNumber())
@@ -532,8 +570,11 @@ static Value posix_mkfifo(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_mknod(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	mode_t mode = 0666;
 	dev_t  dev = 0;
 	if (arg.size() > 1) {
@@ -550,8 +591,9 @@ static Value posix_mknod(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_nice(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("inc must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	errno = 0;
 	int prio = nice(arg[0].toInt());
 	if (errno != 0) return doexc();
@@ -559,8 +601,11 @@ static Value posix_nice(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_open(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s|nn");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	int    flags = 0;
 	mode_t mode  = 0666;
 	if (arg.size() > 1) {
@@ -583,15 +628,17 @@ static Value posix_openpty(Value& ths, Value& fnc, vector<Value>& arg) {
 	if (openpty(&amaster, &aslave, NULL, NULL, NULL) < 0)
 		return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(amaster));
-	ret.push(ths.newNumber(aslave));
+	push(ret, ths.newNumber(amaster));
+	push(ret, ths.newNumber(aslave));
 	return ret;
 }
 
 static Value posix_pathconf(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
-	if (!arg[1].isNumber()) return ths.newString("mode must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "sn");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	errno = 0;
 	int res = pathconf(arg[0].toString().c_str(), arg[1].toInt());
 	if (res == -1 && errno != 0) doexc();
@@ -602,15 +649,15 @@ static Value posix_pipe(Value& ths, Value& fnc, vector<Value>& arg) {
 	int fds[2];
 	if (pipe(fds) < 0) return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(fds[0]));
-	ret.push(ths.newNumber(fds[1]));
+	push(ret, ths.newNumber(fds[0]));
+	push(ret, ths.newNumber(fds[1]));
 	return ret;
 }
 
 static Value posix_read(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("bytes must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	char* buffer = new char[arg[1].toInt()];
 	if (read(arg[0].toInt(), buffer, arg[1].toInt()) < 0)
 		return doexc();
@@ -620,8 +667,10 @@ static Value posix_read(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_readlink(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
 
 	char buffer[4096];
 	memset(buffer, 0, sizeof(char) * 4096);
@@ -631,41 +680,51 @@ static Value posix_readlink(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_rename(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("oldpath must be a string!").toException();
-	if (!arg[1].isString()) return ths.newString("newpath must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "ss");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[1].toString());
+	if (exc.isException()) return exc;
+
 	doerr(rename(arg[0].toString().c_str(), arg[1].toString().c_str()));
 }
 
 static Value posix_rmdir(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	doerr(rmdir(arg[0].toString().c_str()));
 }
 
 static Value posix_setegid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("egid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(setegid(arg[0].toInt()));
 }
 
 static Value posix_seteuid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("euid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(seteuid(arg[0].toInt()));
 }
 
 static Value posix_setgid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("gid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(setgid(arg[0].toInt()));
 }
 
 static Value posix_setgroups(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)    return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isArray()) return ths.newString("group list must be an array!").toException();
+	Value exc = checkArguments(ths, arg, "a");
+	if (exc.isException()) return exc;
 
-	long    len = arg[0].length();
+	long    len = arg[0].get("length").toLong();
 	gid_t* list = new gid_t[len];
 	for (int i=0 ; i < len ; i++)
 		list[i] = arg[0][i].toInt();
@@ -678,9 +737,9 @@ static Value posix_setgroups(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_setpgid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("pid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("pgid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(setpgid(arg[0].toInt(), arg[1].toInt()));
 }
 
@@ -689,32 +748,30 @@ static Value posix_setpgrp(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_setregid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("rgid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("egid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(setregid(arg[0].toInt(), arg[1].toInt()));
 }
 
 static Value posix_setresgid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("rgid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("egid must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("sgid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nnn");
+	if (exc.isException()) return exc;
+
 	doerr(setresgid(arg[0].toInt(), arg[1].toInt(), arg[2].toInt()));
 }
 
 static Value posix_setresuid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("ruid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("euid must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("suid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nnn");
+	if (exc.isException()) return exc;
+
 	doerr(setresuid(arg[0].toInt(), arg[1].toInt(), arg[2].toInt()));
 }
 
 static Value posix_setreuid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("ruid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("euid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(setreuid(arg[0].toInt(), arg[1].toInt()));
 }
 
@@ -725,14 +782,18 @@ static Value posix_setsid(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_setuid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("uid must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	doerr(setuid(arg[0].toInt()));
 }
 
 static Value posix_stat(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	struct stat st;
 	int res = stat(arg[0].toString().c_str(), &st);
 	if (res == -1) return doexc();
@@ -755,8 +816,11 @@ static Value posix_stat(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_statvfs(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	struct statvfs st;
 	int res = statvfs(arg[0].toString().c_str(), &st);
 	if (res == -1) return doexc();
@@ -777,30 +841,38 @@ static Value posix_statvfs(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_strerror(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("code must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	return ths.newString(strerror(arg[0].toInt()));
 }
 
 static Value posix_symlink(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("src must be a string!").toException();
-	if (!arg[1].isString()) return ths.newString("dst must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "ss");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[1].toString());
+	if (exc.isException()) return exc;
+
 	doerr(symlink(arg[0].toString().c_str(), arg[1].toString().c_str()));
 }
 
 static Value posix_sysconf(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("name must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	long res = sysconf(arg[0].toInt());
 	if (res < 0) return doexc();
 	return ths.newNumber(res);
 }
 
 static Value posix_system(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString() && !arg[0].isNull())
-		return ths.newString("command must be a string or null!").toException();
+	Value exc = checkArguments(ths, arg, "(sn)");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file:///");
+	if (exc.isException()) return exc;
+
 	int res;
 	if (arg[0].isString())
 		res = system(arg[0].toString().c_str());
@@ -811,33 +883,31 @@ static Value posix_system(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_tcgetpgrp(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
+
 	pid_t res = tcgetpgrp(arg[0].toInt());
 	if (res < 0) return doexc();
 	return ths.newNumber(res);
 }
 
 static Value posix_tcsetpgrp(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("pgrp must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	doerr(tcsetpgrp(arg[0].toInt(), arg[1].toInt()));
 }
 
 static Value posix_tempnam(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s|ss");
+	if (exc.isException()) return exc;
+
 	string dir = "";
 	string prefix = "";
 	if (arg.size() > 0) {
-		if (!arg[0].isString())
-			return ths.newString("dir must be a string!").toException();
 		dir = arg[0].toString();
-		if (arg.size() > 1) {
-			if (!arg[1].isNumber())
-				return ths.newString("prefix must be a string!").toException();
+		if (arg.size() > 1)
 			prefix = arg[1].toString();
-		}
 	}
 	char* name = tempnam(dir.c_str(), prefix.c_str());
 	if (!name) return doexc();
@@ -867,8 +937,8 @@ static Value posix_tmpnam(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_ttyname(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
 
 	const char* name = ttyname(arg[0].toInt());
 	if (!name) return doexc();
@@ -876,8 +946,8 @@ static Value posix_ttyname(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_umask(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("mask must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "n");
+	if (exc.isException()) return exc;
 
 	return ths.newNumber(umask(arg[0].toInt()));
 }
@@ -896,20 +966,25 @@ static Value posix_uname(Value& ths, Value& fnc, vector<Value>& arg) {
 }
 
 static Value posix_unlink(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 1)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
 
 	doerr(unlink(arg[0].toString().c_str()));
 }
 
 static Value posix_utime(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isString()) return ths.newString("path must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "s(nN)|n");
+	if (exc.isException()) return exc;
+	exc = ModuleLoader::checkOrigin(ths, "file://" + arg[0].toString());
+	if (exc.isException()) return exc;
+
 	if (arg[1].isNull())
 		doerr(utime(arg[0].toString().c_str(), NULL));
-	if (arg.size() < 3)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[1].isNumber()) return ths.newString("atime must be a number!").toException();
-	if (!arg[2].isNumber()) return ths.newString("mtime must be a number!").toException();
+
+	exc = checkArguments(ths, arg, "snn");
+	if (exc.isException()) return exc;
 
 	struct utimbuf buf = {
 		arg[1].toInt(),
@@ -923,28 +998,28 @@ static Value posix_wait(Value& ths, Value& fnc, vector<Value>& arg) {
 	pid_t pid = wait(&status);
 	if (pid < 0) return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(pid));
-	ret.push(ths.newNumber(status));
+	push(ret, ths.newNumber(pid));
+	push(ret, ths.newNumber(status));
 	return ret;
 }
 
 static Value posix_waitpid(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("pid must be a number!").toException();
-	if (!arg[1].isNumber()) return ths.newString("options must be a number!").toException();
+	Value exc = checkArguments(ths, arg, "nn");
+	if (exc.isException()) return exc;
+
 	int status;
 	pid_t pid = waitpid(arg[0].toInt(), &status, arg[1].toInt());
 	if (pid < 0) return doexc();
 	Value ret = ths.newArray();
-	ret.push(ths.newNumber(pid));
-	ret.push(ths.newNumber(status));
+	push(ret, ths.newNumber(pid));
+	push(ret, ths.newNumber(status));
 	return ret;
 }
 
 static Value posix_write(Value& ths, Value& fnc, vector<Value>& arg) {
-	if (arg.size() < 2)     return ths.newString("Invalid number of arguments!").toException();
-	if (!arg[0].isNumber()) return ths.newString("fd must be a number!").toException();
-	if (!arg[1].isString()) return ths.newString("string must be a string!").toException();
+	Value exc = checkArguments(ths, arg, "ns");
+	if (exc.isException()) return exc;
+
 	string str = arg[1].toString();
 	ssize_t size = write(arg[0].toInt(), str.c_str(), str.length());
 	if (size < 0) return doexc();

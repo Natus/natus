@@ -40,7 +40,11 @@ using namespace natus;
 #endif
 
 static JSClassDefinition fncdef;
-static JSClassRef fnccls;
+static JSClassDefinition glbdef;
+static struct {
+	JSClassRef fnccls;
+	JSClassRef glbcls;
+} classes;
 
 static JSValueRef getJSValue(Value& value);
 static string JSStringToString(JSStringRef str, bool release=false);
@@ -59,13 +63,18 @@ public:
 	JSClassDefinition jscdef;
 	JSClassRef        jsccls;
 
-	CFP() {
+	CFP(EngineValue* glbl, Class* clss) : ClassFuncPrivate(glbl, clss) {
+		memset(&jscdef, 0, sizeof(JSClassDefinition));
+		jscdef.className = "Object";
+	}
+
+	CFP(EngineValue* glbl, NativeFunction func) : ClassFuncPrivate(glbl, func) {
 		memset(&jscdef, 0, sizeof(JSClassDefinition));
 		jscdef.className = "Object";
 	}
 
 	virtual ~CFP() {
-		JSClassRelease(jsccls);
+		if (jsccls) JSClassRelease(jsccls);
 	}
 };
 
@@ -85,6 +94,9 @@ public:
 		this->val = JSContextGetGlobalObject(ctx);
 		if (!this->val) throw bad_alloc();
 		JSValueProtect(ctx, val);
+
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, (Class*) NULL);
+		assert(JSObjectSetPrivate(JSContextGetGlobalObject(ctx), cfp));
 	}
 
 	JavaScriptCoreEngineValue(EngineValue* glb, JSValueRef val, bool exc=false) : EngineValue(glb, exc) {
@@ -129,22 +141,14 @@ public:
 	}
 
 	virtual Value   newFunction(NativeFunction func) {
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
-		cfp->clss = NULL;
-		cfp->func = func;
-		cfp->glbl = glb;
-
-		JSValueRef val = (JSValueRef) JSObjectMake(ctx, fnccls, cfp);
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, func);
+		JSValueRef val = (JSValueRef) JSObjectMake(ctx, classes.fnccls, cfp);
 		if (!val) delete cfp;
 		return Value(JavaScriptCoreEngineValue::getInstance(glb, val));
 	}
 
 	virtual Value   newObject(Class* cls) {
-		CFP *cfp = new CFP();
-		cfp->clss = cls;
-		cfp->func = NULL;
-		cfp->glbl = glb;
-
+		CFP *cfp = new CFP(glb, cls);
 		cfp->jscdef.finalize = finalize;
 		if (cls) {
 			Class::Flags flags            = cls->getFlags();
@@ -402,7 +406,7 @@ static string JSStringToString(JSStringRef str, bool release) {
 
 static void finalize(JSObjectRef object) {
 	ClassFuncPrivate *cfp = (ClassFuncPrivate *) JSObjectGetPrivate(object);
-	delete cfp;
+	if (cfp) delete cfp;
 }
 
 static JSValueRef fnc_call(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exc) {
@@ -564,7 +568,7 @@ static void obj_enum(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumul
 
 	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, object));
 	Value res = cfp->clss->enumerate(obj);
-	long len = res.length();
+	long len = res.get("length").toLong();
 	for (long i=0 ; i < len ; i++) {
 		Value item = res.get(i);
 		if (!item.isString()) continue;
@@ -602,19 +606,22 @@ static JSObjectRef obj_new(JSContextRef ctx, JSObjectRef constructor, size_t arg
 }
 
 static EngineValue* engine_newg(void *engine) {
-	return new JavaScriptCoreEngineValue(JSGlobalContextCreate(NULL));
+	return new JavaScriptCoreEngineValue(JSGlobalContextCreate(classes.glbcls));
 }
 
 static void engine_free(void *engine) {
-	JSClassRelease(fnccls);
+	JSClassRelease(classes.fnccls);
+	JSClassRelease(classes.glbcls);
 }
 
 static void *engine_init() {
-	fncdef.version = 0;
 	fncdef.finalize = finalize;
 	fncdef.callAsFunction = fnc_call;
 	fncdef.callAsConstructor = fnc_new;
-    return fnccls = JSClassCreate(&fncdef);
+    classes.fnccls = JSClassCreate(&fncdef);
+    glbdef.finalize = finalize;
+    classes.glbcls = JSClassCreate(&glbdef);
+    return &classes;
 }
 
 NATUS_ENGINE("JavaScriptCore", "JSObjectMakeFunctionWithCallback", engine_init, engine_newg, engine_free);

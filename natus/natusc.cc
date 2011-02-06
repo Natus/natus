@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2010 Nathaniel McCallum <nathaniel@natemccallum.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 #include <cstring>
 #include <cstdlib>
 
@@ -14,6 +37,10 @@ struct _ntEngine {
 
 struct _ntValue {
 	Value value;
+};
+
+struct _ntModuleLoader {
+	ModuleLoader ml;
 };
 
 class NatusCClass : public Class {
@@ -40,6 +67,7 @@ public:
 	}
 
 	virtual Value        del      (Value& obj, string name) {
+		if (!ccls->del_prop) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->del_prop((ntValue*) &obj, name.c_str());
 		Value  ret = *tmp;
 		delete tmp;
@@ -47,6 +75,7 @@ public:
 	}
 
 	virtual Value        del      (Value& obj, long idx) {
+		if (!ccls->del_item) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->del_item((ntValue*) &obj, idx);
 		Value  ret = *tmp;
 		delete tmp;
@@ -54,6 +83,7 @@ public:
 	}
 
 	virtual Value        get      (Value& obj, string name) {
+		if (!ccls->get_prop) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->get_prop((ntValue*) &obj, name.c_str());
 		Value  ret = *tmp;
 		delete tmp;
@@ -61,6 +91,7 @@ public:
 	}
 
 	virtual Value        get      (Value& obj, long idx) {
+		if (!ccls->get_item) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->get_item((ntValue*) &obj, idx);
 		Value  ret = *tmp;
 		delete tmp;
@@ -68,6 +99,7 @@ public:
 	}
 
 	virtual Value        set      (Value& obj, string name, Value& value) {
+		if (!ccls->set_prop) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->set_prop((ntValue*) &obj, name.c_str(), (ntValue*) &value);
 		Value  ret = *tmp;
 		delete tmp;
@@ -75,6 +107,7 @@ public:
 	}
 
 	virtual Value        set      (Value& obj, long idx, Value& value) {
+		if (!ccls->set_item) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->set_item((ntValue*) &obj, idx, (ntValue*) &value);
 		Value  ret = *tmp;
 		delete tmp;
@@ -82,6 +115,7 @@ public:
 	}
 
 	virtual Value        enumerate(Value& obj) {
+		if (!ccls->enumerate) return obj.newUndefined().toException();
 		Value* tmp = (Value*) ccls->enumerate((ntValue*) &obj);
 		Value  ret = *tmp;
 		delete tmp;
@@ -89,6 +123,7 @@ public:
 	}
 
 	virtual Value        call     (Value& obj, vector<Value> args) {
+		if (!ccls->call) return obj.newUndefined().toException();
 		ntValue** argv = new ntValue*[args.size()+1];
 		for (size_t i=0 ; i < args.size() ; i++)
 			argv[i] = (ntValue*) &args[i];
@@ -101,6 +136,7 @@ public:
 	}
 
 	virtual Value        callNew  (Value& obj, vector<Value> args) {
+		if (!ccls->call_new) return obj.newUndefined().toException();
 		ntValue** argv = new ntValue*[args.size()+1];
 		for (size_t i=0 ; i < args.size() ; i++)
 			argv[i] = (ntValue*) &args[i];
@@ -177,16 +213,8 @@ char             *nt_engine_name(ntEngine *engine) {
 
 #define to_ntValue(x) (_ntValue*) new Value(x)
 
-ntValue          *nt_engine_new_global(ntEngine *engine, const char **path, const char **whitelist) {
-	vector<string> vpath;
-	vector<string> vwhitelist;
-
-	for (int i=0 ; path && path[i] ; i++)
-		vpath.push_back(path[i]);
-	for (int i=0 ; whitelist && whitelist[i] ; i++)
-		vwhitelist.push_back(whitelist[i]);
-
-	return to_ntValue(engine->engine.newGlobal(vpath, vwhitelist));
+ntValue          *nt_engine_new_global(ntEngine *engine) {
+	return to_ntValue(engine->engine.newGlobal());
 }
 
 void              nt_engine_free(ntEngine *engine) {
@@ -232,7 +260,7 @@ ntValue          *nt_new_null(const ntValue *ctx) {
 	return to_ntValue(ctx->value.newNull());
 }
 
-ntValue          *nt_new_ndefined(const ntValue *ctx) {
+ntValue          *nt_new_undefined(const ntValue *ctx) {
 	return to_ntValue(ctx->value.newUndefined());
 }
 
@@ -250,6 +278,10 @@ bool              nt_is_global(const ntValue *val) {
 
 bool              nt_is_exception(const ntValue *val) {
 	return val->value.isException();
+}
+
+bool              nt_is_oom(const ntValue *val) {
+	return val->value.isOOM();
 }
 
 bool              nt_is_array(const ntValue *val) {
@@ -351,6 +383,10 @@ bool              nt_set_property_attr(ntValue *val, const char *name, ntValue *
 	return val->value.set(name, value->value, (Value::PropAttrs) attrs);
 }
 
+bool              nt_set_property_full(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs, bool makeParents) {
+	return val->value.set(name, value->value, (Value::PropAttrs) attrs, makeParents);
+}
+
 bool              nt_set_item(ntValue *val, long idx, ntValue *value) {
 	return val->value.set(idx, value->value);
 }
@@ -366,18 +402,6 @@ char            **nt_enumerate(const ntValue *val) {
 	return ret;
 }
 
-long              nt_array_length(const ntValue *array) {
-	return array->value.length();
-}
-
-long              nt_array_push(ntValue *array, ntValue *value) {
-	return array->value.push(value->value);
-}
-
-ntValue          *nt_array_pop(ntValue *array) {
-	return to_ntValue(array->value.pop());
-}
-
 bool              nt_set_private(ntValue *val, const char *key, void *priv) {
 	return val->value.setPrivate(key, priv);
 }
@@ -386,8 +410,16 @@ bool              nt_set_private_full(ntValue *val, const char *key, void *priv,
 	return val->value.setPrivate(key, priv, free);
 }
 
+bool              nt_set_private_value(ntValue *val, const char *key, ntValue* priv) {
+	return val->value.setPrivate(key, priv->value);
+}
+
 void*             nt_get_private(const ntValue *val, const char *key) {
 	return val->value.getPrivate(key);
+}
+
+ntValue          *nt_get_private_value(const ntValue *val, const char *key) {
+	return to_ntValue(val->value.getPrivateValue(key));
 }
 
 ntValue          *nt_evaluate(ntValue *ths, const char *jscript, const char *filename, unsigned int lineno) {
@@ -434,17 +466,66 @@ char             *nt_to_json(ntValue *obj) {
 	return strdup(obj->value.toJSON().c_str());
 }
 
-ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir, const char **path) {
-	vector<string> vpath;
-	for (int i=0 ; path && path[i] ; i++)
-		vpath.push_back(path[i]);
-	return to_ntValue(ctx->value.require(name, reldir, vpath));
+ntModuleLoader   *nt_ml_init(ntValue *ctx, const char *config) {
+	ModuleLoader* ml = new ModuleLoader(ctx->value);
+	if (ml->initialize(config ? config : "{}").toBool()) {
+		delete ml;
+		return NULL;
+	}
+	return (ntModuleLoader*) ml;
 }
 
-void              nt_add_require_hook(ntValue* ctx, bool post, ntRequireFunction func, void* misc, ntFreeFunction free) {
+int               nt_ml_add_require_hook(ntModuleLoader *ml, bool post, ntRequireFunction func, void* misc, ntFreeFunction free) {
 	cRequireMisc* crhs = new cRequireMisc;
 	crhs->func = func;
 	crhs->free = free;
 	crhs->misc = misc;
-	ctx->value.addRequireHook(post, (RequireFunction) cRequireFunction, crhs, (FreeFunction) cRequireFree);
+
+	return ml->ml.addRequireHook(post, (RequireFunction) cRequireFunction, crhs, (FreeFunction) cRequireFree);
+}
+
+void              nt_ml_del_require_hook(ntModuleLoader *ml, int id) {
+	ml->ml.delRequireHook(id);
+}
+
+int               nt_ml_add_origin_matcher(ntModuleLoader *ml, ntOriginMatcher func, void* misc, ntFreeFunction free) {
+	return ml->ml.addOriginMatcher(func, misc, free);
+}
+
+void              nt_ml_del_origin_matcher(ntModuleLoader *ml, int id) {
+	ml->ml.delOriginMatcher(id);
+}
+
+ntValue          *nt_ml_require(const ntModuleLoader *ml, const char *name, const char *reldir, const char **path) {
+	vector<string> vpath;
+	for (int i=0 ; path && path[i] ; i++)
+		vpath.push_back(path[i]);
+	return to_ntValue(ml->ml.require(name, reldir, vpath));
+}
+
+bool              nt_ml_origin_permitted(const ntModuleLoader *ml, const char *uri) {
+	return ml->ml.originPermitted(uri);
+}
+
+void              nt_ml_free(ntModuleLoader *ml) {
+	delete (ModuleLoader*) ml;
+}
+
+ntValue          *nt_new_exception(const ntValue *ctx, const char *type, const char *message) {
+	return to_ntValue(throwException(ctx->value, type, message));
+}
+
+ntValue          *nt_new_exception_code(const ntValue *ctx, const char *type, const char *message, long code) {
+	return to_ntValue(throwException(ctx->value, type, message, code));
+}
+
+ntValue          *nt_new_exception_errno(const ntValue *ctx, int errorno) {
+	return to_ntValue(throwException(ctx->value, errorno));
+}
+
+ntValue          *nt_check_arguments(const ntValue *ctx, ntValue **args, const char *fmt) {
+	vector<Value> vargs;
+	for (int i=0 ; args && args[i] ; i++)
+		vargs.push_back(args[i]->value);
+	return to_ntValue(checkArguments(ctx->value, vargs, fmt));
 }

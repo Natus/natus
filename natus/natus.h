@@ -62,6 +62,8 @@ typedef void (*FreeFunction)(void *mem);
 
 typedef Value (*RequireFunction)(Value& module, string& name, string& reldir, vector<string>& path, void* misc);
 
+typedef bool (*OriginMatcher)(const char* pattern, const char* subject);
+
 class Class {
 public:
 	/* Please note that currently only Object and Callable
@@ -127,8 +129,6 @@ public:
 	bool   initialize();
 	string getName();
 
-	Value  newGlobal(vector<string> path, vector<string> whitelist);
-	Value  newGlobal(vector<string> path);
 	Value  newGlobal();
 
 private:
@@ -169,6 +169,7 @@ public:
 
 	bool             isGlobal() const;
 	bool             isException() const;
+	bool             isOOM() const;
 	bool             isArray() const;
 	bool             isBool() const;
 	bool             isFunction() const;
@@ -192,11 +193,11 @@ public:
 	Value            get(long idx) const;
 	bool             has(string name) const;
 	bool             has(long idx) const;
-	bool             set(string name, Value value, Value::PropAttrs attrs=None);
-	bool             set(string name, int value, Value::PropAttrs attrs=None);
-	bool             set(string name, double value, Value::PropAttrs attrs=None);
-	bool             set(string name, string value, Value::PropAttrs attrs=None);
-	bool             set(string name, NativeFunction value, Value::PropAttrs attrs=None);
+	bool             set(string name, Value value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, int value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, double value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, string value, Value::PropAttrs attrs=None, bool makeParents=false);
+	bool             set(string name, NativeFunction value, Value::PropAttrs attrs=None, bool makeParents=false);
 	bool             set(long idx, Value value);
 	bool             set(long idx, int value);
 	bool             set(long idx, double value);
@@ -204,13 +205,11 @@ public:
 	bool             set(long idx, NativeFunction value);
 	std::set<string> enumerate() const;
 
-	long             length() const;
-	long             push(Value value);
-	Value            pop();
-
 	bool             setPrivate(string key, void *priv, FreeFunction free);
 	bool             setPrivate(string key, void *priv);
+	bool             setPrivate(string key, Value value);
 	void*            getPrivate(string key) const;
+	Value            getPrivateValue(string key) const;
 
 	Value            evaluate(string jscript, string filename="", unsigned int lineno=0, bool shift=false);
 	Value            call(Value func);
@@ -225,12 +224,34 @@ public:
 	Value            fromJSON(string json);
 	string           toJSON();
 
-	Value            require(string name, string reldir, vector<string> path);
-	void             addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
-
 protected:
 	EngineValue *internal;
 };
+
+class ModuleLoader {
+public:
+	static ModuleLoader* getModuleLoader(const Value& ctx);
+	static Value         getConfig(const Value& ctx);
+	static Value         checkOrigin(const Value& ctx, string uri);
+
+	ModuleLoader(Value& ctx);
+	virtual ~ModuleLoader();
+	Value initialize(string config="{}");
+	int   addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
+	void  delRequireHook(int id);
+	int   addOriginMatcher(OriginMatcher func, void* misc=NULL, FreeFunction free=NULL);
+	void  delOriginMatcher(int id);
+	Value require(string name, string reldir, vector<string> path) const;
+	bool  originPermitted(string uri) const;
+
+private:
+	void *internal;
+};
+
+Value throwException(const Value& ctx, string type, string message);
+Value throwException(const Value& ctx, string type, string message, long code);
+Value throwException(const Value& ctx, int errorno);
+Value checkArguments(const Value& ctx, const vector<Value>& arg, const char* fmt);
 
 }  // namespace natus
 #endif /* NATUS_H_ */

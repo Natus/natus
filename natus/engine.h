@@ -40,30 +40,15 @@ class EngineValue;
 typedef pair<void*, FreeFunction> PrivateItem;
 typedef map<string, PrivateItem>  PrivateMap;
 
-struct RequireHook {
-	bool            post;
-	RequireFunction func;
-	FreeFunction    free;
-	void*           misc;
-	~RequireHook() {
-		if (free && misc)
-			free(misc);
-	}
-};
-
 struct ClassFuncPrivate {
 	Class*         clss;
 	NativeFunction func;
 	PrivateMap     priv;
 	EngineValue*   glbl;
 
-	virtual ~ClassFuncPrivate() {
-		if (clss)
-			delete clss;
-		for (map<string, pair<void*, FreeFunction> >::iterator it=priv.begin() ; it != priv.end() ; it++)
-			if (it->second.second)
-				it->second.second(it->second.first);
-	}
+	ClassFuncPrivate(EngineValue* glbl, Class* clss);
+	ClassFuncPrivate(EngineValue* glbl, NativeFunction func);
+	virtual ~ClassFuncPrivate();
 };
 
 class EngineValue {
@@ -108,8 +93,7 @@ public:
 	virtual Value            callNew(vector<Value> args)=0;
 
 	// Methods that mirror Value's methods and are implemented here
-	Value                    require(string name, string reldir, vector<string> path);
-	void                     addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
+	Value                    toException(Value& value);
 
 	// Non-Value methods that need to be implemented by Engines
 	virtual bool             supportsPrivate()=0;
@@ -118,7 +102,6 @@ public:
 	EngineValue(EngineValue* glb, bool exception=false);
 	void                     incRef();
 	void                     decRef();
-	Value                    toException(Value& value);
 	virtual PrivateMap*      getPrivateMap()=0;
 	virtual ~EngineValue();
 
@@ -127,7 +110,6 @@ protected:
 	unsigned long     refCnt;
 	bool              exc;
 	EngineValue*      glb;
-	list<RequireHook> hooks;
 
 	template <class T> static T* borrowInternal(Value& value) {
 		return static_cast<T*>(value.internal);

@@ -34,6 +34,7 @@ extern "C" {
 
 typedef struct _ntValue ntValue;
 typedef struct _ntEngine ntEngine;
+typedef struct _ntModuleLoader ntModuleLoader;
 
 /* Type: NativeFunction
  * Function type for calls made back into native space from javascript.
@@ -58,6 +59,7 @@ typedef ntValue *(*ntNativeFunction)(ntValue *ths, ntValue *fnc, ntValue **arg);
 typedef void (*ntFreeFunction)(void *mem);
 
 typedef ntValue* (*ntRequireFunction)(ntValue* module, const char* name, const char* reldir, const char** path, void* misc);
+typedef bool (*ntOriginMatcher)(const char* pattern, const char* subject);
 
 typedef enum {
 	ntPropAttrNone       = 0,
@@ -95,12 +97,13 @@ ntValue          *nt_new_array(const ntValue *ctx, ntValue **array);
 ntValue          *nt_new_function(const ntValue *ctx, ntNativeFunction func);
 ntValue          *nt_new_object(const ntValue *ctx, ntClass* cls);
 ntValue          *nt_new_null(const ntValue *ctx);
-ntValue          *nt_new_ndefined(const ntValue *ctx);
+ntValue          *nt_new_undefined(const ntValue *ctx);
 ntValue          *nt_get_global(const ntValue *ctx);
 void              nt_get_context(const ntValue *ctx, void **context, void **value);
 
 bool              nt_is_global(const ntValue *val);
 bool              nt_is_exception(const ntValue *val);
+bool              nt_is_oom(const ntValue *val);
 bool              nt_is_array(const ntValue *val);
 bool              nt_is_bool(const ntValue *val);
 bool              nt_is_function(const ntValue *val);
@@ -126,16 +129,15 @@ bool              nt_has_property(const ntValue *val, const char *name);
 bool              nt_has_item(const ntValue *val, long idx);
 bool              nt_set_property(ntValue *val, const char *name, ntValue *value);
 bool              nt_set_property_attr(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs);
+bool              nt_set_property_full(ntValue *val, const char *name, ntValue *value, ntPropAttrs attrs, bool makeParents);
 bool              nt_set_item(ntValue *val, long idx, ntValue *value);
 char            **nt_enumerate(const ntValue *val);
 
-long              nt_array_length(const ntValue *array);
-long              nt_array_push(ntValue *array, ntValue *value);
-ntValue          *nt_array_pop(ntValue *array);
-
 bool              nt_set_private(ntValue *val, const char *key, void *priv);
 bool              nt_set_private_full(ntValue *val, const char *key, void *priv, ntFreeFunction free);
-void*             nt_get_private(const ntValue *val, const char *key);
+bool              nt_set_private_value(ntValue *val, const char *key, ntValue* priv);
+void             *nt_get_private(const ntValue *val, const char *key);
+ntValue          *nt_get_private_value(const ntValue *val, const char *key);
 
 ntValue          *nt_evaluate(ntValue *ths, const char *jscript, const char *filename, unsigned int lineno);
 ntValue          *nt_evaluate_full(ntValue *ths, const char *jscript, const char *filename, unsigned int lineno, bool shift);
@@ -147,8 +149,19 @@ ntValue          *nt_new_name(ntValue *ths, const char *name, ntValue **args);
 ntValue          *nt_from_json(ntValue *ctx, const char *json);
 char             *nt_to_json(ntValue *obj);
 
-ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir, const char **path);
-void              nt_add_require_hook(ntValue* ctx, bool post, ntRequireFunction func, void* misc=NULL, ntFreeFunction free=NULL);
+ntModuleLoader   *nt_ml_init(ntValue *ctx, const char *config);
+int               nt_ml_add_require_hook(ntModuleLoader *ml, bool post, ntRequireFunction func, void* misc, ntFreeFunction free);
+void              nt_ml_del_require_hook(ntModuleLoader *ml, int id);
+int               nt_ml_add_origin_matcher(ntModuleLoader *ml, ntOriginMatcher func, void* misc, ntFreeFunction free);
+void              nt_ml_del_origin_matcher(ntModuleLoader *ml, int id);
+ntValue          *nt_ml_require(const ntModuleLoader *ml, const char *name, const char *reldir, const char **path);
+bool              nt_ml_origin_permitted(const ntModuleLoader *ml, const char *uri);
+void              nt_ml_free(ntModuleLoader *ml);
+
+ntValue          *nt_throw_exception(const ntValue *ctx, const char *type, const char *message);
+ntValue          *nt_throw_exception_code(const ntValue *ctx, const char *type, const char *message, long code);
+ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno);
+ntValue          *nt_check_arguments(const ntValue *ctx, ntValue **arg, const char *fmt);
 
 #ifdef __cplusplus
 } /* extern "C" */

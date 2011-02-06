@@ -21,6 +21,10 @@
  * 
  */
 
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
@@ -42,8 +46,7 @@ using namespace natus;
 #define NPRMPT "... "
 #define HISTORYFILE ".natus_history"
 
-Engine engine;
-Value  global;
+Value* glbl;
 
 static Value alert(Value& ths, Value& fnc, vector<Value>& args) {
 	if (args.size() < 1)
@@ -117,7 +120,7 @@ static char* completion_generator(const char* text, int state) {
 	char* last = (char*) strrchr(text, '.');
 
 	if (state == 0) {
-		Value obj = global;
+		Value obj = *glbl;
 		if (last) {
 			char* base = new char[last-text+1];
 			memset(base, 0, sizeof(char) * (last-text+1));
@@ -155,24 +158,39 @@ Value set_path(Value& module, string& name, string& reldir, vector<string>& path
 	Value args = module.get("args");
 	if (!args.isArray()) return ret;
 
-	for (int i=0 ; argv[i] ; i++)
-		args.push(module.newString(argv[i]));
+	for (int i=0 ; argv[i] ; i++) {
+		vector<Value> pushargs;
+		pushargs.push_back(module.newString(argv[i]));
+		args.call("push", pushargs);
+	}
 	return ret;
 }
 
 int main(int argc, char** argv) {
+	Engine engine;
+	Value  global;
+	vector<string> configs;
 	const char *eng = NULL;
 	const char *eval = NULL;
 	int c=0, exitcode=0;
+	glbl = &global;
 
-	vector<string> path = pathparser(string(__str(MODULEDIR)) + ":" + (getenv("NATUS_PATH") ? getenv("NATUS_PATH") : ""));
-	vector<string> whitelist = pathparser(getenv("NATUS_WHITELIST") ? getenv("NATUS_WHITELIST") : "");
+	// The engine argument can be embedded in a symlink
 	if (strstr(argv[0], "natus-") == argv[0])
 		eng = strchr(argv[0], '-')+1;
 
+	// Get the path
+	string path;
+	if (getenv("NATUS_PATH"))
+		path = string(getenv("NATUS_PATH")) + ":";
+	path += __str(MODULEDIR);
+
 	opterr = 0;
-	while ((c = getopt (argc, argv, "+c:e:n")) != -1) {
+	while ((c = getopt (argc, argv, "+C:c:e:n")) != -1) {
 		switch (c) {
+		case 'C':
+			configs.push_back(optarg);
+			break;
 		case 'c':
 			eval = optarg;
 			break;
@@ -180,13 +198,13 @@ int main(int argc, char** argv) {
 			eng = optarg;
 			break;
 		case 'n':
-			path.erase(path.begin());
+			path.clear();
 			break;
 		case '?':
 			if (optopt == 'e')
 				fprintf(stderr, "Option -%c requires an engine name.\n", optopt);
 			else {
-				fprintf(stderr, "Usage: %s [-c <javascript>|-e <engine>|-n|<scriptfile>]\n\n", argv[0]);
+				fprintf(stderr, "Usage: %s [-C <config>=<jsonval>|-c <javascript>|-e <engine>|-n|<scriptfile>]\n\n", argv[0]);
 				fprintf(stderr, "Unknown option `-%c'.\n", optopt);
 			}
 			return 1;
@@ -195,12 +213,48 @@ int main(int argc, char** argv) {
 	   }
 	}
 
+	// Initialize the engine
 	if (!engine.initialize(eng))
 		error(1, 0, "Unable to init engine!");
 
-	global = engine.newGlobal(path, whitelist);
-	if (global.isUndefined())
-		error(2, 0, "Unable to init global!");
+	// Setup our global
+	global = engine.newGlobal();
+	if (global.isUndefined() || global.isException())
+			error(2, 0, "Unable to init global!");
+
+	// Setup our config
+	Value cfg = global.newObject();
+	if (!path.empty()) {
+		while (path.find(':') != string::npos)
+			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
+		cfg.set("natus.path", global.fromJSON("[\"" + path + "\"]"), Value::None, true);
+	}
+	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
+		if (access(it->c_str(), R_OK) == 0) {
+			ifstream file(it->c_str());
+			for (string line ; getline(file, line) ; ) {
+				if (line.find('=') == string::npos) continue;
+				string key = line.substr(0, line.find('='));
+				Value  val = global.fromJSON(line.substr(line.find('=')+1));
+				if (val.isException()) continue;
+				cfg.set(key, val, Value::None, true);
+			}
+			file.close();
+		} else if (it->find("=") != string::npos) {
+			string key = it->substr(0, it->find('='));
+			Value  val = global.fromJSON(it->substr(it->find('=')+1));
+			if (val.isException()) continue;
+			cfg.set(key, val, Value::None, true);
+		}
+	}
+	string config = cfg.toJSON();
+
+	// Bring up the Module Loader
+	ModuleLoader ml(global);
+	if (ml.initialize(config).isException())
+		error(3, 0, "Unable to init module loader!");
+
+	// Export some basic functions
 	global.set("alert", global.newFunction(alert));
 	global.set("dir",   global.newFunction(dir));
 
@@ -303,7 +357,7 @@ int main(int argc, char** argv) {
 	jscript[st.st_size] = '\0';
 
 	// Evaluate it
-	global.addRequireHook(true, set_path, argv+optind);
+	ml.addRequireHook(true, set_path, argv+optind);
 	Value res = global.evaluate(jscript, filename ? filename : "");
 	delete[] jscript;
 

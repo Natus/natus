@@ -91,9 +91,16 @@ class V8EngineValue : public EngineValue {
 public:
 	V8EngineValue(v8::Handle<v8::Context> ctx) : EngineValue(this) {
 		v8::HandleScope hs;
+		v8::Context::Scope cs(ctx);
+
 		this->glb = this;
 		this->ctx = v8::Persistent<v8::Context>::New(ctx);
 		this->val = v8::Persistent<v8::Value>::New(ctx->Global());
+
+		// Setup the global object to be able to store privates...
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, (Class*) NULL);
+		V8Class *v8cls = new V8Class(ctx, cfp);
+		this->val->ToObject()->SetHiddenValue(v8::String::New("__internal__"), v8cls->data);
 	}
 
 	V8EngineValue(EngineValue* glb, v8::Handle<v8::Value> val, bool exc=false) : EngineValue(glb, exc) {
@@ -145,11 +152,7 @@ public:
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
-		cfp->clss = NULL;
-		cfp->func = func;
-		cfp->glbl = glb;
-
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, func);
 		V8Class *v8cls = new V8Class(ctx, cfp);
 		v8::Handle<v8::FunctionTemplate> ft = v8::FunctionTemplate::New(V8Class::call, v8cls->data);
 		v8::Handle<v8::Function>        fnc = ft->GetFunction();
@@ -161,11 +164,7 @@ public:
 		v8::HandleScope hs;
 		v8::Context::Scope cs(ctx);
 
-		ClassFuncPrivate *cfp = new ClassFuncPrivate();
-		cfp->clss = cls;
-		cfp->func = NULL;
-		cfp->glbl = glb;
-
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, cls);
 		v8::Handle<v8::ObjectTemplate> ot = v8::ObjectTemplate::New();
 		V8Class *v8cls = new V8Class(ctx, cfp);
 		if (cls) {
@@ -215,12 +214,12 @@ public:
 	virtual Value   evaluate(string jscript, string filename, unsigned int lineno=0, bool shift=false) {
 		v8::HandleScope hs;
 
-		v8::Persistent<v8::Context> context = ctx;
+		v8::Local<v8::Context> context = *ctx;
 		if (shift) {
 			// Create our new context (and the global object which will proxy values back into our main object)
 			v8::Handle<v8::ObjectTemplate> ot = v8::ObjectTemplate::New();
 			ot->SetNamedPropertyHandler(shft::get, shft::set, NULL, shft::del, shft::enumerate, val);
-			context = v8::Context::New(NULL, ot);
+			context = *v8::Context::New(NULL, ot);
 		}
 
 		// Execute the script
@@ -231,7 +230,6 @@ public:
 		v8::Handle<v8::Script> script = filename != "" ? v8::Script::Compile(source, &so) : v8::Script::Compile(source);
 		v8::Handle<v8::Value>     res = script->Run();
 		context->Exit();
-		context.Dispose();
 
 		if (tc.HasCaught())
 			res = tc.Exception();
