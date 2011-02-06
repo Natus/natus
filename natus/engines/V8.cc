@@ -91,9 +91,16 @@ class V8EngineValue : public EngineValue {
 public:
 	V8EngineValue(v8::Handle<v8::Context> ctx) : EngineValue(this) {
 		v8::HandleScope hs;
+		v8::Context::Scope cs(ctx);
+
 		this->glb = this;
 		this->ctx = v8::Persistent<v8::Context>::New(ctx);
 		this->val = v8::Persistent<v8::Value>::New(ctx->Global());
+
+		// Setup the global object to be able to store privates...
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, (Class*) NULL);
+		V8Class *v8cls = new V8Class(ctx, cfp);
+		this->val->ToObject()->SetHiddenValue(v8::String::New("__internal__"), v8cls->data);
 	}
 
 	V8EngineValue(EngineValue* glb, v8::Handle<v8::Value> val, bool exc=false) : EngineValue(glb, exc) {

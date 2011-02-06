@@ -40,7 +40,11 @@ using namespace natus;
 #endif
 
 static JSClassDefinition fncdef;
-static JSClassRef fnccls;
+static JSClassDefinition glbdef;
+static struct {
+	JSClassRef fnccls;
+	JSClassRef glbcls;
+} classes;
 
 static JSValueRef getJSValue(Value& value);
 static string JSStringToString(JSStringRef str, bool release=false);
@@ -90,6 +94,9 @@ public:
 		this->val = JSContextGetGlobalObject(ctx);
 		if (!this->val) throw bad_alloc();
 		JSValueProtect(ctx, val);
+
+		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, (Class*) NULL);
+		assert(JSObjectSetPrivate(JSContextGetGlobalObject(ctx), cfp));
 	}
 
 	JavaScriptCoreEngineValue(EngineValue* glb, JSValueRef val, bool exc=false) : EngineValue(glb, exc) {
@@ -135,7 +142,7 @@ public:
 
 	virtual Value   newFunction(NativeFunction func) {
 		ClassFuncPrivate *cfp = new ClassFuncPrivate(glb, func);
-		JSValueRef val = (JSValueRef) JSObjectMake(ctx, fnccls, cfp);
+		JSValueRef val = (JSValueRef) JSObjectMake(ctx, classes.fnccls, cfp);
 		if (!val) delete cfp;
 		return Value(JavaScriptCoreEngineValue::getInstance(glb, val));
 	}
@@ -599,19 +606,22 @@ static JSObjectRef obj_new(JSContextRef ctx, JSObjectRef constructor, size_t arg
 }
 
 static EngineValue* engine_newg(void *engine) {
-	return new JavaScriptCoreEngineValue(JSGlobalContextCreate(NULL));
+	return new JavaScriptCoreEngineValue(JSGlobalContextCreate(classes.glbcls));
 }
 
 static void engine_free(void *engine) {
-	JSClassRelease(fnccls);
+	JSClassRelease(classes.fnccls);
+	JSClassRelease(classes.glbcls);
 }
 
 static void *engine_init() {
-	fncdef.version = 0;
 	fncdef.finalize = finalize;
 	fncdef.callAsFunction = fnc_call;
 	fncdef.callAsConstructor = fnc_new;
-    return fnccls = JSClassCreate(&fncdef);
+    classes.fnccls = JSClassCreate(&fncdef);
+    glbdef.finalize = finalize;
+    classes.glbcls = JSClassCreate(&glbdef);
+    return &classes;
 }
 
 NATUS_ENGINE("JavaScriptCore", "JSObjectMakeFunctionWithCallback", engine_init, engine_newg, engine_free);

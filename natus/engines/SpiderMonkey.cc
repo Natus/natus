@@ -103,9 +103,9 @@ static void finalize(JSContext *ctx, JSObject *obj) {
 	delete cfp;
 }
 
-static JSClass glbdef = { "global", JSCLASS_GLOBAL_FLAGS, JS_PropertyStub,
-		JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_EnumerateStub,
-		JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub, };
+static JSClass glbdef = { "global", JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE,
+		JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
+		JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, finalize, };
 
 static CFP* getCFP(JSContext* ctx, jsval val) {
 	JSObject *obj = NULL;
@@ -151,6 +151,10 @@ public:
 		this->ctx = ctx;
 		this->val = OBJECT_TO_JSVAL(glbl);
 		(void) JSVAL_LOCK(this->ctx, this->val);
+
+		// Setup the global object to be able to store privates...
+		CFP *cfp = new CFP(glb, (Class*) NULL);
+		assert(JS_SetPrivate(ctx, toJSObject(), cfp));
 	}
 
 	SpiderMonkeyEngineValue(EngineValue* glb, jsval val, bool exc=false) : EngineValue(glb, exc) {
