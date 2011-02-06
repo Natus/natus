@@ -16,6 +16,13 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_PROG_LIBTOOL
 
+m4_ifdef([AM_SILENT_RULES], [
+  AM_SILENT_RULES([yes])
+], [
+  AM_DEFAULT_VERBOSITY=1
+  AC_SUBST(AM_DEFAULT_VERBOSITY)
+])
+
 PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
 	[PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2, have_spidermonkey=yes, 
 	[PKG_CHECK_MODULES(SpiderMonkey, firefox-js   >= 2, have_spidermonkey=yes,
