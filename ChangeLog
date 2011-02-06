@@ -1,3 +1,15 @@
+Sat Feb 06 14:54:00 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
+	* == Released 0.1.4 ===
+	* New socket module
+	* New "origin" support
+	* New config system
+	* Fixes for the latest SpiderMonkey and for a V8 crasher
+	* The posix module now uses the standard checkArguments() method
+	* Fix parallel build
+	* Rework so that the module system is now on top of the core api
+	* Add a standard exception throwing mechanism
+	* Turn on silent build
+	* Lots of other fixes
 Sat Dec 11 13:02:00 2010 Nathaniel McCallum <nathaniel@natemccallum.com>
 	* == Released 0.1.3 ===
 	* New posix module
