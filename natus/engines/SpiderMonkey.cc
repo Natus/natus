@@ -146,7 +146,7 @@ public:
 		JS_SetVersion(ctx, JSVERSION_LATEST);
 		JS_SetErrorReporter(ctx, report_error);
 
-		JSObject* glbl = JS_NewObject(ctx, &glbdef, NULL, NULL);
+		JSObject* glbl = JS_NewCompartmentAndGlobalObject(ctx, &glbdef, NULL);
 		if (!glbl || !JS_InitStandardClasses(ctx, glbl)) throw bad_alloc();
 		this->ctx = ctx;
 		this->val = OBJECT_TO_JSVAL(glbl);

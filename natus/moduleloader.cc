@@ -306,7 +306,7 @@ Value ModuleLoader::require(string name, string reldir, vector<string> path) con
 
 	// Module found
 	modfound:
-		exports.set("module", module, Value::Constant);
+		exports.set("__module__", module, Value::Constant);
 		for (vector<RequireHook>::iterator hook=MLI(internal)->rh.begin() ; hook != MLI(internal)->rh.end() ; hook++) {
 			if (!hook->post || !hook->func) continue;
 			Value exc = hook->func(exports, name, reldir, path, hook->misc);
