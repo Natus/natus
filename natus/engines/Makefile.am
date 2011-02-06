@@ -1,4 +1,4 @@
-enginesdir=$(libdir)/$(PACKAGE_NAME)/engines
+enginesdir=$(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 AM_LDFLAGS = -module -avoid-version -no-undefined -shared
 AM_LDADD = ../natus/libnatus.la
 
