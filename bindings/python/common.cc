@@ -413,8 +413,13 @@ static PyObject* Value_require(PyObject* self, PyObject* args) {
 	if (!PyArg_ParseTuple(args, "ssO&", &name, &reldir, append_striter_to_strvect, &path))
 		return NULL;
 
-	Value val = ((natus_Value*) self)->value.require(name, reldir, path);
-	return pyobject_from_value_exc(val);
+	ModuleLoader* ml = ModuleLoader::getModuleLoader(((natus_Value*) self)->value);
+	if (!ml) {
+		PyErr_SetString(PyExc_ImportError, "Unable to find ModuleLoader!");
+		return NULL;
+	}
+
+	return pyobject_from_value_exc(ml->require(name, reldir, path));
 }
 
 static PyMethodDef Value_methods[] = {
@@ -450,11 +455,7 @@ static int Engine_init(natus_Engine* self, PyObject* args, PyObject* kwds) {
 }
 
 static PyObject* Engine_newGlobal(PyObject* self, PyObject* args) {
-	const char* config = NULL;
-	if (!PyArg_ParseTuple(args, "|s", &config))
-		return NULL;
-
-	return pyobject_from_value_exc(((natus_Engine*) self)->engine.newGlobal(config));
+	return pyobject_from_value_exc(((natus_Engine*) self)->engine.newGlobal());
 }
 
 static PyMethodDef Engine_methods[] = {
@@ -480,7 +481,7 @@ static PyObject* pyobject_from_value(Value val) {
 	PyObject *obj = NULL;
 
 	if (val.isArray()) {
-		long len = val.length();
+		long len = val.get("length").toLong();
 		obj = PyList_New(len);
 		for (--len ; len >= 0 ; len--)
 			PyList_SetItem(obj, len, pyobject_from_value(val.get(len)));

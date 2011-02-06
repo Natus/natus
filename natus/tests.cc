@@ -122,9 +122,11 @@ int main(int argc, char **argv) {
 	assert(global.set("x", global.newArray(valv)));
 	x = global.get("x");
 	assert(x.isArray());
-	assert(2 == x.length());
-	assert(3 == x.push(global.newString("foo")));
-	y = x.pop();
+	assert(2 == x.get("length").toLong());
+	vector<Value> pushargs;
+	pushargs.push_back(global.newString("foo"));
+	assert(3 == x.call("push", pushargs).toLong());
+	y = x.call("pop");
 	assert(y.isString());
 	assert(y.toString() == "foo");
 	assert(123 == x.get(0).toLong());

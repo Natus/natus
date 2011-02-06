@@ -17,11 +17,11 @@ AC_PROG_LIBTOOL
 AM_PROG_LIBTOOL
 
 PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
-        [PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2, have_spidermonkey=yes, 
-    	[PKG_CHECK_MODULES(SpiderMonkey, firefox-js   >= 2, have_spidermonkey=yes,
-		[PKG_CHECK_MODULES(SpiderMonkey, mozilla-js   >= 2, have_spidermonkey=yes, 
-		[PKG_CHECK_MODULES(SpiderMonkey, seamonkey-js >= 2, have_spidermonkey=yes,
-		[PKG_CHECK_MODULES(SpiderMonkey, mozilla2-js  >= 2, have_spidermonkey=yes, have_spidermonkey=no)])])])])])
+	[PKG_CHECK_MODULES(SpiderMonkey, xulrunner-js >= 2, have_spidermonkey=yes, 
+	[PKG_CHECK_MODULES(SpiderMonkey, firefox-js   >= 2, have_spidermonkey=yes,
+	[PKG_CHECK_MODULES(SpiderMonkey, mozilla-js   >= 2, have_spidermonkey=yes, 
+	[PKG_CHECK_MODULES(SpiderMonkey, seamonkey-js >= 2, have_spidermonkey=yes,
+	[PKG_CHECK_MODULES(SpiderMonkey, mozilla2-js  >= 2, have_spidermonkey=yes, have_spidermonkey=no)])])])])])
 AC_ARG_WITH([SpiderMonkey],
             [AS_HELP_STRING([--with-spidermonkey],
               [disable the SpiderMonkey (Mozilla) engine @<:@automatic@:>@])],
@@ -37,7 +37,8 @@ if test x$with_spidermonkey = xyes; then
 fi
 AM_CONDITIONAL([WITH_SPIDERMONKEY], [test x$with_spidermonkey = xyes])
 
-PKG_CHECK_MODULES(JavaScriptCore, webkit-1.0, have_javascriptcore=yes, have_javascriptcore=no)
+PKG_CHECK_MODULES(JavaScriptCore, webkitgtk-3.0, have_javascriptcore=yes,
+	[PKG_CHECK_MODULES(JavaScriptCore, webkit-1.0, have_javascriptcore=yes, have_javascriptcore=no)])
 AC_ARG_WITH([javascriptcore],
             [AS_HELP_STRING([--without-javascriptcore],
               [build the JavaScriptCore (WebKit) engine @<:@automatic@:>@])],

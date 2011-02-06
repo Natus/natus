@@ -158,8 +158,11 @@ Value set_path(Value& module, string& name, string& reldir, vector<string>& path
 	Value args = module.get("args");
 	if (!args.isArray()) return ret;
 
-	for (int i=0 ; argv[i] ; i++)
-		args.push(module.newString(argv[i]));
+	for (int i=0 ; argv[i] ; i++) {
+		vector<Value> pushargs;
+		pushargs.push_back(module.newString(argv[i]));
+		args.call("push", pushargs);
+	}
 	return ret;
 }
 
@@ -214,10 +217,12 @@ int main(int argc, char** argv) {
 	if (!engine.initialize(eng))
 		error(1, 0, "Unable to init engine!");
 
-	// Setup our config (using a temporary global)
+	// Setup our global
 	global = engine.newGlobal();
 	if (global.isUndefined() || global.isException())
 			error(2, 0, "Unable to init global!");
+
+	// Setup our config
 	Value cfg = global.newObject();
 	if (!path.empty()) {
 		while (path.find(':') != string::npos)
@@ -244,10 +249,10 @@ int main(int argc, char** argv) {
 	}
 	string config = cfg.toJSON();
 
-	// Create our (new) execution global
-	global = engine.newGlobal(config);
-	if (global.isUndefined() || global.isException())
-		error(2, 0, "Unable to init global!");
+	// Bring up the Module Loader
+	ModuleLoader ml(global);
+	if (ml.initialize(config).isException())
+		error(3, 0, "Unable to init module loader!");
 
 	// Export some basic functions
 	global.set("alert", global.newFunction(alert));
@@ -352,7 +357,7 @@ int main(int argc, char** argv) {
 	jscript[st.st_size] = '\0';
 
 	// Evaluate it
-	global.addRequireHook(true, set_path, argv+optind);
+	ml.addRequireHook(true, set_path, argv+optind);
 	Value res = global.evaluate(jscript, filename ? filename : "");
 	delete[] jscript;
 

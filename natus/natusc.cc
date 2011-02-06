@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2010 Nathaniel McCallum <nathaniel@natemccallum.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 #include <cstring>
 #include <cstdlib>
 
@@ -14,6 +37,10 @@ struct _ntEngine {
 
 struct _ntValue {
 	Value value;
+};
+
+struct _ntModuleLoader {
+	ModuleLoader ml;
 };
 
 class NatusCClass : public Class {
@@ -186,10 +213,8 @@ char             *nt_engine_name(ntEngine *engine) {
 
 #define to_ntValue(x) (_ntValue*) new Value(x)
 
-ntValue          *nt_engine_new_global(ntEngine *engine, const char *config) {
-	if (!config)
-		return to_ntValue(engine->engine.newGlobal());
-	return to_ntValue(engine->engine.newGlobal(config));
+ntValue          *nt_engine_new_global(ntEngine *engine) {
+	return to_ntValue(engine->engine.newGlobal());
 }
 
 void              nt_engine_free(ntEngine *engine) {
@@ -239,31 +264,12 @@ ntValue          *nt_new_undefined(const ntValue *ctx) {
 	return to_ntValue(ctx->value.newUndefined());
 }
 
-ntValue          *nt_new_exception(const ntValue *ctx, const char *type, const char *message) {
-	return to_ntValue(ctx->value.newException(type, message));
-}
-
-ntValue          *nt_new_exception_code(const ntValue *ctx, const char *type, const char *message, long code) {
-	return to_ntValue(ctx->value.newException(type, message, code));
-}
-
-ntValue          *nt_new_exception_errno(const ntValue *ctx, int errorno) {
-	return to_ntValue(ctx->value.newException(errorno));
-}
-
 ntValue          *nt_get_global(const ntValue *ctx) {
 	return to_ntValue(ctx->value.getGlobal());
 }
 
 void              nt_get_context(const ntValue *ctx, void **context, void **value) {
 	ctx->value.getContext(context, value);
-}
-
-ntValue          *nt_check_arguments(const ntValue *ctx, ntValue **args, const char *fmt) {
-	vector<Value> vargs;
-	for (int i=0 ; args && args[i] ; i++)
-		vargs.push_back(args[i]->value);
-	return to_ntValue(ctx->value.checkArguments(vargs, fmt));
 }
 
 bool              nt_is_global(const ntValue *val) {
@@ -396,18 +402,6 @@ char            **nt_enumerate(const ntValue *val) {
 	return ret;
 }
 
-long              nt_array_length(const ntValue *array) {
-	return array->value.length();
-}
-
-long              nt_array_push(ntValue *array, ntValue *value) {
-	return array->value.push(value->value);
-}
-
-ntValue          *nt_array_pop(ntValue *array) {
-	return to_ntValue(array->value.pop());
-}
-
 bool              nt_set_private(ntValue *val, const char *key, void *priv) {
 	return val->value.setPrivate(key, priv);
 }
@@ -416,8 +410,16 @@ bool              nt_set_private_full(ntValue *val, const char *key, void *priv,
 	return val->value.setPrivate(key, priv, free);
 }
 
+bool              nt_set_private_value(ntValue *val, const char *key, ntValue* priv) {
+	return val->value.setPrivate(key, priv->value);
+}
+
 void*             nt_get_private(const ntValue *val, const char *key) {
 	return val->value.getPrivate(key);
+}
+
+ntValue          *nt_get_private_value(const ntValue *val, const char *key) {
+	return to_ntValue(val->value.getPrivateValue(key));
 }
 
 ntValue          *nt_evaluate(ntValue *ths, const char *jscript, const char *filename, unsigned int lineno) {
@@ -464,17 +466,66 @@ char             *nt_to_json(ntValue *obj) {
 	return strdup(obj->value.toJSON().c_str());
 }
 
-ntValue          *nt_require(ntValue *ctx, const char *name, const char *reldir, const char **path) {
-	vector<string> vpath;
-	for (int i=0 ; path && path[i] ; i++)
-		vpath.push_back(path[i]);
-	return to_ntValue(ctx->value.require(name, reldir, vpath));
+ntModuleLoader   *nt_ml_init(ntValue *ctx, const char *config) {
+	ModuleLoader* ml = new ModuleLoader(ctx->value);
+	if (ml->initialize(config ? config : "{}").toBool()) {
+		delete ml;
+		return NULL;
+	}
+	return (ntModuleLoader*) ml;
 }
 
-void              nt_add_require_hook(ntValue* ctx, bool post, ntRequireFunction func, void* misc, ntFreeFunction free) {
+int               nt_ml_add_require_hook(ntModuleLoader *ml, bool post, ntRequireFunction func, void* misc, ntFreeFunction free) {
 	cRequireMisc* crhs = new cRequireMisc;
 	crhs->func = func;
 	crhs->free = free;
 	crhs->misc = misc;
-	ctx->value.addRequireHook(post, (RequireFunction) cRequireFunction, crhs, (FreeFunction) cRequireFree);
+
+	return ml->ml.addRequireHook(post, (RequireFunction) cRequireFunction, crhs, (FreeFunction) cRequireFree);
+}
+
+void              nt_ml_del_require_hook(ntModuleLoader *ml, int id) {
+	ml->ml.delRequireHook(id);
+}
+
+int               nt_ml_add_origin_matcher(ntModuleLoader *ml, ntOriginMatcher func, void* misc, ntFreeFunction free) {
+	return ml->ml.addOriginMatcher(func, misc, free);
+}
+
+void              nt_ml_del_origin_matcher(ntModuleLoader *ml, int id) {
+	ml->ml.delOriginMatcher(id);
+}
+
+ntValue          *nt_ml_require(const ntModuleLoader *ml, const char *name, const char *reldir, const char **path) {
+	vector<string> vpath;
+	for (int i=0 ; path && path[i] ; i++)
+		vpath.push_back(path[i]);
+	return to_ntValue(ml->ml.require(name, reldir, vpath));
+}
+
+bool              nt_ml_origin_permitted(const ntModuleLoader *ml, const char *uri) {
+	return ml->ml.originPermitted(uri);
+}
+
+void              nt_ml_free(ntModuleLoader *ml) {
+	delete (ModuleLoader*) ml;
+}
+
+ntValue          *nt_new_exception(const ntValue *ctx, const char *type, const char *message) {
+	return to_ntValue(throwException(ctx->value, type, message));
+}
+
+ntValue          *nt_new_exception_code(const ntValue *ctx, const char *type, const char *message, long code) {
+	return to_ntValue(throwException(ctx->value, type, message, code));
+}
+
+ntValue          *nt_new_exception_errno(const ntValue *ctx, int errorno) {
+	return to_ntValue(throwException(ctx->value, errorno));
+}
+
+ntValue          *nt_check_arguments(const ntValue *ctx, ntValue **args, const char *fmt) {
+	vector<Value> vargs;
+	for (int i=0 ; args && args[i] ; i++)
+		vargs.push_back(args[i]->value);
+	return to_ntValue(checkArguments(ctx->value, vargs, fmt));
 }

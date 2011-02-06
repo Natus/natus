@@ -7,8 +7,8 @@ bin_PROGRAMS    = natus
 lib_LTLIBRARIES = libnatus.la
 natinc_HEADERS  = natus.h natusc.h engine.h
 
-libnatus_la_SOURCES = natus.cc natusc.cc natus.h natusc.h engine.h 
-libnatus_la_CXXFLAGS = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir)
+libnatus_la_SOURCES = class.cc engine.cc enginevalue.cc misc.cc moduleloader.cc value.cc natusc.cc natus.h natusc.h engine.h 
+libnatus_la_CXXFLAGS = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir) -DMODSUFFIX='".so"'
 libnatus_la_LDFLAGS = $(AM_LDFLAGS) -ldl -lpthread
 
 natus_SOURCES  = main.cc natus.h

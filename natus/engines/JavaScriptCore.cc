@@ -568,7 +568,7 @@ static void obj_enum(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumul
 
 	Value obj = Value(JavaScriptCoreEngineValue::getInstance(cfp->glbl, object));
 	Value res = cfp->clss->enumerate(obj);
-	long len = res.length();
+	long len = res.get("length").toLong();
 	for (long i=0 ; i < len ; i++) {
 		Value item = res.get(i);
 		if (!item.isString()) continue;
