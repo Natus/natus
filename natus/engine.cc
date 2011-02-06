@@ -147,8 +147,10 @@ bool Engine::initialize(const char* name_or_path) {
 					&((EngineInternal*) internal)->dll);
 	}
 
-	if (!result)
+	if (!result) {
 		delete ((EngineInternal*) internal);
+		internal = NULL;
+	}
 	return result;
 }
 
