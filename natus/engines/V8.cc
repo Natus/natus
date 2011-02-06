@@ -25,7 +25,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <new>
-#include <cstdio>
 
 #include <natus/engine.h>
 using namespace natus;
@@ -376,7 +375,7 @@ public:
 		// Convert arguments
 		v8::Handle<v8::Value>* argv = new v8::Handle<v8::Value>[args.size()];
 		for (unsigned int i=0 ; i < args.size() ; i++)
-			argv[i] = getJSValue(args[0]);
+			argv[i] = getJSValue(args[i]);
 
 		// Get the function object
 		v8::Local<v8::Function> fnc;
@@ -409,7 +408,7 @@ public:
 		// Convert arguments
 		v8::Handle<v8::Value>* argv = new v8::Handle<v8::Value>[args.size()];
 		for (unsigned int i=0 ; i < args.size() ; i++)
-			argv[i] = getJSValue(args[0]);
+			argv[i] = getJSValue(args[i]);
 
 		// Get the function object
 		v8::Local<v8::Function> fnc;

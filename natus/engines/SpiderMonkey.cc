@@ -420,7 +420,7 @@ public:
 		// Convert to jsval array
 		jsval *argv = new jsval[args.size()];
 		for (unsigned int i=0 ; i < args.size() ; i++)
-			argv[i] = getJSValue(args[0]);
+			argv[i] = getJSValue(args[i]);
 
 		// Call the function
 		jsval rval;
@@ -444,7 +444,7 @@ public:
 		// Convert to jsval array
 		jsval *argv = new jsval[args.size()];
 		for (unsigned int i=0 ; i < args.size() ; i++)
-			argv[i] = getJSValue(args[0]);
+			argv[i] = getJSValue(args[i]);
 
 		// Call the function
 		jsval rval;
