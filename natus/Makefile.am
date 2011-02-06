@@ -1,5 +1,5 @@
 moduledir = @MODULEDIR@
-enginedir = $(libdir)/$(PACKAGE_NAME)/engines
+enginedir = $(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 natincdir = $(includedir)/$(PACKAGE_NAME)
 
 noinst_PROGRAMS = tests
