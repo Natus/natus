@@ -983,7 +983,7 @@ static Value posix_utime(Value& ths, Value& fnc, vector<Value>& arg) {
 	if (arg[1].isNull())
 		doerr(utime(arg[0].toString().c_str(), NULL));
 
-	Value exc = checkArguments(ths, arg, "snn");
+	exc = checkArguments(ths, arg, "snn");
 	if (exc.isException()) return exc;
 
 	struct utimbuf buf = {
