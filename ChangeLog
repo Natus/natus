@@ -1,3 +1,10 @@
+Sat Feb 07 01:52:00 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
+	* == Released 0.1.5 ===
+	*   [core] Fix crasher when no engines are found
+	*   [core] Fix linking in engines and modules
+	*     [V8] Fix argument duplication during Value.call()
+	*     [SM] Fix argument duplication during Value.call()
+	* [socket] Build fix for systems missing SO_BSDCOMPAT
 Sat Feb 06 14:54:00 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
 	* == Released 0.1.4 ===
 	* New socket module
