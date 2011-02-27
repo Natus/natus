@@ -221,9 +221,6 @@ public:
 	Value            callNew(vector<Value> args);
 	Value            callNew(string func, vector<Value> args);
 
-	Value            fromJSON(string json);
-	string           toJSON();
-
 protected:
 	EngineValue *internal;
 };
@@ -248,10 +245,12 @@ private:
 	void *internal;
 };
 
-Value throwException(const Value& ctx, string type, string message);
-Value throwException(const Value& ctx, string type, string message, long code);
-Value throwException(const Value& ctx, int errorno);
-Value checkArguments(const Value& ctx, const vector<Value>& arg, const char* fmt);
+Value  fromJSON(const Value& ctx, string json);
+string toJSON(const Value& val);
+Value  throwException(const Value& ctx, string type, string message);
+Value  throwException(const Value& ctx, string type, string message, long code);
+Value  throwException(const Value& ctx, int errorno);
+Value  checkArguments(const Value& ctx, const vector<Value>& arg, const char* fmt);
 
 }  // namespace natus
 #endif /* NATUS_H_ */

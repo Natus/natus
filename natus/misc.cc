@@ -30,6 +30,20 @@
 #include "natus.h"
 namespace natus {
 
+Value fromJSON(const Value& ctx, string json) {
+	vector<Value> args;
+	args.push_back(ctx.newString(json));
+	Value obj = ctx.getGlobal().get("JSON");
+	return obj.call("parse", args);
+}
+
+string toJSON(const Value& val) {
+	vector<Value> args;
+	args.push_back(val);
+	Value obj = val.getGlobal().get("JSON");
+	return obj.call("stringify", args).toString();
+}
+
 static Value exception_toString(Value& ths, Value& fnc, vector<Value>& arg) {
 	string type = ths.get("type").toString();
 	string msg  = ths.get("msg").toString();

@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
 	if (!path.empty()) {
 		while (path.find(':') != string::npos)
 			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
-		cfg.set("natus.path", global.fromJSON("[\"" + path + "\"]"), Value::None, true);
+		cfg.set("natus.path", fromJSON(global, "[\"" + path + "\"]"), Value::None, true);
 	}
 	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
 		if (access(it->c_str(), R_OK) == 0) {
@@ -235,19 +235,19 @@ int main(int argc, char** argv) {
 			for (string line ; getline(file, line) ; ) {
 				if (line.find('=') == string::npos) continue;
 				string key = line.substr(0, line.find('='));
-				Value  val = global.fromJSON(line.substr(line.find('=')+1));
+				Value  val = fromJSON(global, line.substr(line.find('=')+1));
 				if (val.isException()) continue;
 				cfg.set(key, val, Value::None, true);
 			}
 			file.close();
 		} else if (it->find("=") != string::npos) {
 			string key = it->substr(0, it->find('='));
-			Value  val = global.fromJSON(it->substr(it->find('=')+1));
+			Value  val = fromJSON(global, it->substr(it->find('=')+1));
 			if (val.isException()) continue;
 			cfg.set(key, val, Value::None, true);
 		}
 	}
-	string config = cfg.toJSON();
+	string config = toJSON(cfg);
 
 	// Bring up the Module Loader
 	ModuleLoader ml(global);

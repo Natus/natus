@@ -458,14 +458,6 @@ ntValue          *nt_new_name(ntValue *ths, const char *name, ntValue **args) {
 	return to_ntValue(ths->value.callNew(name, vargs));
 }
 
-ntValue          *nt_from_json(ntValue *ctx, const char *json) {
-	return to_ntValue(ctx->value.fromJSON(json));
-}
-
-char             *nt_to_json(ntValue *obj) {
-	return strdup(obj->value.toJSON().c_str());
-}
-
 ntModuleLoader   *nt_ml_init(ntValue *ctx, const char *config) {
 	ModuleLoader* ml = new ModuleLoader(ctx->value);
 	if (ml->initialize(config ? config : "{}").toBool()) {

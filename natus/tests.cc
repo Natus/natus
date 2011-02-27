@@ -271,12 +271,12 @@ int main(int argc, char **argv) {
 	assert(global.del("x"));
 
 	//// JSON
-	x = global.fromJSON("{\"a\": 17, \"b\": 2.1}");
+	x = fromJSON(global, "{\"a\": 17, \"b\": 2.1}");
 	assert(!x.isException());
 	assert(x.isObject());
 	assert(x.get("a").toInt() == 17);
 	assert(x.get("b").toDouble() == 2.1);
-	assert(x.toJSON() == "{\"a\":17,\"b\":2.1}");
+	assert(toJSON(x) == "{\"a\":17,\"b\":2.1}");
 
 	return 0;
 }

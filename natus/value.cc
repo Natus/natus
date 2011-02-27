@@ -410,18 +410,4 @@ Value Value::callNew(string func, vector<Value> args) {
 	return get(func).callNew(args);
 }
 
-Value   Value::fromJSON(string json) {
-	vector<Value> args;
-	args.push_back(newString(json));
-	Value obj = getGlobal().get("JSON");
-	return obj.call("parse", args);
-}
-
-string  Value::toJSON() {
-	vector<Value> args;
-	args.push_back(*this);
-	Value obj = getGlobal().get("JSON");
-	return obj.call("stringify", args).toString();
-}
-
 }

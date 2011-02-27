@@ -251,7 +251,7 @@ Value ModuleLoader::initialize(string cfg) {
 	MLI(internal)->glb.setPrivate(PRV_MODULE_LOADER, this);
 
 	// Parse the config
-	Value config = MLI(internal)->glb.fromJSON(cfg);
+	Value config = fromJSON(MLI(internal)->glb, cfg);
 	if (config.isException()) return config;
 	MLI(internal)->glb.setPrivate(PRV_MODULE_LOADER_CONFIG, config);
 
