@@ -24,4 +24,3 @@ config.guess
 autom4te.cache
 
 natus/natus
-natus/tests

@@ -21,272 +21,55 @@
  *
  */
 
-#include <cerrno>
-#include <cstring>
+#include "misc.h"
+#include "value.hpp"
+using namespace natus;
 
-#include <sstream>
-
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "natus.h"
 namespace natus {
 
-Value fromJSON(const Value& ctx, string json) {
-	vector<Value> args;
-	args.push_back(ctx.newString(json));
-	Value obj = ctx.getGlobal().get("JSON");
-	return obj.call("parse", args);
+Value throwException(Value ctx, const char* type, const char* message) {
+	return nt_throw_exception(ctx.borrowCValue(), type, message);
 }
 
-string toJSON(const Value& val) {
-	vector<Value> args;
-	args.push_back(val);
-	Value obj = val.getGlobal().get("JSON");
-	return obj.call("stringify", args).toString();
+Value throwException(Value ctx, const char* type, const char* message, long code) {
+	return nt_throw_exception_code(ctx.borrowCValue(), type, message, code);
 }
 
-static Value exception_toString(Value& ths, Value& fnc, vector<Value>& arg) {
-	string type = ths.get("type").toString();
-	string msg  = ths.get("msg").toString();
-	Value  code = ths.get("code");
-
-	string output = type + ": ";
-	if (!code.isUndefined())
-		output += code.toString() + ": ";
-	output += msg;
-	return ths.newString(output);
+Value throwException(Value ctx, int errorno) {
+	return nt_throw_exception_errno(ctx.borrowCValue(), errorno);
 }
 
-Value throwException(const Value& ctx, string type, string message) {
-	Value exc = ctx.newObject();
-	exc.set("type",     type);
-	exc.set("msg",      message);
-	exc.set("toString", exception_toString);
-	return exc.toException();
+Value checkArguments(Value ctx, Value** args, const char* fmt) {
+	if (!args)
+		return nt_check_arguments(ctx.borrowCValue(), NULL, fmt);
+
+	int len;
+	for (len=0 ; args[len] ; len++);
+
+	ntValue **a = new ntValue*[len+1];
+	for (len=0 ; args[len] ; len++)
+		a[len] = args[len]->borrowCValue();
+	a[len] = NULL;
+
+	Value rslt = nt_check_arguments(ctx.borrowCValue(), a, fmt);
+	delete[] a;
+	return rslt;
 }
 
-Value throwException(const Value& ctx, string type, string message, long code) {
-	Value exc = throwException(ctx, type, message);
-	exc.set("code", (double) code);
-	return exc;
+Value fromJSON(Value json) {
+	return nt_from_json(json.borrowCValue());
 }
 
-Value throwException(const Value& ctx, int errorno) {
-	const char* type = "OSError";
-	switch (errorno) {
-		case ENOMEM:
-			return NULL;
-		case EPERM:
-			type = "PermissionError";
-			break;
-		case ENOENT:
-		case ESRCH:
-		case EINTR:
-		case EIO:
-		case ENXIO:
-		case E2BIG:
-		case ENOEXEC:
-		case EBADF:
-		case ECHILD:
-		case EAGAIN:
-		case EACCES:
-		case EFAULT:
-		case ENOTBLK:
-		case EBUSY:
-		case EEXIST:
-		case EXDEV:
-		case ENODEV:
-		case ENOTDIR:
-		case EISDIR:
-		case EINVAL:
-		case ENFILE:
-		case EMFILE:
-		case ENOTTY:
-		case ETXTBSY:
-		case EFBIG:
-		case ENOSPC:
-		case ESPIPE:
-		case EROFS:
-		case EMLINK:
-		case EPIPE:
-		case EDOM:
-		case ERANGE:
-		case EDEADLK:
-		case ENAMETOOLONG:
-		case ENOLCK:
-		case ENOSYS:
-		case ENOTEMPTY:
-		case ELOOP:
-		case ENOMSG:
-		case EIDRM:
-		case ECHRNG:
-		case EL2NSYNC:
-		case EL3HLT:
-		case EL3RST:
-		case ELNRNG:
-		case EUNATCH:
-		case ENOCSI:
-		case EL2HLT:
-		case EBADE:
-		case EBADR:
-		case EXFULL:
-		case ENOANO:
-		case EBADRQC:
-		case EBADSLT:
-		case EBFONT:
-		case ENOSTR:
-		case ENODATA:
-		case ETIME:
-		case ENOSR:
-		case ENONET:
-		case ENOPKG:
-		case EREMOTE:
-		case ENOLINK:
-		case EADV:
-		case ESRMNT:
-		case ECOMM:
-		case EPROTO:
-		case EMULTIHOP:
-		case EDOTDOT:
-		case EBADMSG:
-		case EOVERFLOW:
-		case ENOTUNIQ:
-		case EBADFD:
-		case EREMCHG:
-		case ELIBACC:
-		case ELIBBAD:
-		case ELIBSCN:
-		case ELIBMAX:
-		case ELIBEXEC:
-		case EILSEQ:
-		case ERESTART:
-		case ESTRPIPE:
-		case EUSERS:
-		case ENOTSOCK:
-		case EDESTADDRREQ:
-		case EMSGSIZE:
-		case EPROTOTYPE:
-		case ENOPROTOOPT:
-		case EPROTONOSUPPORT:
-		case ESOCKTNOSUPPORT:
-		case EOPNOTSUPP:
-		case EPFNOSUPPORT:
-		case EAFNOSUPPORT:
-		case EADDRINUSE:
-		case EADDRNOTAVAIL:
-		case ENETDOWN:
-		case ENETUNREACH:
-		case ENETRESET:
-		case ECONNABORTED:
-		case ECONNRESET:
-		case ENOBUFS:
-		case EISCONN:
-		case ENOTCONN:
-		case ESHUTDOWN:
-		case ETOOMANYREFS:
-		case ETIMEDOUT:
-		case ECONNREFUSED:
-		case EHOSTDOWN:
-		case EHOSTUNREACH:
-		case EALREADY:
-		case EINPROGRESS:
-		case ESTALE:
-		case EUCLEAN:
-		case ENOTNAM:
-		case ENAVAIL:
-		case EISNAM:
-		case EREMOTEIO:
-		case EDQUOT:
-		case ENOMEDIUM:
-		case EMEDIUMTYPE:
-		case ECANCELED:
-		case ENOKEY:
-		case EKEYEXPIRED:
-		case EKEYREVOKED:
-		case EKEYREJECTED:
-		case EOWNERDEAD:
-		case ENOTRECOVERABLE:
-		case ERFKILL:
-		default:
-			break;
-	}
-
-	return throwException(ctx, type, strerror(errorno), errorno);
+Value fromJSON(Value ctx, UTF8 json) {
+	return fromJSON(ctx.newString(json));
 }
 
-Value checkArguments(const Value& ctx, const vector<Value>& arg, const char* fmt) {
-	size_t len = arg.size();
+Value fromJSON(Value ctx, UTF16 json) {
+	return fromJSON(ctx.newString(json));
+}
 
-	bool minimum = 0;
-	for (size_t i=0,j=0 ; i < len ; i++) {
-		int depth = 0;
-		bool correct = false;
-		string types = "";
-
-		if (minimum == 0 && fmt[j] == '|')
-			minimum = j++;
-
-		do {
-			switch (fmt[j++]) {
-				case 'a':
-					correct = arg[i].isArray();
-					types += "array, ";
-					break;
-				case 'b':
-					correct = arg[i].isBool();
-					types += "boolean, ";
-					break;
-				case 'f':
-					correct = arg[i].isFunction();
-					types += "function, ";
-					break;
-				case 'N':
-					correct = arg[i].isNull();
-					types += "null, ";
-					break;
-				case 'n':
-					correct = arg[i].isNumber();
-					types += "number, ";
-					break;
-				case 'o':
-					correct = arg[i].isObject();
-					types += "object, ";
-					break;
-				case 's':
-					correct = arg[i].isString();
-					types += "string, ";
-					break;
-				case 'u':
-					correct = arg[i].isUndefined();
-					types += "undefined, ";
-					break;
-				case '(':
-					depth++;
-					break;
-				case ')':
-					depth--;
-					break;
-				default:
-					return throwException(ctx, "LogicError", "Invalid format character!");
-			}
-		} while (!correct && depth > 0);
-
-		if (types.length() > 2)
-			types = types.substr(0, types.length()-2);
-
-		if (types != "" && !correct) {
-			stringstream msg;
-			msg << "argument " << i << " must be one of these types: " << types;
-			return throwException(ctx, "TypeError", msg.str());
-		}
-	}
-
-	if (len < minimum) {
-		stringstream out;
-		out << minimum;
-		return throwException(ctx, "TypeError", "Function requires at least " + out.str() + " arguments!");
-	}
-
-	return ctx.newUndefined();
+Value toJSON(Value val) {
+	return nt_to_json(val.borrowCValue());
 }
 
 }

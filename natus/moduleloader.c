@@ -21,13 +21,9 @@
  *
  */
 
-#include <cstring>
-#include <cstdlib>
-#include <cassert>
-
-#include <fstream>
-#include <stack>
-#include <vector>
+#include <string.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include <dlfcn.h>
 #include <dirent.h>
@@ -48,10 +44,9 @@
 
 #define MLI(i) static_cast<ModuleLoaderInternal*>(i)
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "natus.h"
-namespace natus {
+#include "value.h"
 
+/*
 struct FunctionHook {
 	FreeFunction    free;
 	void*           misc;
@@ -129,6 +124,7 @@ static Value require_file(Value base, string abspath) {
 	ifstream file(abspath.c_str());
 	if (!file.is_open()) return base.newUndefined().toException();
 	char *jscript = new char[st.st_size + 1];
+	memset(jscript, 0, st.st_size + 1);
 	file.read(jscript, st.st_size);
 	if (!file.good() && !file.eof()) {
 		file.close();
@@ -373,4 +369,49 @@ bool  ModuleLoader::originPermitted(string uri) const {
 	return permitted;
 }
 
+*/
+
+ntModuleLoader   *nt_moduleloader_init(ntValue *ctx, const char *config) {
+	ModuleLoader* ml = new ModuleLoader(ctx->value);
+	if (ml->initialize(config ? config : "{}").toBool()) {
+		delete ml;
+		return NULL;
+	}
+	return (ntModuleLoader*) ml;
+}
+
+int               nt_moduleloader_require_hook_add(ntModuleLoader *ml, bool post, ntRequireFunction func, void* misc, ntFreeFunction free) {
+	cRequireMisc* crhs = new cRequireMisc;
+	crhs->func = func;
+	crhs->free = free;
+	crhs->misc = misc;
+
+	return ml->ml.addRequireHook(post, (RequireFunction) cRequireFunction, crhs, (FreeFunction) cRequireFree);
+}
+
+void              nt_moduleloader_require_hook_del(ntModuleLoader *ml, int id) {
+	ml->ml.delRequireHook(id);
+}
+
+int               nt_moduleloader_origin_matcher_add(ntModuleLoader *ml, ntOriginMatcher func, void* misc, ntFreeFunction free) {
+	return ml->ml.addOriginMatcher(func, misc, free);
+}
+
+void              nt_moduleloader_origin_matcher_del(ntModuleLoader *ml, int id) {
+	ml->ml.delOriginMatcher(id);
+}
+
+ntValue          *nt_moduleloader_require(const ntModuleLoader *ml, const char *name, const char *reldir, const char **path) {
+	vector<string> vpath;
+	for (int i=0 ; path && path[i] ; i++)
+		vpath.push_back(path[i]);
+	return to_ntValue(ml->ml.require(name, reldir, vpath));
+}
+
+bool              nt_moduleloader_origin_permitted(const ntModuleLoader *ml, const char *uri) {
+	return ml->ml.originPermitted(uri);
+}
+
+void              nt_moduleloader_free(ntModuleLoader *ml) {
+	delete (ModuleLoader*) ml;
 }

@@ -15,6 +15,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_PROG_LIBTOOL
+AM_PROG_CC_C_O
 
 m4_ifdef([AM_SILENT_RULES], [
   AM_SILENT_RULES([yes])
@@ -127,6 +128,6 @@ echo
 
 MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
-AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
+AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile natus/tests/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
 AC_OUTPUT
 

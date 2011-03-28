@@ -11,9 +11,9 @@
 <option id="host" value=""/>
 <option id="build" value=""/>
 <option id="target" value=""/>
-<option id="prefix" value=""/>
+<option id="prefix" value="/usr"/>
 <option id="exec-prefix" value=""/>
-<option id="libdir" value=""/>
+<option id="libdir" value="/usr/lib64"/>
 <option id="bindir" value=""/>
 <option id="sbindir" value=""/>
 <option id="includedir" value=""/>

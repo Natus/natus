@@ -21,21 +21,23 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
-#include "types.h"
+#ifndef MISCXX_HPP_
+#define MISCXX_HPP_
+#include "types.hpp"
+#include "value.hpp"
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+namespace natus {
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+Value throwException(Value ctx, const char* type, const char* message);
+Value throwException(Value ctx, const char* type, const char* message, long code);
+Value throwException(Value ctx, int errorno);
+Value checkArguments(Value ctx, Value** args, const char* fmt);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
-#endif /* ENGINE_H_ */
+Value fromJSON(Value json);
+Value fromJSON(Value ctx, UTF8 json);
+Value fromJSON(Value ctx, UTF16 json);
+Value toJSON(Value val);
+
+}
+#endif /* MISCXX_HPP_ */
+

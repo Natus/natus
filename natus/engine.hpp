@@ -21,21 +21,24 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
-#include "types.h"
+#ifndef ENGINE_HPP_
+#define ENGINE_HPP_
+#include "types.hpp"
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+namespace natus {
+class Engine {
+public:
+	Engine();
+	Engine(void* engine);
+	Engine(Engine& engine);
+	~Engine();
+	bool initialize(const char *name_or_path);
+	const char *getName();
+	Value newGlobal();
+	Value newGlobal(Value global);
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
-#endif /* ENGINE_H_ */
+private:
+	void *internal;
+};
+}  // namespace natus
+#endif /* ENGINE_ */

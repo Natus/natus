@@ -21,21 +21,28 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
+#ifndef MISC_H_
+#define MISC_H_
 #include "types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+ntValue          *nt_throw_exception      (const ntValue *ctx, const char *type, const char *message);
+ntValue          *nt_throw_exception_code (const ntValue *ctx, const char *type, const char *message, long code);
+ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno);
+ntValue          *nt_check_arguments      (const ntValue *ctx, ntValue **arg, const char *fmt);
+
+ntValue          *nt_from_json            (const ntValue *json);
+ntValue          *nt_from_json_utf8       (const ntValue *ctx, const    char *json, size_t len);
+ntValue          *nt_from_json_utf16      (const ntValue *ctx, const  ntChar *json, size_t len);
+ntValue          *nt_to_json              (const ntValue *val);
+char             *nt_to_json_utf8         (const ntValue *val, size_t *len);
+ntChar           *nt_to_json_utf16        (const ntValue *val, size_t *len);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /* ENGINE_H_ */
+#endif /* MISC_H_ */
+

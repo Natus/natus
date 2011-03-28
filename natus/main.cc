@@ -24,6 +24,10 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <set>
+#include <vector>
+#include <string>
+using namespace std;
 
 #include <cstdio>
 #include <cstdlib>
@@ -35,7 +39,7 @@
 #include <readline/history.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus.h>
+#include <natus/natus.hpp>
 using namespace natus;
 
 #define _str(s) # s
@@ -48,20 +52,27 @@ using namespace natus;
 
 Value* glbl;
 
-static Value alert(Value& ths, Value& fnc, vector<Value>& args) {
-	if (args.size() < 1)
-		return ths.newString("Invalid number of arguments!").toException();
-	fprintf(stderr, "%s\n", args[0].toString().c_str());
+static Value alert(Value& ths, Value& fnc, Value** args) {
+	Value exc = checkArguments(ths, args, "s");
+	if (exc.isException()) return exc;
+
+	char* tmp = args[0]->toString();
+	fprintf(stderr, "%s\n", tmp);
+	free(tmp);
 	return ths.newUndefined();
 }
 
-static Value dir(Value& ths, Value& fnc, vector<Value>& args) {
+static Value dir(Value& ths, Value& fnc, Value** args) {
 	Value obj = ths.getGlobal();
-	if (args.size() > 0)
-		obj = args[0];
-	set<string> names = obj.enumerate();
-	for (set<string>::iterator i=names.begin() ; i != names.end() ; i++)
-		fprintf(stderr, "\t%s\n", i->c_str());
+	if (args && args[0])
+		obj = *args[0];
+
+	Value names = obj.enumerate();
+	for (long i=0 ; i < names.get("length").toLong() ; i++) {
+		char* tmp = names[i].toString();
+		fprintf(stderr, "\t%s\n", tmp);
+		free(tmp);
+	}
 	return ths.newUndefined();
 }
 
@@ -130,7 +141,12 @@ static char* completion_generator(const char* text, int state) {
 			if (obj.isUndefined()) return NULL;
 		}
 
-		names = obj.enumerate();
+		Value nm = obj.enumerate();
+		for (long i=0 ; i < nm.get("length").toLong() ; i++) {
+			char* tmp = nm[i].toString();
+			names.insert(tmp);
+			free(tmp);
+		}
 		it = names.begin();
 	}
 	if (last) last++;
@@ -159,8 +175,8 @@ Value set_path(Value& module, string& name, string& reldir, vector<string>& path
 	if (!args.isArray()) return ret;
 
 	for (int i=0 ; argv[i] ; i++) {
-		vector<Value> pushargs;
-		pushargs.push_back(module.newString(argv[i]));
+		Value  pth = module.newString(argv[i]);
+		Value* pushargs[2] = { &pth, NULL };
 		args.call("push", pushargs);
 	}
 	return ret;
@@ -227,7 +243,8 @@ int main(int argc, char** argv) {
 	if (!path.empty()) {
 		while (path.find(':') != string::npos)
 			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
-		cfg.set("natus.path", fromJSON(global, "[\"" + path + "\"]"), Value::None, true);
+		string data = "[\"" + path + "\"]";
+		cfg.set("natus.path", fromJSON(global, data.c_str(), -1), Value::PropAttrNone, true);
 	}
 	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
 		if (access(it->c_str(), R_OK) == 0) {
@@ -235,19 +252,19 @@ int main(int argc, char** argv) {
 			for (string line ; getline(file, line) ; ) {
 				if (line.find('=') == string::npos) continue;
 				string key = line.substr(0, line.find('='));
-				Value  val = fromJSON(global, line.substr(line.find('=')+1));
+				Value  val = fromJSON(global, line.substr(line.find('=')+1).c_str());
 				if (val.isException()) continue;
-				cfg.set(key, val, Value::None, true);
+				cfg.set(key, val, Value::PropAttrNone, true);
 			}
 			file.close();
 		} else if (it->find("=") != string::npos) {
 			string key = it->substr(0, it->find('='));
 			Value  val = fromJSON(global, it->substr(it->find('=')+1));
 			if (val.isException()) continue;
-			cfg.set(key, val, Value::None, true);
+			cfg.set(key, val, Value::PropAttrNone, true);
 		}
 	}
-	string config = toJSON(cfg);
+	string config = toJSONUTF8(cfg);
 
 	// Bring up the Module Loader
 	ModuleLoader ml(global);
@@ -277,7 +294,7 @@ int main(int argc, char** argv) {
 
 	// Start the shell
 	if (optind >= argc) {
-		fprintf(stderr, "Natus v" PACKAGE_VERSION " - Using: %s\n", engine.getName().c_str());
+		fprintf(stderr, "Natus v" PACKAGE_VERSION " - Using: %s\n", engine.getName());
 		if (getenv("HOME"))
 			read_history((string(getenv("HOME")) + "/" + HISTORYFILE).c_str());
 		rl_readline_name = "natus";
@@ -308,7 +325,7 @@ int main(int argc, char** argv) {
 		    prompt = PROMPT;
 			add_history(prev.c_str());
 
-			Value res = global.evaluate(prev, string(), lcnt++, false);
+			Value res = global.evaluate(prev.c_str(), "", lcnt++);
 			string msg;
 			string fmt;
 			msg = res.toString();

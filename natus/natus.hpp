@@ -21,21 +21,17 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
-#include "types.h"
+#ifndef NATUS_HPP_
+#define NATUS_HPP_
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#ifndef I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#error Natus is not stable, go look elsewhere...
+#endif
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+#include "engine.hpp"
+#include "value.hpp"
+//#include "moduleloader.hpp"
+#include "misc.hpp"
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
-#endif /* ENGINE_H_ */
+#endif /* NATUS_HPP_ */
+

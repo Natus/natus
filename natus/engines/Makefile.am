@@ -2,30 +2,33 @@ enginesdir=$(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 AM_LDFLAGS = -module -avoid-version -no-undefined -shared
 
 engines_LTLIBRARIES=
-if WITH_SPIDERMONKEY
-engines_LTLIBRARIES+=SpiderMonkey.la
-endif
-if WITH_V8
-engines_LTLIBRARIES+=V8.la
-endif
-if WITH_JAVASCRIPTCORE
-engines_LTLIBRARIES+=JavaScriptCore.la
-endif
 
 # SpiderMonkey (Mozilla) engine
-SpiderMonkey_la_SOURCES  = SpiderMonkey.cc
-SpiderMonkey_la_CXXFLAGS = $(AM_CXXFLAGS) @SpiderMonkey_CFLAGS@ -Wall -I../../
+if WITH_SPIDERMONKEY
+engines_LTLIBRARIES += SpiderMonkey.la
+SpiderMonkey_la_SOURCES  = SpiderMonkey.c
+SpiderMonkey_la_CFLAGS = $(AM_CFLAGS) @SpiderMonkey_CFLAGS@ -g -Wall -I../../
 SpiderMonkey_la_LDFLAGS  = $(AM_LDFLAGS)  @SpiderMonkey_LIBS@
 SpiderMonkey_la_LIBADD   = ../libnatus.la
+endif
 
-# V8 engine
-V8_la_SOURCES  = V8.cc
-V8_la_CXXFLAGS = $(AM_CXXFLAGS) -Wall -I../../
-V8_la_LDFLAGS  = $(AM_LDFLAGS) -lv8 -lpthread
-V8_la_LIBADD   = ../libnatus.la
+# v8 engine
+if WITH_V8
+engines_LTLIBRARIES += v8.la
+v8_la_SOURCES  = v8.cc
+v8_la_CXXFLAGS = $(AM_CXXFLAGS) -fno-exceptions -fno-rtti -g -Wall -I../../
+v8_la_LDFLAGS  = $(AM_LDFLAGS)  -fno-exceptions -fno-rtti -lv8 -lpthread
+v8_la_LIBADD   = ../libnatus.la
+endif
 
 # WebKit engine
-JavaScriptCore_la_SOURCES  = JavaScriptCore.cc
-JavaScriptCore_la_CXXFLAGS = $(AM_CXXFLAGS) @JavaScriptCore_CFLAGS@ -Wall -I../../
-JavaScriptCore_la_LDFLAGS  = $(AM_LDFLAGS)  @JavaScriptCore_LIBS@
-JavaScriptCore_la_LIBADD   = ../libnatus.la
+if WITH_JAVASCRIPTCORE
+engines_LTLIBRARIES += JavaScriptCore.la
+JavaScriptCore_la_SOURCES = JavaScriptCore.c
+JavaScriptCore_la_CFLAGS  = $(AM_CFLAGS) @JavaScriptCore_CFLAGS@ -g -Wall -I../../
+JavaScriptCore_la_LDFLAGS = $(AM_LDFLAGS)  @JavaScriptCore_LIBS@
+JavaScriptCore_la_LIBADD  = ../libnatus.la
+endif
+
+
+

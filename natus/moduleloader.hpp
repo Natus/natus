@@ -21,21 +21,35 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
-#include "types.h"
+#ifndef MODULELOADER_HPP_
+#define MODULELOADER_HPP_
+#include "types.hpp"
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+namespace natus {
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+typedef Value (*RequireFunction)(Value& module, const char* name, const char* reldir, const char** path, void* misc);
+typedef bool  (*OriginMatcher)  (const char* pattern, const char* subject);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
-#endif /* ENGINE_H_ */
+class ModuleLoader {
+public:
+	static ModuleLoader* getModuleLoader(const Value& ctx);
+	static Value         getConfig(const Value& ctx);
+	static Value         checkOrigin(const Value& ctx, string uri);
+
+	ModuleLoader(Value& ctx);
+	virtual ~ModuleLoader();
+	Value initialize(string config="{}");
+	int   addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
+	void  delRequireHook(int id);
+	int   addOriginMatcher(OriginMatcher func, void* misc=NULL, FreeFunction free=NULL);
+	void  delOriginMatcher(int id);
+	Value require(string name, string reldir, vector<string> path) const;
+	bool  originPermitted(string uri) const;
+
+private:
+	void *internal;
+};
+
+}
+#endif /* MODULELOADER_HPP_ */
+

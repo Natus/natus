@@ -21,21 +21,30 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
+#ifndef MODULELOADER_H_
+#define MODULELOADER_H_
 #include "types.h"
+
+typedef ntValue* (*ntRequireFunction)(ntValue* module, const char* name, const char* reldir, const char** path, void* misc);
+typedef bool     (*ntOriginMatcher)  (const char* pattern, const char* subject);
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+typedef struct _ntModuleLoader ntModuleLoader;
+
+ntModuleLoader   *nt_moduleloader_init              (ntValue *ctx, const char *config);
+int               nt_moduleloader_require_hook_add  (      ntModuleLoader *ml, bool post, ntRequireFunction func, void* misc, ntFreeFunction free);
+void              nt_moduleloader_require_hook_del  (      ntModuleLoader *ml, int id);
+int               nt_moduleloader_origin_matcher_add(      ntModuleLoader *ml, ntOriginMatcher func, void* misc, ntFreeFunction free);
+void              nt_moduleloader_origin_matcher_del(      ntModuleLoader *ml, int id);
+ntValue          *nt_moduleloader_require           (const ntModuleLoader *ml, const char *name, const char *reldir, const char **path);
+bool              nt_moduleloader_origin_permitted  (const ntModuleLoader *ml, const char *uri);
+void              nt_moduleloader_free              (      ntModuleLoader *ml);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /* ENGINE_H_ */
+#endif /* MODULELOADER_H_ */
+

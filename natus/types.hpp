@@ -21,21 +21,35 @@
  * 
  */
 
-#ifndef ENGINE_H_
-#define ENGINE_H_
-#include "types.h"
+#ifndef TYPES_HPP_
+#define TYPES_HPP_
+#include <stdint.h>
 
+namespace natus {
+class Value;
+class Engine;
+
+#ifdef WIN32
+typedef wchar_t Char;
+#else
+typedef uint16_t Char;
+#endif
+
+#ifndef NULL
 #ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#define NULL 0
+#else
+#define NULL ((void *)0)
+#endif
+#endif
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+/* Type: FreeFunction
+ * Function type for calls made back to free a memory value allocated outside natus.
+ *
+ * Parameters:
+ *     mem - The memory to free.
+ */
+typedef void (*FreeFunction)(void *mem);
+}
+#endif /* TYPES_HPP_ */
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
-#endif /* ENGINE_H_ */

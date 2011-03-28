@@ -7,10 +7,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,53 +18,37 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
+ * 
  */
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "natus.h"
-namespace natus {
+#ifndef TYPES_H_
+#define TYPES_H_
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
-Class::Flags Class::getFlags() {
-	return Class::FlagNone;
-}
+#ifndef _HAVE_NT_VALUE
+#define _HAVE_NT_VALUE
+typedef struct _ntValue ntValue;
+#endif
 
-Value Class::del(Value& obj, string name) {
-	return obj.newUndefined().toException();
-}
+#ifndef _HAVE_NT_ENGINE
+#define _HAVE_NT_ENGINE
+typedef struct _ntEngine ntEngine;
+#endif
 
-Value Class::del(Value& obj, long idx) {
-	return obj.newUndefined().toException();
-}
+#ifdef WIN32
+typedef wchar_t ntChar;
+#else
+typedef uint16_t ntChar;
+#endif
 
-Value Class::get(Value& obj, string name) {
-	return obj.newUndefined().toException();
-}
+/* Type: ntFreeFunction
+ * Function type for calls made back to free a memory value allocated outside natus.
+ *
+ * Parameters:
+ *     mem - The memory to free.
+ */
+typedef void (*ntFreeFunction)(void *mem);
+#endif /* TYPES_H_ */
 
-Value Class::get(Value& obj, long idx) {
-	return obj.newUndefined().toException();
-}
-
-Value Class::set(Value& obj, string name, Value& value) {
-	return obj.newUndefined().toException();
-}
-
-Value Class::set(Value& obj, long idx, Value& value) {
-	return obj.newUndefined().toException();
-}
-
-Value Class::enumerate(Value& obj) {
-	return obj.newUndefined().toException();
-}
-
-Value Class::call(Value& obj, vector<Value> args) {
-	return obj.newUndefined().toException();
-}
-
-Value Class::callNew(Value& obj, vector<Value> args) {
-	return obj.newUndefined().toException();
-}
-
-Class::~Class() {}
-
-}

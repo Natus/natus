@@ -21,49 +21,129 @@
  * 
  */
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "engine.h"
+#include <cstdlib> // For free()
+#include <cstdio>
 
-#include <cerrno>
+#include "engine.hpp"
+#include "value.hpp"
+#include "value.h"
+using namespace natus;
 
-#include <cstdlib>
-#include <cstring>
-#include <libgen.h>
+static inline Value** tx(ntValue **args) {
+	if (!args) return NULL;
 
-#include <iostream>
-#include <sstream>
+	long len;
+	for (len=0 ; args && args[len] ; len++);
 
+	Value **a = new Value*[len+1];
+	for (len=0 ; args && args[len] ; len++)
+		a[len] = new Value(args[len]);
+	a[len] = NULL;
 
-namespace natus {
-
-static void freeValue(void* value) {
-	delete static_cast<Value*>(value);
+	return a;
 }
+
+static inline void txFree(Value **args) {
+	for (int i=0 ; args && args[i] ; i++)
+		delete args[i];
+	delete[] args;
+}
+
+static ntValue *txFunction(ntValue *obj, ntValue *ths, ntValue *args) {
+	Value o = nt_value_incref(obj);
+	Value t = nt_value_incref(ths);
+	Value a = nt_value_incref(args);
+
+	NativeFunction f = o.getPrivate<NativeFunction>("natus.Function++");
+	if (!f) return NULL;
+
+	Value rslt = f(o, t, a);
+
+	return nt_value_incref(rslt.borrowCValue());
+}
+
+struct txClass {
+	ntClass hdr;
+	Class  *cls;
+
+	static ntValue *del(ntClass *cls, ntValue *obj, const ntValue *prop) {
+		Value o = nt_value_incref(obj);
+		Value n = (ntValue*) nt_value_incref((ntValue*) prop);
+		return nt_value_incref(((txClass *) cls)->cls->del(o, n).borrowCValue());
+	}
+
+	static ntValue *get(ntClass *cls, ntValue *obj, const ntValue *prop) {
+		Value o = nt_value_incref(obj);
+		Value n = (ntValue*) nt_value_incref((ntValue*) prop);
+		return nt_value_incref(((txClass *) cls)->cls->get(o, n).borrowCValue());
+	}
+
+	static ntValue *set(ntClass *cls, ntValue *obj, const ntValue *prop, ntValue *value) {
+		Value o = nt_value_incref(obj);
+		Value n = (ntValue*) nt_value_incref((ntValue*) prop);
+		Value v = nt_value_incref(value);
+		return nt_value_incref(((txClass *) cls)->cls->set(o, n, v).borrowCValue());
+	}
+
+	static ntValue *enumerate   (ntClass *cls, ntValue *obj) {
+		Value o = nt_value_incref(obj);
+		return nt_value_incref(((txClass *) cls)->cls->enumerate(o).borrowCValue());
+	}
+
+	static ntValue *call        (ntClass *cls, ntValue *obj, ntValue *ths, ntValue* args) {
+		Value o = nt_value_incref(obj);
+		Value t = nt_value_incref(ths);
+		Value a = nt_value_incref(args);
+
+		Value rslt = ((txClass *) cls)->cls->call(o, t, a);
+
+		return nt_value_incref(rslt.borrowCValue());
+	}
+
+	static void     free        (ntClass *cls) {
+		delete ((txClass *) cls)->cls;
+		delete ((txClass *) cls);
+	}
+
+	txClass(Class* cls) {
+		this->hdr.del       = (cls->getFlags() & Class::FlagDelete)    ? txClass::del : NULL;
+		this->hdr.get       = (cls->getFlags() & Class::FlagGet)       ? txClass::get : NULL;
+		this->hdr.set       = (cls->getFlags() & Class::FlagSet)       ? txClass::set : NULL;
+		this->hdr.enumerate = (cls->getFlags() & Class::FlagEnumerate) ? txClass::enumerate    : NULL;
+		this->hdr.call      = (cls->getFlags() & Class::FlagCall)      ? txClass::call         : NULL;
+		this->hdr.free      = txClass::free;
+		this->cls = cls;
+	}
+};
+
+Class::Flags Class::getFlags () { return Class::FlagNone; }
+Value        Class::del      (Value& obj, Value& name)               { return obj.newUndefined().toException(); }
+Value        Class::get      (Value& obj, Value& name)               { return obj.newUndefined().toException(); }
+Value        Class::set      (Value& obj, Value& name, Value& value) { return obj.newUndefined().toException(); }
+Value        Class::enumerate(Value& obj)                            { return obj.newUndefined().toException(); }
+Value        Class::call     (Value& obj, Value& ths,  Value& args)  { return obj.newUndefined().toException(); }
+Class::~Class() {}
 
 Value::Value() {
 	internal = NULL;
 }
 
-Value::Value(EngineValue* value) {
+Value::Value(ntValue *value) {
 	internal = value;
-	if (internal)
-		internal->incRef();
 }
 
 Value::Value(const Value& value) {
 	internal = value.internal;
-	if (internal)
-		internal->incRef();
+	nt_value_incref(internal);
 }
 
 Value::~Value() {
-	if (internal) internal->decRef();
+	internal = nt_value_decref(internal);
 }
 
 Value& Value::operator=(const Value& value) {
-	if (internal) internal->decRef();
-	internal = value.internal;
-	if (internal) internal->incRef();
+	internal = nt_value_decref(internal);
+	internal = nt_value_incref(value.internal);
 	return *this;
 }
 
@@ -71,343 +151,408 @@ Value Value::operator[](long index) {
 	return get(index);
 }
 
-Value Value::operator[](string name) {
+Value Value::operator[](Value& name) {
+	return get(name);
+}
+
+Value Value::operator[](UTF8 name) {
+	return get(name);
+}
+
+Value Value::operator[](UTF16 name) {
 	return get(name);
 }
 
 Value Value::newBool(bool b) const {
-	return internal->newBool(b);
+	return nt_value_new_bool(internal, b);
 }
 
 Value Value::newNumber(double n) const {
-	return internal->newNumber(n);
+	return nt_value_new_number(internal, n);
 }
 
-Value Value::newString(string string) const {
-	return internal->newString(string);
+Value Value::newString(UTF8 string) const {
+	return nt_value_new_string_utf8_length(internal, string.data(), string.length());
 }
 
-Value Value::newArray(vector<Value> array) const {
-	return internal->newArray(array);
+Value Value::newString(UTF16 string) const {
+	return nt_value_new_string_utf16_length(internal, string.data(), string.length());
+}
+
+Value Value::newArray(const Value* const* array) const {
+	long len;
+	for (len=0 ; array && array[len] ; len++);
+
+	const ntValue **a = NULL;
+	if (array) {
+		a = new const ntValue*[len+1];
+		for (len=0 ; array && array[len] ; len++)
+			a[len] = array[len]->borrowCValue();
+		a[len] = NULL;
+	}
+
+	Value v = nt_value_new_array(internal, a);
+
+	delete[] a;
+	return v;
+}
+
+Value Value::newArrayBuilder(Value item) {
+	ntValue *tmp = nt_value_new_array_builder(internal, item.internal);
+	if (!isArray()) return tmp;
+	return nt_value_incref(tmp);
 }
 
 Value Value::newFunction(NativeFunction func) const {
-	return internal->newFunction(func);
+	Value f = nt_value_new_function(internal, txFunction);
+	f.setPrivate("natus.Function++", (void*) func);
+	return f;
 }
 
 Value Value::newObject(Class* cls) const {
-	return internal->newObject(cls);
+	if (!cls) return nt_value_new_object(internal, NULL);
+	return nt_value_new_object(internal, (ntClass*) new txClass(cls));
 }
 
 Value Value::newNull() const {
-	return internal->newNull();
+	return nt_value_new_null(internal);
 }
 
 Value Value::newUndefined() const {
-	return internal->newUndefined();
+	return nt_value_new_undefined(internal);
 }
 
 Value Value::getGlobal() const {
-	return internal->getGlobal();
+	return nt_value_get_global(internal);
 }
 
-void Value::getContext(void **context, void **value) const {
-	internal->getContext(context, value);
+Engine Value::getEngine() const {
+	Engine e(nt_value_get_engine(internal));
+	return e;
+}
+
+Value::Type Value::getType() const {
+	return (Value::Type) nt_value_get_type(internal);
+}
+
+const char* Value::getTypeName() const {
+	return nt_value_get_type_name(internal);
+}
+
+bool Value::borrowContext(void **context, void **value) const {
+	return nt_value_borrow_context(internal, context, value);
+}
+
+ntValue* Value::borrowCValue() const {
+	return internal;
 }
 
 bool Value::isGlobal() const {
-	return internal->isGlobal();
+	return nt_value_is_global(internal);
 }
 
 bool Value::isException() const {
-	return internal == NULL || internal->isException();
+	return nt_value_is_exception(internal);
 }
 
 bool Value::isOOM() const {
-	return internal == NULL;
+	return nt_value_is_oom(internal);
+}
+
+bool Value::isType(Value::Type types) const {
+	return nt_value_is_type(internal, (ntValueType) types);
 }
 
 bool Value::isArray() const {
-	return internal->isArray();
+	return nt_value_is_array(internal);
 }
 
 bool Value::isBool() const {
-	return internal->isBool();
+	return nt_value_is_bool(internal);
 }
 
 bool Value::isFunction() const {
-	return internal->isFunction();
+	return nt_value_is_function(internal);
 }
 
 bool Value::isNull() const {
-	return internal->isNull();
+	return nt_value_is_null(internal);
 }
 
 bool Value::isNumber() const {
-	return internal->isNumber();
+	return nt_value_is_number(internal);
 }
 
 bool Value::isObject() const {
-	return internal->isObject();
+	return nt_value_is_object(internal);
 }
 
 bool Value::isString() const {
-	return internal->isString();
+	return nt_value_is_string(internal);
 }
 
 bool Value::isUndefined() const {
-	return internal->isUndefined();
-}
-
-bool Value::toBool() const {
-	if (isUndefined()) return false;
-	return internal->toBool();
-}
-
-double Value::toDouble() const {
-	if (isUndefined()) return 0;
-	return internal->toDouble();
+	return nt_value_is_undefined(internal);
 }
 
 Value Value::toException() {
-	return internal->toException(*this);
+	return nt_value_incref(nt_value_to_exception(internal));
 }
 
-int Value::toInt() const {
-	if (isUndefined()) return 0;
-	return (int) toDouble();
+bool Value::toBool() const {
+	return nt_value_to_bool(internal);
+}
+
+double Value::toDouble() const {
+	return nt_value_to_double(internal);
 }
 
 long Value::toLong() const {
-	if (isUndefined()) return 0;
-	return (long) toDouble();
+	return nt_value_to_long(internal);
 }
 
-string Value::toString() const {
-	return internal->toString();
+template <> UTF8 Value::toString<UTF8>() const {
+	size_t len;
+	char* tmp = nt_value_to_string_utf8(internal, &len);
+	if (!tmp) return UTF8();
+	UTF8 rslt(tmp, len);
+	free(tmp);
+	return rslt;
 }
 
-vector<string> Value::toStringVector() const {
-	vector<string> strv = vector<string>();
-	long len = get("length").toLong();
-	for (long i=0 ; i < len ; i++)
-		strv.push_back(get(i).toString());
-	return strv;
+template <> UTF16 Value::toString<UTF16>() const {
+	size_t len;
+	Char* tmp = nt_value_to_string_utf16(internal, &len);
+	if (!tmp) return UTF16();
+	UTF16 rslt(tmp, len);
+	free(tmp);
+	return rslt;
 }
 
-bool Value::del(string name) {
-	if (!isArray() && !isFunction() && !isObject())
-		return false;
-	return internal->del(name);
+Value Value::del(Value idx) {
+	return nt_value_del(internal, idx.internal);
 }
 
-bool Value::del(long idx) {
-	if (!isObject() && !isArray())
-		return false;
-	return internal->del(idx);
+Value Value::del(UTF8 idx) {
+	Value n = newString(idx);
+	return nt_value_del(internal, n.internal);
 }
 
-Value Value::get(string name) const {
-	if (!isArray() && !isFunction() && !isObject())
-		return newUndefined();
-
-	if (name.find_first_of('.') == string::npos)
-		return internal->get(name);
-
-	return get(name.substr(0, name.find_first_of('.'))).get(name.substr(name.find_first_of('.')+1));
+Value Value::del(UTF16 idx) {
+	Value n = newString(idx);
+	return nt_value_del(internal, n.internal);
 }
 
-Value Value::get(long idx) const {
-	if (!isObject() && !isArray())
-		return newUndefined();
-	return internal->get(idx);
+Value Value::del(size_t idx) {
+	return nt_value_del_index(internal, idx);
 }
 
-bool Value::has(string name) const {
-	if (!isArray() && !isFunction() && !isObject())
-		return false;
-	Value v = get(name);
-	return !v.isUndefined();
+Value Value::get(Value idx) const {
+	return nt_value_get(internal, idx.internal);
 }
 
-bool Value::has(long idx) const {
-	if (!isObject() && !isArray())
-		return false;
-	Value v = get(idx);
-	return !v.isUndefined();
+Value Value::get(UTF8 idx) const {
+	Value n = newString(idx);
+	return nt_value_get(internal, n.internal);
 }
 
-bool Value::set(string name, Value value, Value::PropAttrs attrs, bool makeParents) {
-	if (!isArray() && !isFunction() && !isObject())
-		return false;
-
-	if (name.find_first_of('.') == string::npos)
-		return internal->set(name, value, attrs);
-
-	Value next = get(name.substr(0, name.find_first_of('.')));
-	if (makeParents && next.isUndefined()) {
-		next = newObject();
-		if (!set(name.substr(0, name.find_first_of('.')), next))
-			return false;
-	}
-
-	return next.set(name.substr(name.find_first_of('.')+1), value, attrs, makeParents);
+Value Value::get(UTF16 idx) const {
+	Value n = newString(idx);
+	return nt_value_get(internal, n.internal);
 }
 
-bool Value::set(string name, int value, Value::PropAttrs attrs, bool makeParents) {
-	return set(name, newNumber(value), attrs, makeParents);
+Value Value::get(size_t idx) const {
+	return nt_value_get_index(internal, idx);
 }
 
-bool Value::set(string name, double value, Value::PropAttrs attrs, bool makeParents) {
-	return set(name, newNumber(value), attrs, makeParents);
+Value Value::set(Value idx, Value value, Value::PropAttr attrs) {
+	return nt_value_set(internal, idx.internal, value.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(string name, string value, Value::PropAttrs attrs, bool makeParents) {
-	return set(name, newString(value), attrs, makeParents);
+Value Value::set(Value idx, long value, Value::PropAttr attrs) {
+	Value v = newNumber(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(string name, NativeFunction value, Value::PropAttrs attrs, bool makeParents) {
-	return set(name, newFunction(value), attrs, makeParents);
+Value Value::set(Value idx, double value, Value::PropAttr attrs) {
+	Value v = newNumber(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(long idx, Value value) {
-	if (!isArray() && !isFunction() && !isObject())
-		return false;
-	return internal->set(idx, value);
+Value Value::set(Value idx, UTF8 value, Value::PropAttr attrs) {
+	Value v = newString(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(long idx, int value) {
-	return set(idx, newNumber(value));
+Value Value::set(Value idx, UTF16 value, Value::PropAttr attrs) {
+	Value v = newString(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(long idx, double value) {
-	return set(idx, newNumber(value));
+Value Value::set(Value idx, NativeFunction value, Value::PropAttr attrs) {
+	Value v = newFunction(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(long idx, string value) {
-	return set(idx, newString(value));
+Value Value::set(UTF8 idx, Value value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	return nt_value_set(internal, n.borrowCValue(), value.internal, (ntPropAttr) attrs);
 }
 
-bool Value::set(long idx, NativeFunction value) {
-	return set(idx, newFunction(value));
+Value Value::set(UTF8 idx, long value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-set<string> Value::enumerate() const {
-	if (!isArray() && !isFunction() && !isObject())
-		return std::set<string>();
-	return internal->enumerate();
+Value Value::set(UTF8 idx, double value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::setPrivate(string key, void *priv, FreeFunction free) {
-	PrivateMap* pm;
-	if (!internal->supportsPrivate()) return false;
-	if (!(pm = internal->getPrivateMap())) return false;
-	PrivateMap::iterator it = pm->find(key);
-	if (it != pm->end()) {
-		if (it->second.second)
-			it->second.second(it->second.first);
-		pm->erase(it);
-	}
-	PrivateItem pi(priv, free);
-	pm->insert(pair<string, PrivateItem>(key, pi));
-	return true;
+Value Value::set(UTF8 idx, UTF8 value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::setPrivate(string key, void *priv) {
-	PrivateMap* pm;
-	if (!internal->supportsPrivate()) return false;
-	if (!(pm = internal->getPrivateMap())) return false;
-	PrivateMap::iterator it = pm->find(key);
-	if (it != pm->end())
-		return setPrivate(key, priv, it->second.second);
-	return setPrivate(key, priv, NULL);
+Value Value::set(UTF8 idx, UTF16 value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-bool Value::setPrivate(string key, Value value) {
-	return setPrivate(key, new Value(value), freeValue);
+Value Value::set(UTF8 idx, NativeFunction value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newFunction(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-void* Value::getPrivate(string key) const {
-	PrivateMap* pm;
-	if (!internal->supportsPrivate()) return NULL;
-	if (!(pm = internal->getPrivateMap())) return NULL;
-	PrivateMap::iterator it = pm->find(key);
-	if (it != pm->end())
-		return it->second.first;
-	return NULL;
+Value Value::set(UTF16 idx, Value value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	return nt_value_set(internal, n.borrowCValue(), value.internal, (ntPropAttr) attrs);
 }
 
-Value Value::getPrivateValue(string key) const {
-	Value* v = static_cast<Value*>(getPrivate(key));
-	if (!v) return newUndefined();
-	return *v;
+Value Value::set(UTF16 idx, long value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-Value Value::evaluate(string jscript, string filename, unsigned int lineno, bool shift) {
-	if (shift && !isObject() && !isFunction()) return newUndefined();
-
-	if (jscript.substr(0, 2) == "#!" && jscript.find_first_of('\n') != string::npos)
-		jscript = jscript.substr(jscript.find_first_of('\n')+1);
-
-	// Add the file's directory to the require stack
-	char *tmp = NULL;
-	Value reqStack = this->getGlobal().get("require").getPrivateValue("natus.reqStack");
-	if (reqStack.isArray()) {
-		tmp = strdup(filename.c_str());
-		if (tmp) {
-			vector<Value> pushargs;
-			pushargs.push_back(reqStack.newString(dirname(tmp)));
-			std::free(tmp);
-			reqStack.call("push", pushargs);
-		}
-	}
-
-	Value ret = internal->evaluate(jscript, filename, lineno, shift);
-
-	// Remove the directory from the stack
-	if (reqStack.isArray() && tmp) reqStack.call("pop");
-	return ret;
+Value Value::set(UTF16 idx, double value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-Value Value::call(Value func) {
-	vector<Value> args = vector<Value>();
-	return call(func, args);
+Value Value::set(UTF16 idx, UTF8 value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-Value Value::call(string func) {
-	vector<Value> args = vector<Value>();
-	return call(func, args);
+Value Value::set(UTF16 idx, UTF16 value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-Value Value::call(Value func, vector<Value> args) {
-	if (!func.isObject() && !func.isFunction())
-		return newUndefined();
-	return internal->call(func, args);
+Value Value::set(UTF16 idx, NativeFunction value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newFunction(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
-Value Value::call(string func, vector<Value> args) {
-	Value v = get(func);
-	return call(v, args);
+Value Value::set(size_t idx, Value value) {
+	return nt_value_set_index(internal, idx, value.internal);
 }
 
-Value Value::callNew() {
-	vector<Value> args = vector<Value>();
-	return callNew(args);
+Value Value::set(size_t idx, long value) {
+	Value v = newNumber(value);
+	return nt_value_set_index(internal, idx, v.internal);
 }
 
-Value Value::callNew(string func) {
-	vector<Value> args = vector<Value>();
-	return callNew(func, args);
+Value Value::set(size_t idx, double value) {
+	Value v = newNumber(value);
+	return nt_value_set_index(internal, idx, v.internal);
 }
 
-Value Value::callNew(vector<Value> args) {
-	if (!isObject() && !isFunction())
-		return newUndefined();
-	return internal->callNew(args);
+Value Value::set(size_t idx, UTF8 value) {
+	Value v = newString(value);
+	return nt_value_set_index(internal, idx, v.internal);
 }
 
-Value Value::callNew(string func, vector<Value> args) {
-	return get(func).callNew(args);
+Value Value::set(size_t idx, UTF16 value) {
+	Value v = newString(value);
+	return nt_value_set_index(internal, idx, v.internal);
 }
 
+Value Value::set(size_t idx, NativeFunction value) {
+	Value v = newFunction(value);
+	return nt_value_set_index(internal, idx, v.internal);
+}
+
+Value Value::enumerate() const {
+	return nt_value_enumerate(internal);
+}
+
+bool Value::setPrivate(const char* key, void *priv, FreeFunction free) {
+	return nt_value_private_set(internal, key, priv, free);
+}
+
+bool Value::setPrivate(const char* key, Value value) {
+	return nt_value_private_set_value(internal, key, value.internal);
+}
+
+template <> void* Value::getPrivate<void*>(const char* key) const {
+	return nt_value_private_get(internal, key);
+}
+
+template <> Value Value::getPrivate<Value>(const char* key) const {
+	return nt_value_private_get_value(internal, key);
+}
+
+Value Value::evaluate(Value javascript, Value filename, unsigned int lineno) {
+	return nt_value_evaluate(internal, javascript.internal, filename.internal, lineno);
+}
+
+Value Value::evaluate(UTF8 javascript, UTF8 filename, unsigned int lineno) {
+	Value js = newString(javascript);
+	Value fn = newString(filename);
+	return nt_value_evaluate(internal, js.internal, fn.internal, lineno);
+}
+
+Value Value::evaluate(UTF16 javascript, UTF16 filename, unsigned int lineno) {
+	Value js = newString(javascript);
+	Value fn = newString(filename);
+	return nt_value_evaluate(internal, js.internal, fn.internal, lineno);
+}
+
+Value Value::call(Value ths, Value args) {
+	return nt_value_call(internal, ths.internal, args.internal);
+}
+
+Value Value::call(UTF8 name, Value args) {
+	Value func = get(name);
+	return nt_value_call(func.internal, internal, args.internal);
+}
+
+Value Value::call(UTF16 name, Value args) {
+	Value func = get(name);
+	return nt_value_call(func.internal, internal, args.internal);
+}
+
+Value Value::callNew(Value args) {
+	return nt_value_call_new(internal, args.internal);
+}
+
+Value Value::callNew(UTF8  name, Value args) {
+	Value fnc = get(name);
+	return nt_value_call_new(fnc.internal, args.internal);
+}
+
+Value Value::callNew(UTF16 name, Value args) {
+	Value fnc = get(name);
+	return nt_value_call_new(fnc.internal, args.internal);
 }
