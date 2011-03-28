@@ -74,9 +74,9 @@ extern "C" {
 			prfx ## _value_evaluate \
 		} \
 	}
-#define NATUS_PRIV_CLASS     "natus.Class"
-#define NATUS_PRIV_FUNCTION  "natus.Function"
-#define NATUS_PRIV_GLOBAL    "natus.Global"
+#define NATUS_PRIV_CLASS     "natus::Class"
+#define NATUS_PRIV_FUNCTION  "natus::Function"
+#define NATUS_PRIV_GLOBAL    "natus::Global"
 
 typedef struct _ntPrivate ntPrivate;
 

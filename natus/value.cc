@@ -54,7 +54,7 @@ static ntValue *txFunction(ntValue *obj, ntValue *ths, ntValue *args) {
 	Value t = nt_value_incref(ths);
 	Value a = nt_value_incref(args);
 
-	NativeFunction f = o.getPrivate<NativeFunction>("natus.Function++");
+	NativeFunction f = o.getPrivate<NativeFunction>("natus::Function++");
 	if (!f) return NULL;
 
 	Value rslt = f(o, t, a);
@@ -205,7 +205,7 @@ Value Value::newArrayBuilder(Value item) {
 
 Value Value::newFunction(NativeFunction func) const {
 	Value f = nt_value_new_function(internal, txFunction);
-	f.setPrivate("natus.Function++", (void*) func);
+	f.setPrivate("natus::Function++", (void*) func);
 	return f;
 }
 
