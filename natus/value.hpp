@@ -162,10 +162,12 @@ public:
 	Value                 del(UTF8   idx);
 	Value                 del(UTF16  idx);
 	Value                 del(size_t idx);
+	Value                 delRecursive(UTF8 path);
 	Value                 get(Value  idx) const;
 	Value                 get(UTF8   idx) const;
 	Value                 get(UTF16  idx) const;
 	Value                 get(size_t idx) const;
+	Value                 getRecursive(UTF8 path);
 	Value                 set(Value  idx, Value          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, double         value, Value::PropAttr attrs=PropAttrNone);
@@ -190,6 +192,12 @@ public:
 	Value                 set(size_t idx, UTF8           value);
 	Value                 set(size_t idx, UTF16          value);
 	Value                 set(size_t idx, NativeFunction value);
+	Value                 setRecursive(UTF8 path, Value          val, Value::PropAttr attrs, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, long           val, Value::PropAttr attrs, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, double         val, Value::PropAttr attrs, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, UTF8           val, Value::PropAttr attrs, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, UTF16          val, Value::PropAttr attrs, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs, bool mkpath=false);
 	Value                 enumerate() const;
 
 	bool                  setPrivate(const char* key, void *priv, FreeFunction free=NULL);

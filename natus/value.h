@@ -125,12 +125,15 @@ ntChar           *nt_value_as_string_utf16        (ntValue *val, size_t *len);
 ntValue          *nt_value_del                    (      ntValue *obj, const ntValue *id);
 ntValue          *nt_value_del_utf8               (      ntValue *obj, const    char *id);
 ntValue          *nt_value_del_index              (      ntValue *obj, const   size_t id);
+ntValue          *nt_value_del_recursive_utf8     (      ntValue *obj, const    char *id);
 ntValue          *nt_value_get                    (const ntValue *obj, const ntValue *id);
 ntValue          *nt_value_get_utf8               (const ntValue *obj, const    char *id);
 ntValue          *nt_value_get_index              (const ntValue *obj, const   size_t id);
+ntValue          *nt_value_get_recursive_utf8     (      ntValue *obj, const    char *id);
 ntValue          *nt_value_set                    (      ntValue *obj, const ntValue *id, const ntValue *value, ntPropAttr attrs);
 ntValue          *nt_value_set_utf8               (      ntValue *obj, const    char *id, const ntValue *value, ntPropAttr attrs);
 ntValue          *nt_value_set_index              (      ntValue *obj, const   size_t id, const ntValue *value);
+ntValue          *nt_value_set_recursive_utf8     (      ntValue *obj, const    char *id, const ntValue *value, ntPropAttr attrs, bool mkpath);
 ntValue          *nt_value_enumerate              (const ntValue *obj);
 
 bool              nt_value_private_set            (      ntValue *obj, const char *key, void *priv, ntFreeFunction free);

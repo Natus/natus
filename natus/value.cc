@@ -347,6 +347,10 @@ Value Value::del(size_t idx) {
 	return nt_value_del_index(internal, idx);
 }
 
+Value Value::delRecursive(UTF8 path) {
+	return nt_value_del_recursive_utf8(internal, path.c_str());
+}
+
 Value Value::get(Value idx) const {
 	return nt_value_get(internal, idx.internal);
 }
@@ -363,6 +367,10 @@ Value Value::get(UTF16 idx) const {
 
 Value Value::get(size_t idx) const {
 	return nt_value_get_index(internal, idx);
+}
+
+Value Value::getRecursive(UTF8 path) {
+	return nt_value_get_recursive_utf8(internal, path.c_str());
 }
 
 Value Value::set(Value idx, Value value, Value::PropAttr attrs) {
@@ -491,6 +499,30 @@ Value Value::set(size_t idx, UTF16 value) {
 Value Value::set(size_t idx, NativeFunction value) {
 	Value v = newFunction(value);
 	return nt_value_set_index(internal, idx, v.internal);
+}
+
+Value Value::setRecursive(UTF8 path, Value val, Value::PropAttr attrs, bool mkpath) {
+	return nt_value_set_recursive_utf8(internal, path.c_str(), val.internal, (ntPropAttr) attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, long val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newNumber(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, double val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newNumber(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, UTF8 val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newString(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, UTF16 val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newString(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newFunction(val), attrs, mkpath);
 }
 
 Value Value::enumerate() const {

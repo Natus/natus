@@ -12,5 +12,6 @@ TESTS            = cxx_globals \
                    cxx_object \
                    cxx_private \
                    cxx_string \
-                   cxx_json 
+                   cxx_json \
+                   cxx_recursive
 noinst_PROGRAMS  = $(TESTS)
