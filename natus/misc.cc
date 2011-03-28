@@ -39,7 +39,7 @@ Value throwException(Value ctx, int errorno) {
 	return nt_throw_exception_errno(ctx.borrowCValue(), errorno);
 }
 
-Value checkArguments(const Value args, const char* fmt) {
+Value checkArguments(Value args, const char* fmt) {
 	return nt_check_arguments(args.borrowCValue(), fmt);
 }
 
