@@ -157,6 +157,23 @@ static Value fd_read(Value& ths, Value& fnc, vector<Value>& arg) {
 	return ths.newString(ret);
 }
 
+static string _readline(int fd) {
+	char c = '\0';
+
+	if (read(fd, &c, 1) == 0 || c == '\n')
+		return "";
+
+	return string(&c, 1) + _readline(fd);
+}
+
+static Value fd_readline(Value& ths, Value& fnc, vector<Value>& arg) {
+	Value exc = checkArguments(ths, arg, "");
+	if (exc.isException()) return exc;
+
+	int fd = (long) ths.getPrivate("posix.fd");
+	return ths.newString(_readline(fd));
+}
+
 static Value socket_receive(Value& ths, Value& fnc, vector<Value>& arg) {
 	Value exc = checkArguments(ths, arg, "|n");
 	if (exc.isException()) return exc;
@@ -243,6 +260,7 @@ static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int pr
 	obj.set("close",         fd_close);
 	obj.set("listen",        socket_listen);
 	obj.set("read",          fd_read);
+	obj.set("readLine",      fd_readline);
 	obj.set("receive",       socket_receive);
 	obj.set("recv",          socket_receive);
 	obj.set("send",          socket_send);
