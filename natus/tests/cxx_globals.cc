@@ -29,7 +29,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(glb.get("nill").isNull());
 	assert(glb.get("number").toLong());
 	assert(glb.get("object").isObject());
-	assert(glb.get("string").toString<UTF8>() == "hi");
+	assert(glb.get("string").toStringUTF8() == "hi");
 
 	return 0;
 }

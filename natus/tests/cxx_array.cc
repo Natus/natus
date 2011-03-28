@@ -13,13 +13,13 @@ int doTest(Engine& engine, Value& global) {
 
 	assert(123   == array.get(0).toLong());
 	assert(456   == array.get(1).toLong());
-	assert(array.get(2).toString<UTF8>() == "foo");
+	assert(array.get(2).toStringUTF8() == "foo");
 
 	Value v = array.call("pop");
 	assert(123   == array.get(0).toLong());
 	assert(456   == array.get(1).toLong());
 	assert(v.isString());
-	assert(v.toString<UTF8>() == "foo");
+	assert(v.toStringUTF8() == "foo");
 
 	assert(!array.set(0, v.newNumber(789)).isException());
 	assert(789   == array.get(0).toLong());

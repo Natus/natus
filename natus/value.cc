@@ -311,7 +311,7 @@ long Value::toLong() const {
 	return nt_value_to_long(internal);
 }
 
-template <> UTF8 Value::toString<UTF8>() const {
+UTF8 Value::toStringUTF8() const {
 	size_t len;
 	char* tmp = nt_value_to_string_utf8(internal, &len);
 	if (!tmp) return UTF8();
@@ -320,7 +320,7 @@ template <> UTF8 Value::toString<UTF8>() const {
 	return rslt;
 }
 
-template <> UTF16 Value::toString<UTF16>() const {
+UTF16 Value::toStringUTF16() const {
 	size_t len;
 	Char* tmp = nt_value_to_string_utf16(internal, &len);
 	if (!tmp) return UTF16();

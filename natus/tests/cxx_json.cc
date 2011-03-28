@@ -6,6 +6,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(x.isObject());
 	assert(x.get("a").toLong() == 17);
 	assert(x.get("b").toDouble() == 2.1);
-	assert(toJSON(x).toString<UTF8>() == "{\"a\":17,\"b\":2.1}");
+	assert(toJSON(x).toStringUTF8() == "{\"a\":17,\"b\":2.1}");
 	return 0;
 }

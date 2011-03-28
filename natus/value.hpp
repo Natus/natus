@@ -155,7 +155,8 @@ public:
 	bool                  toBool() const;
 	double                toDouble() const;
 	long                  toLong() const;
-	template <class T> T  toString() const;
+	UTF8                  toStringUTF8() const;
+	UTF16                 toStringUTF16() const;
 
 	Value                 del(Value  idx);
 	Value                 del(UTF8   idx);
@@ -208,8 +209,6 @@ public:
 private:
 	ntValue *internal;
 };
-template <> UTF8  Value::toString<UTF8>() const;
-template <> UTF16 Value::toString<UTF16>() const;
 template <> void* Value::getPrivate<void*>(const char* key) const;
 template <> Value Value::getPrivate<Value>(const char* key) const;
 

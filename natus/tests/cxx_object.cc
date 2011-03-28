@@ -8,31 +8,31 @@ public:
 
 	virtual Value del(Value& obj, Value& name) {
 		assert(obj.isObject());
-		if (name.toString<UTF8>() == "exc")
+		if (name.toStringUTF8() == "exc")
 			return obj.newString("error").toException();
-		if (name.toString<UTF8>() == "oom")
+		if (name.toStringUTF8() == "oom")
 			return NULL;
 		if (name.isNumber())
 			obj.setPrivate("test", (void *) name.toLong());
 		else
-			obj.setPrivate("test", (void *) name.toString<UTF8>().length());
+			obj.setPrivate("test", (void *) name.toStringUTF8().length());
 		return obj.newBool(true);
 	}
 
 	virtual Value get(Value& obj, Value& name) {
 		assert(obj.isObject());
-		if (name.toString<UTF8>() == "exc")
+		if (name.toStringUTF8() == "exc")
 			return obj.newString("error").toException();
-		if (name.toString<UTF8>() == "oom")
+		if (name.toStringUTF8() == "oom")
 			return NULL;
 		return name;
 	}
 
 	virtual Value set(Value& obj, Value& name, Value& value) {
 		assert(obj.isObject());
-		if (name.toString<UTF8>() == "exc")
+		if (name.toStringUTF8() == "exc")
 			return obj.newString("error").toException();
-		if (name.toString<UTF8>() == "oom")
+		if (name.toStringUTF8() == "oom")
 			return NULL;
 		obj.setPrivate("test", (void *) value.toLong());
 		return obj.newBool(true);
@@ -65,7 +65,7 @@ int doTest(Engine& engine, Value& global) {
 	// Get
 	Value y = x.get("foo");
 	assert(y.isString());
-	assert(y.toString<UTF8>() == "foo");
+	assert(y.toStringUTF8() == "foo");
 	y = x.get(7);
 	assert(y.isNumber());
 	assert(7 == y.toLong());
