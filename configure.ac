@@ -31,7 +31,7 @@ PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
 	[PKG_CHECK_MODULES(SpiderMonkey, seamonkey-js >= 2, have_spidermonkey=yes,
 	[PKG_CHECK_MODULES(SpiderMonkey, mozilla2-js  >= 2, have_spidermonkey=yes, have_spidermonkey=no)])])])])])
 AC_ARG_WITH([SpiderMonkey],
-            [AS_HELP_STRING([--with-spidermonkey],
+            [AS_HELP_STRING([--without-spidermonkey],
               [disable the SpiderMonkey (Mozilla) engine @<:@automatic@:>@])],
             [with_spidermonkey=no],
             [test x$have_spidermonkey = xyes && with_spidermonkey=yes])
