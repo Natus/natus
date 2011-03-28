@@ -132,3 +132,9 @@ bool nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunctio
 
 	return true;
 }
+
+void nt_private_foreach(ntPrivate *self, void (*foreach)(const char *name, void *priv, void *misc), void *misc) {
+	int i;
+	for (i=0 ; self->priv && self->priv[i] ; i++)
+		foreach(self->priv[i]->name, self->priv[i]->priv, misc);
+}

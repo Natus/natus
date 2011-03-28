@@ -139,6 +139,7 @@ ntPrivate *nt_private_init();
 void       nt_private_free(ntPrivate *priv);
 void      *nt_private_get(ntPrivate *self, const char *name);
 bool       nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction free);
+void       nt_private_foreach(ntPrivate *self, void (*foreach)(const char *name, void *priv, void *misc), void *misc);
 
 #ifdef __cplusplus
 } /* extern "C" */
