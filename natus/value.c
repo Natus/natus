@@ -26,7 +26,7 @@
 #include <errno.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "enginemod.h"
+#include "backend.h"
 
 ntValue *nt_value_incref(ntValue *val) {
 	if (!val) return NULL;

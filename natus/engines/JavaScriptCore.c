@@ -27,7 +27,7 @@
 #include <string.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/enginemod.h>
+#include <natus/backend.h>
 
 #ifdef __APPLE__
 // JavaScriptCore.h requires CoreFoundation

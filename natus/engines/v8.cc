@@ -27,7 +27,7 @@
 #include <new>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/enginemod.h>
+#include <natus/backend.h>
 
 #include <v8.h>
 using namespace v8;

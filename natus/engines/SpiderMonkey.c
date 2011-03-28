@@ -27,7 +27,7 @@
 #include <jsapi.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/enginemod.h>
+#include <natus/backend.h>
 
 #define CTX(v) (((smValue*) v)->ctx)
 #define VAL(v) (((smValue*) v)->val)
