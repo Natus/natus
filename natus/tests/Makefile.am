@@ -1,7 +1,7 @@
 AM_DEFAULT_SOURCE_EXT = .cc
 AUTOMAKE_OPTIONS = parallel-tests color-tests
 LDADD       = ../libnatus.la
-AM_CXXFLAGS = -pg -Wall -DMODSUFFIX='".so"' -I$(srcdir)/../../
+AM_CXXFLAGS = -Wall -DMODSUFFIX='".so"' -I$(srcdir)/../../
 
 TESTS            = cxx_globals \
                    cxx_array \

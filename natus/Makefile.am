@@ -15,14 +15,14 @@ natinc_HEADERS = $(CHEADERS) $(CXXHEADERS)
 # Build our internal C library
 noinst_LTLIBRARIES   = libnatusc.la
 libnatusc_la_SOURCES = $(CSOURCES) $(CHEADERS)
-libnatusc_la_CFLAGS  = $(AM_CFLAGS) -pg -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir) -DMODSUFFIX='".so"'
+libnatusc_la_CFLAGS  = $(AM_CFLAGS) -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir) -DMODSUFFIX='".so"'
 
 # Build/install the shared C/C++ library
 lib_LTLIBRARIES      = libnatus.la
 libnatus_la_SOURCES  = $(CXXSOURCES) $(CXXHEADERS)
 libnatus_la_CXXFLAGS = $(AM_CFLAGS) -Wall 
 libnatus_la_LIBADD   = libnatusc.la
-libnatus_la_LDFLAGS  = $(AM_LDFLAGS) -pg -ldl -lpthread
+libnatus_la_LDFLAGS  = $(AM_LDFLAGS) -ldl -lpthread
 
 # Build/install the shell
 #bin_PROGRAMS         = natus
