@@ -234,7 +234,7 @@ bool nt_value_is_undefined(const ntValue *val) {
 
 bool nt_value_to_bool(const ntValue *val) {
 	if (!val) return false;
-	return val->eng->espec->value.to_bool(val);
+	return val->exc ? false : val->eng->espec->value.to_bool(val);
 }
 
 double nt_value_to_double(const ntValue *val) {
