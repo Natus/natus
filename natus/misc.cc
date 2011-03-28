@@ -39,21 +39,8 @@ Value throwException(Value ctx, int errorno) {
 	return nt_throw_exception_errno(ctx.borrowCValue(), errorno);
 }
 
-Value checkArguments(Value ctx, Value** args, const char* fmt) {
-	if (!args)
-		return nt_check_arguments(ctx.borrowCValue(), NULL, fmt);
-
-	int len;
-	for (len=0 ; args[len] ; len++);
-
-	ntValue **a = new ntValue*[len+1];
-	for (len=0 ; args[len] ; len++)
-		a[len] = args[len]->borrowCValue();
-	a[len] = NULL;
-
-	Value rslt = nt_check_arguments(ctx.borrowCValue(), a, fmt);
-	delete[] a;
-	return rslt;
+Value checkArguments(const Value args, const char* fmt) {
+	return nt_check_arguments(args.borrowCValue(), fmt);
 }
 
 Value fromJSON(Value json) {

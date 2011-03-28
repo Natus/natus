@@ -32,7 +32,7 @@ extern "C" {
 ntValue          *nt_throw_exception      (const ntValue *ctx, const char *type, const char *message);
 ntValue          *nt_throw_exception_code (const ntValue *ctx, const char *type, const char *message, long code);
 ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno);
-ntValue          *nt_check_arguments      (const ntValue *ctx, ntValue **arg, const char *fmt);
+ntValue          *nt_check_arguments      (const ntValue *arg, const char *fmt);
 
 ntValue          *nt_from_json            (const ntValue *json);
 ntValue          *nt_from_json_utf8       (const ntValue *ctx, const    char *json, size_t len);

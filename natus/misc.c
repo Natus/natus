@@ -245,11 +245,9 @@ ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno) {
 	return nt_throw_exception_code(ctx, type, strerror(errorno), errorno);
 }
 
-ntValue          *nt_check_arguments      (const ntValue *ctx, ntValue **arg, const char *fmt) {
+ntValue          *nt_check_arguments      (const ntValue *arg, const char *fmt) {
 	char types[4096];
-	unsigned int len=0;
-	while (arg && arg[len++]); // Count the arguments
-
+	unsigned int len = nt_value_as_long(nt_value_get_utf8(arg, "length"));
 	unsigned int minimum = 0;
 	unsigned int i,j;
 	for (i=0,j=0 ; i < len ; i++) {
@@ -260,45 +258,46 @@ ntValue          *nt_check_arguments      (const ntValue *ctx, ntValue **arg, co
 		if (minimum == 0 && fmt[j] == '|')
 			minimum = j++;
 
+		ntValue *thsArg = nt_value_get_index(arg, i);
 		do {
 			switch (fmt[j++]) {
 				case 'a':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeArray;
+					correct = nt_value_get_type(thsArg) == ntValueTypeArray;
 					if (strlen(types) + strlen("array, ") < 4095)
 						strcat(types, "array, ");
 					break;
 				case 'b':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeBool;
+					correct = nt_value_get_type(thsArg) == ntValueTypeBool;
 					if (strlen(types) + strlen("boolean, ") < 4095)
 						strcat(types, "boolean, ");
 					break;
 				case 'f':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeFunction;
+					correct = nt_value_get_type(thsArg) == ntValueTypeFunction;
 					if (strlen(types) + strlen("function, ") < 4095)
 						strcat(types, "function, ");
 					break;
 				case 'N':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeNull;
+					correct = nt_value_get_type(thsArg) == ntValueTypeNull;
 					if (strlen(types) + strlen("null, ") < 4095)
 						strcat(types, "null, ");
 					break;
 				case 'n':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeNumber;
+					correct = nt_value_get_type(thsArg) == ntValueTypeNumber;
 					if (strlen(types) + strlen("number, ") < 4095)
 						strcat(types, "number, ");
 					break;
 				case 'o':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeObject;
+					correct = nt_value_get_type(thsArg) == ntValueTypeObject;
 					if (strlen(types) + strlen("object, ") < 4095)
 						strcat(types, "object, ");
 					break;
 				case 's':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeString;
+					correct = nt_value_get_type(thsArg) == ntValueTypeString;
 					if (strlen(types) + strlen("string, ") < 4095)
 						strcat(types, "string, ");
 					break;
 				case 'u':
-					correct = nt_value_get_type(arg[i]) == ntValueTypeUndefined;
+					correct = nt_value_get_type(thsArg) == ntValueTypeUndefined;
 					if (strlen(types) + strlen("undefined, ") < 4095)
 						strcat(types, "undefined, ");
 					break;
@@ -309,8 +308,10 @@ ntValue          *nt_check_arguments      (const ntValue *ctx, ntValue **arg, co
 					depth--;
 					break;
 				default:
-					return nt_throw_exception(ctx, "LogicError", "Invalid format character!");
+					return nt_throw_exception(arg, "LogicError", "Invalid format character!");
 			}
+
+			nt_value_decref(thsArg);
 		} while (!correct && depth > 0);
 
 		if (strlen(types) > 2)
@@ -319,17 +320,17 @@ ntValue          *nt_check_arguments      (const ntValue *ctx, ntValue **arg, co
 		if (strcmp(types, "") && !correct) {
 			char msg[5120];
 			snprintf(msg, 5120, "argument %u must be one of these types: %s", i, types);
-			return nt_throw_exception(ctx, "TypeError", msg);
+			return nt_throw_exception(arg, "TypeError", msg);
 		}
 	}
 
 	if (len < minimum) {
 		char msg[1024];
 		snprintf(msg, 1024, "Function requires at least %u arguments!", minimum);
-		return nt_throw_exception(ctx, "TypeError", msg);
+		return nt_throw_exception(arg, "TypeError", msg);
 	}
 
-	return nt_value_new_undefined(ctx);
+	return nt_value_new_undefined(arg);
 }
 
 ntValue          *nt_from_json            (const ntValue *json) {

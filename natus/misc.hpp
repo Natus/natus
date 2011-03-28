@@ -31,7 +31,7 @@ namespace natus {
 Value throwException(Value ctx, const char* type, const char* message);
 Value throwException(Value ctx, const char* type, const char* message, long code);
 Value throwException(Value ctx, int errorno);
-Value checkArguments(Value ctx, Value** args, const char* fmt);
+Value checkArguments(const Value args, const char* fmt);
 
 Value fromJSON(Value json);
 Value fromJSON(Value ctx, UTF8 json);
