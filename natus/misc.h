@@ -25,6 +25,11 @@
 #define MISC_H_
 #include "types.h"
 
+#define NT_CHECK_ARGUMENTS(arg, fmt) \
+	ntValue *_exc = nt_check_arguments(arg, fmt); \
+	if (nt_value_is_exception(_exc)) return _exc; \
+	nt_value_decref(_exc);
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
