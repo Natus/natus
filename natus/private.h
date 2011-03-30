@@ -25,11 +25,12 @@
 #define PRIVATE_H_
 
 typedef struct _ntPrivate ntPrivate;
+typedef void (*ntPrivateForeach)(const char *name, void *priv, void *misc);
 
 ntPrivate *nt_private_init();
 void       nt_private_free(ntPrivate *priv);
 void      *nt_private_get(ntPrivate *self, const char *name);
 bool       nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction free);
-void       nt_private_foreach(ntPrivate *self, void (*foreach)(const char *name, void *priv, void *misc), void *misc);
+void       nt_private_foreach(ntPrivate *self, ntPrivateForeach foreach, void *misc);
 
 #endif /* PRIVATE_H_ */
