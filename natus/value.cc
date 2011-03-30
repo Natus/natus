@@ -198,7 +198,7 @@ Value Value::newArray(const Value* const* array) const {
 }
 
 Value Value::newArrayBuilder(Value item) {
-	ntValue *tmp = nt_value_new_array_builder(internal, item.internal);
+	ntValue *tmp = nt_value_new_array_builder(internal, nt_value_incref(item.internal));
 	if (!isArray()) return tmp;
 	return nt_value_incref(tmp);
 }

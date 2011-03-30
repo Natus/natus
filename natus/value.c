@@ -81,20 +81,18 @@ ntValue *nt_value_new_array(const ntValue *ctx, const ntValue **array) {
 	return ctx->eng->espec->value.new_array(ctx, array);
 }
 
-ntValue *nt_value_new_array_builder(ntValue *array, const ntValue *item) {
+ntValue *nt_value_new_array_builder(ntValue *array, ntValue *item) {
 	if (!item) return NULL;
-	if (!nt_value_is_array(array))
-		array = nt_value_new_array(array, NULL);
 
 	const ntValue *tmp[2] = {item, NULL};
 	ntValue *args = nt_value_new_array(array, tmp);
+	nt_value_decref(item);
 	if (!args) return NULL;
 
-	ntValue *rslt = nt_value_call_utf8(array, "push", args);
-	nt_value_decref(args);
-	if (!rslt) return NULL;
+	if (!nt_value_is_array(array))
+		array = nt_value_new_array(array, NULL);
 
-	nt_value_decref(rslt);
+	nt_value_decref(nt_value_call_utf8(array, "push", args));
 	return array;
 }
 
@@ -465,7 +463,7 @@ ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValu
 	ntValue *stck = nt_value_private_get_value(reqr, "natus.reqStack");
 	nt_value_decref(glbl);
 	if (nt_value_is_array(stck)) {
-		ntValue *args = nt_value_new_array_builder(nt_value_new_array(ths, NULL), filename);
+		ntValue *args = nt_value_new_array_builder(nt_value_new_array(ths, NULL), nt_value_incref((ntValue*) filename));
 		ntValue *oldlen = nt_value_get_utf8(stck, "length");
 		ntValue *newlen = nt_value_call_utf8(stck, "push", args);
 		pushed = nt_value_to_long(oldlen) < nt_value_to_long(newlen);
