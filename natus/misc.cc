@@ -27,12 +27,28 @@ using namespace natus;
 
 namespace natus {
 
-Value throwException(Value ctx, const char* type, const char* message) {
-	return nt_throw_exception(ctx.borrowCValue(), type, message);
+Value throwException(Value ctx, const char* type, const char* format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	Value exc = throwException(ctx, type, format, ap);
+	va_end(ap);
+	return exc;
 }
 
-Value throwException(Value ctx, const char* type, const char* message, long code) {
-	return nt_throw_exception_code(ctx.borrowCValue(), type, message, code);
+Value throwException(Value ctx, const char* type, const char* format, va_list ap) {
+	return nt_throw_exception_varg(ctx.borrowCValue(), type, format, ap);
+}
+
+Value throwException(Value ctx, const char* type, int code, const char* format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	Value exc = throwException(ctx, type, code, format, ap);
+	va_end(ap);
+	return exc;
+}
+
+Value throwException(Value ctx, const char* type, int code, const char* format, va_list ap) {
+	return nt_throw_exception_code_varg(ctx.borrowCValue(), type, code, format, ap);
 }
 
 Value throwException(Value ctx, int errorno) {

@@ -25,11 +25,14 @@
 #define MISCXX_HPP_
 #include "types.hpp"
 #include "value.hpp"
+#include <cstdarg>
 
 namespace natus {
 
-Value throwException(Value ctx, const char* type, const char* message);
-Value throwException(Value ctx, const char* type, const char* message, long code);
+Value throwException(Value ctx, const char* type, const char* format, ...);
+Value throwException(Value ctx, const char* type, const char* format, va_list ap);
+Value throwException(Value ctx, const char* type, int code, const char* format, ...);
+Value throwException(Value ctx, const char* type, int code, const char* format, va_list ap);
 Value throwException(Value ctx, int errorno);
 Value checkArguments(Value args, const char* fmt);
 

@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "misc.h"
 #include "value.h"
@@ -77,10 +78,36 @@ static ntValue *exception_toString(ntValue *ths, ntValue *fnc, ntValue *args) {
 	return vstr;
 }
 
-ntValue          *nt_throw_exception      (const ntValue *ctx, const char *type, const char *message) {
+static char *nt_vsprintf(const char *fmt, va_list ap) {
+	va_list apc;
+	int size = 0;
+
+	va_copy(apc, ap);
+	size = vsnprintf(NULL, 0, fmt, apc);
+	va_end(apc);
+
+	char *buf = malloc(size);
+	if (!size) return NULL;
+	assert(size == vsnprintf(buf, size, fmt, ap));
+	return buf;
+}
+
+ntValue          *nt_throw_exception(const ntValue *ctx, const char *type, const char *format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	ntValue *exc = nt_throw_exception_varg(ctx, type, format, ap);
+	va_end(ap);
+
+	return exc;
+}
+
+ntValue *nt_throw_exception_varg(const ntValue *ctx, const char *type, const char *format, va_list ap) {
+	char *msg = nt_vsprintf(format, ap);
+	if (!msg) return NULL;
+
 	ntValue *exc   = nt_value_new_object(ctx, NULL);
 	ntValue *vtype = nt_value_new_string_utf8(ctx, type);
-	ntValue *vmsg  = nt_value_new_string_utf8(ctx, message);
+	ntValue *vmsg  = nt_value_new_string_utf8(ctx, msg);
 	ntValue *vfunc = nt_value_new_function(ctx, exception_toString);
 
 	nt_value_set_utf8(exc, "type",     vtype, ntPropAttrConstant);
@@ -88,14 +115,23 @@ ntValue          *nt_throw_exception      (const ntValue *ctx, const char *type,
 	nt_value_set_utf8(exc, "toString", vfunc, ntPropAttrConstant);
 	nt_value_to_exception(exc);
 
+	free(msg);
 	nt_value_decref(vtype);
 	nt_value_decref(vmsg);
 	nt_value_decref(vfunc);
 	return exc;
 }
 
-ntValue          *nt_throw_exception_code (const ntValue *ctx, const char *type, const char *message, long code) {
-	ntValue *exc   = nt_throw_exception(ctx, type, message);
+ntValue          *nt_throw_exception_code (const ntValue *ctx, const char *type, int code, const char *format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	ntValue *exc = nt_throw_exception_code_varg(ctx, type, code, format, ap);
+	va_end(ap);
+	return exc;
+}
+
+ntValue          *nt_throw_exception_code_varg(const ntValue *ctx, const char *type, int code, const char *format, va_list ap) {
+	ntValue *exc   = nt_throw_exception_varg(ctx, type, format, ap);
 	ntValue *vcode = nt_value_new_number(ctx, (double) code);
 	nt_value_set_utf8(exc, "code", vcode, ntPropAttrConstant);
 	nt_value_decref(vcode);
@@ -242,7 +278,7 @@ ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno) {
 			break;
 	}
 
-	return nt_throw_exception_code(ctx, type, strerror(errorno), errorno);
+	return nt_throw_exception_code(ctx, type, errorno, strerror(errorno));
 }
 
 ntValue          *nt_check_arguments      (const ntValue *arg, const char *fmt) {
