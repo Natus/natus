@@ -23,6 +23,10 @@
 
 #ifndef PRIVATE_H_
 #define PRIVATE_H_
+#include "types.h"
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
 typedef struct _ntPrivate ntPrivate;
 typedef void (*ntPrivateForeach)(const char *name, void *priv, void *misc);
@@ -31,6 +35,10 @@ ntPrivate *nt_private_init();
 void       nt_private_free(ntPrivate *priv);
 void      *nt_private_get(ntPrivate *self, const char *name);
 bool       nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction free);
-void       nt_private_foreach(ntPrivate *self, ntPrivateForeach foreach, void *misc);
+bool       nt_private_push(ntPrivate *self, void *priv, ntFreeFunction free);
+void       nt_private_foreach(ntPrivate *self, bool rev, ntPrivateForeach foreach, void *misc);
 
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 #endif /* PRIVATE_H_ */

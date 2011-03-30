@@ -28,32 +28,71 @@
 #include "private.h"
 
 typedef struct {
-	char            *name;
-	void            *priv;
-	ntFreeFunction   free;
+	char           *name;
+	void           *priv;
+	ntFreeFunction  free;
 } ntPrivateItem;
 
 struct _ntPrivate {
-	ntPrivateItem  **priv;
+	ntPrivateItem  *priv;
+	size_t          size;
+	size_t          used;
 };
 
+static inline bool _private_push(ntPrivate *self, const char *name, void *priv, ntFreeFunction free) {
+	if (!self || !priv) {
+		if (free && priv) free(priv);
+		return false;
+	}
+
+	// Expand the array if necessary
+	if (self->used >= self->size) {
+		self->size *= 2;
+		ntPrivateItem *tmp = realloc(self->priv, sizeof(ntPrivateItem) * self->size);
+		if (!tmp) {
+			self->size /= 2;
+			if (free && priv) free(priv);
+			return false;
+		}
+		self->priv  = tmp;
+	}
+
+	// Add the new item on the end
+	self->priv[self->used].name = name ? strdup(name) : NULL;
+	self->priv[self->used].priv = priv;
+	self->priv[self->used].free = free;
+	if (name && !self->priv[self->used].name) {
+		if (free && priv) free(priv);
+		return false;
+	}
+
+	self->used++;
+	return true;
+}
+
 ntPrivate *nt_private_init() {
-	ntPrivate *priv = malloc(sizeof(ntPrivate));
-	if (priv)
-		priv->priv = NULL;
-	return priv;
+	ntPrivate *self = malloc(sizeof(ntPrivate));
+	if (self) {
+		self->used = 0;
+		self->size = 8;
+		self->priv = calloc(self->size, sizeof(ntPrivateItem));
+		if (!self->priv) {
+			free(self);
+			return NULL;
+		}
+	}
+	return self;
 }
 
 void nt_private_free(ntPrivate *self) {
 	if (!self) return;
 
 	// Free the privates
-	int i;
-	for (i=0 ; self->priv && self->priv[i] ; i++) {
-		if (self->priv[i]->free && self->priv[i]->priv)
-			self->priv[i]->free(self->priv[i]->priv);
-		free(self->priv[i]->name);
-		free(self->priv[i]);
+	size_t i;
+	for (i=0 ; i < self->used ; i++) {
+		if (self->priv[i].free && self->priv[i].priv)
+			self->priv[i].free(self->priv[i].priv);
+		free(self->priv[i].name);
 	}
 	free(self->priv);
 
@@ -62,79 +101,58 @@ void nt_private_free(ntPrivate *self) {
 }
 
 void *nt_private_get(ntPrivate *self, const char *name) {
-	int i;
+	size_t i;
 	if (!self || !name) return NULL;
 
 	// Find an existing match and update it
-	for (i=0 ; self->priv && self->priv[i] ; i++)
-		if (!strcmp(self->priv[i]->name, name))
-			return self->priv[i]->priv;
+	for (i=0 ; i < self->used ; i++)
+		if (self->priv[i].name && !strcmp(self->priv[i].name, name))
+			return self->priv[i].priv;
 	return NULL;
 }
 
-bool nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction free) {
-	int i=0;
-	if (!self || !name) return NULL;
-
-	// Allocate our first private if needed
-	if (!self->priv) {
-		self->priv = malloc(sizeof(ntPrivateItem *));
-		if (!self->priv) {
-			if (free && priv) free(priv);
-			return false;
-		}
-		self->priv[0] = NULL;
+bool nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction freef) {
+	size_t i=0;
+	if (!self || !name) {
+		if (freef && priv) freef(priv);
+		return NULL;
 	}
 
 	// Find an existing match and update it
-	for (i=0 ; self->priv[i] ; i++) {
-		if (!strcmp(self->priv[i]->name, name)) {
-			if (self->priv[i]->priv && self->priv[i]->free)
-				self->priv[i]->free(self->priv[i]->priv);
+	for (i=0 ; i < self->size ; i++) {
+		if (!self->priv[i].name) continue;
+		if (strcmp(self->priv[i].name, name)) continue;
 
-			// It priv is NULL, remove the item from the array
-			if (!priv) {
-				free(self->priv[i]->name);
-				free(self->priv[i]);
-				for ( ; self->priv[i] ; i++)
-					self->priv[i] = self->priv[i+1];
-				return true;
-			}
+		// We have a match, so free the item
+		if (self->priv[i].priv && self->priv[i].free)
+			self->priv[i].free(self->priv[i].priv);
 
-			// Update the item
-			self->priv[i]->priv = priv;
-			self->priv[i]->free = free;
+		// It priv is NULL, remove the item from the array
+		if (!priv) {
+			free(self->priv[i].name);
+			for (i++ ; i < self->size ; i++)
+				self->priv[i-1] = self->priv[i];
+			self->used--;
 			return true;
 		}
+
+		// Update the item
+		self->priv[i].priv = priv;
+		self->priv[i].free = freef;
+		return true;
 	}
 
-	// No existing match was found, so expand the array
-	ntPrivateItem **tmp = (ntPrivateItem **) realloc(self->priv, sizeof(ntPrivateItem *) * (i+2));
-	if (!tmp) {
-		if (free && priv) free(priv);
-		return false;
-	}
-	self->priv = tmp;
-
-	// Add the new item on the end
-	self->priv[i] = (ntPrivateItem *) malloc(sizeof(ntPrivateItem));
-	if (!self->priv[i]) return false;
-	self->priv[i]->name = strdup(name);
-	self->priv[i]->priv = priv;
-	self->priv[i]->free = free;
-	if (!self->priv[i]->name) {
-		free(self->priv[i]);
-		self->priv[i] = NULL;
-		if (free && priv) free(priv);
-		return false;
-	}
-	self->priv[++i] = NULL; // Terminate the array
-
-	return true;
+	// No existing match was found. We'll add a new item,
+	return _private_push(self, name, priv, freef);
 }
 
-void nt_private_foreach(ntPrivate *self, void (*foreach)(const char *name, void *priv, void *misc), void *misc) {
-	int i;
-	for (i=0 ; self->priv && self->priv[i] ; i++)
-		foreach(self->priv[i]->name, self->priv[i]->priv, misc);
+bool       nt_private_push(ntPrivate *self, void *priv, ntFreeFunction free) {
+	// No existing match was found. We'll add a new item,
+	return _private_push(self, NULL, priv, free);
+}
+
+void nt_private_foreach(ntPrivate *self, bool rev, void (*foreach)(const char *name, void *priv, void *misc), void *misc) {
+	ssize_t i;
+	for (i=rev ? self->used - 1 : 0 ; rev ? i >= 0 : i < self->used ; i+=rev ? -1 : 1)
+		foreach(self->priv[i].name, self->priv[i].priv, misc);
 }

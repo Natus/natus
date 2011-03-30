@@ -1,10 +1,22 @@
 #include "test.hpp"
+#include <natus/private.h>
 
-Value doNothing(Value& fnc, Value& ths, Value& arg) {
+static int deleted = 0;
+
+static void incDeleted(void *x) {
+	if (!x) return;
+	deleted++;
+}
+
+static void foreach(const char *name, void *priv, bool *up) {
+	*up = priv != (void *) 0x1234;
+}
+
+static Value doNothing(Value& fnc, Value& ths, Value& arg) {
 	return fnc.newBool(true);
 }
 
-void testInternal(Value& global, const char* js, Value::Type type) {
+static void testInternal(Value& global, const char* js, Value::Type type) {
 	// Test private on an internal function
 	global.evaluate(js);
 	Value x = global.get("x");
@@ -14,7 +26,7 @@ void testInternal(Value& global, const char* js, Value::Type type) {
 	assert(!global.del("x").isException());
 }
 
-void testExternal(Value& global, Value val, Value::Type type, bool works=false) {
+static void testExternal(Value& global, Value val, Value::Type type, bool works=false) {
 	assert(!global.set("x", val).isException());
 	Value x = global.get("x");
 	assert(x.isType(type));
@@ -52,6 +64,32 @@ int doTest(Engine& engine, Value& global) {
 	testInternal(global, "x = {};",            Value::TypeObject);
 	testInternal(global, "x = 'hello';",       Value::TypeString);
 	testInternal(global, "",                   Value::TypeUndefined);
+
+	// Test the private datastructure
+	ntPrivate *priv = nt_private_init();
+	assert(priv);
+
+	// Test set and clear
+	deleted = 0;
+	assert(nt_private_set(priv, "foo", (void *) 0x1234, incDeleted)); // Set
+	assert(nt_private_set(priv, "foo", NULL, NULL));  // Delete
+	assert(deleted == 1);
+
+	// Test push
+	assert(nt_private_push(priv, (void *) 0x1234, incDeleted));
+	assert(nt_private_push(priv, (void *) 0x4321, incDeleted));
+
+	// Test iteration
+	bool up = true;
+	nt_private_foreach(priv, false, (ntPrivateForeach) foreach, &up);
+	assert(up);
+	nt_private_foreach(priv, true, (ntPrivateForeach) foreach, &up);
+	assert(!up);
+
+	// Test destructor delete
+	assert(nt_private_set(priv, "foo", (void *) 0x1234, incDeleted)); // Set
+	nt_private_free(priv);  // Delete
+	assert(deleted == 4);
 
 	// Cleanup
 	assert(global.get("x").isUndefined());
