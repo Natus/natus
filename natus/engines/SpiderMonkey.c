@@ -552,7 +552,6 @@ static ntValue         *sm_value_enumerate        (const ntValue *obj) {
 		ntValue *v = get_instance(obj, str, false);
 		if (!v) break;
 		nt_value_new_array_builder(array, v);
-		nt_value_decref(v);
 	}
 
 	JS_DestroyIdArray(CTX(obj), na);
