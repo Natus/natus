@@ -35,19 +35,22 @@
 extern "C" {
 #endif /* __cplusplus */
 
-ntValue          *nt_throw_exception          (const ntValue *ctx, const char *type, const char *format, ...);
-ntValue          *nt_throw_exception_varg     (const ntValue *ctx, const char *type, const char *format, va_list ap);
-ntValue          *nt_throw_exception_code     (const ntValue *ctx, const char *type, int code, const char *format, ...);
-ntValue          *nt_throw_exception_code_varg(const ntValue *ctx, const char *type, int code, const char *format, va_list ap);
-ntValue          *nt_throw_exception_errno    (const ntValue *ctx, int errorno);
-ntValue          *nt_check_arguments          (const ntValue *arg, const char *fmt);
+char    *nt_vsprintf(const char *format, va_list ap);
+char    *nt_sprintf(const char *format, ...);
 
-ntValue          *nt_from_json                (const ntValue *json);
-ntValue          *nt_from_json_utf8           (const ntValue *ctx, const    char *json, size_t len);
-ntValue          *nt_from_json_utf16          (const ntValue *ctx, const  ntChar *json, size_t len);
-ntValue          *nt_to_json                  (const ntValue *val);
-char             *nt_to_json_utf8             (const ntValue *val, size_t *len);
-ntChar           *nt_to_json_utf16            (const ntValue *val, size_t *len);
+ntValue *nt_throw_exception          (const ntValue *ctx, const char *type, const char *format, ...);
+ntValue *nt_throw_exception_varg     (const ntValue *ctx, const char *type, const char *format, va_list ap);
+ntValue *nt_throw_exception_code     (const ntValue *ctx, const char *type, int code, const char *format, ...);
+ntValue *nt_throw_exception_code_varg(const ntValue *ctx, const char *type, int code, const char *format, va_list ap);
+ntValue *nt_throw_exception_errno    (const ntValue *ctx, int errorno);
+ntValue *nt_check_arguments          (const ntValue *arg, const char *fmt);
+
+ntValue *nt_from_json                (const ntValue *json);
+ntValue *nt_from_json_utf8           (const ntValue *ctx, const    char *json, size_t len);
+ntValue *nt_from_json_utf16          (const ntValue *ctx, const  ntChar *json, size_t len);
+ntValue *nt_to_json                  (const ntValue *val);
+char    *nt_to_json_utf8             (const ntValue *val, size_t *len);
+ntChar  *nt_to_json_utf16            (const ntValue *val, size_t *len);
 
 #ifdef __cplusplus
 } /* extern "C" */

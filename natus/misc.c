@@ -78,18 +78,26 @@ static ntValue *exception_toString(ntValue *ths, ntValue *fnc, ntValue *args) {
 	return vstr;
 }
 
-static char *nt_vsprintf(const char *fmt, va_list ap) {
+char *nt_vsprintf(const char *format, va_list ap) {
 	va_list apc;
 	int size = 0;
 
 	va_copy(apc, ap);
-	size = vsnprintf(NULL, 0, fmt, apc);
+	size = vsnprintf(NULL, 0, format, apc);
 	va_end(apc);
 
 	char *buf = malloc(size);
 	if (!size) return NULL;
-	assert(size == vsnprintf(buf, size, fmt, ap));
+	assert(size == vsnprintf(buf, size, format, ap));
 	return buf;
+}
+
+char *nt_sprintf(const char *format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	char *tmp = nt_vsprintf(format, ap);
+	va_end(ap);
+	return tmp;
 }
 
 ntValue          *nt_throw_exception(const ntValue *ctx, const char *type, const char *format, ...) {
