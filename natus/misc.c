@@ -86,7 +86,7 @@ char *nt_vsprintf(const char *format, va_list ap) {
 	size = vsnprintf(NULL, 0, format, apc);
 	va_end(apc);
 
-	char *buf = malloc(size);
+	char *buf = malloc(++size);
 	if (!size) return NULL;
 	assert(size == vsnprintf(buf, size, format, ap));
 	return buf;
