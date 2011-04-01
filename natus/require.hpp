@@ -21,35 +21,45 @@
  * 
  */
 
-#ifndef MODULELOADER_HPP_
-#define MODULELOADER_HPP_
+#ifndef MODULE_HPP_
+#define MODULE_HPP_
 #include "types.hpp"
+#include "value.hpp"
+
+#define NATUS_MODULE_INIT natus_module_init
 
 namespace natus {
 
-typedef Value (*RequireFunction)(Value& module, const char* name, const char* reldir, const char** path, void* misc);
-typedef bool  (*OriginMatcher)  (const char* pattern, const char* subject);
-
-class ModuleLoader {
+class Require {
 public:
-	static ModuleLoader* getModuleLoader(const Value& ctx);
-	static Value         getConfig(const Value& ctx);
-	static Value         checkOrigin(const Value& ctx, string uri);
+	typedef enum {
+		HookStepResolve,
+		HookStepLoad,
+		HookStepProcess
+	} HookStep;
 
-	ModuleLoader(Value& ctx);
-	virtual ~ModuleLoader();
-	Value initialize(string config="{}");
-	int   addRequireHook(bool post, RequireFunction func, void* misc=NULL, FreeFunction free=NULL);
-	void  delRequireHook(int id);
-	int   addOriginMatcher(OriginMatcher func, void* misc=NULL, FreeFunction free=NULL);
-	void  delOriginMatcher(int id);
-	Value require(string name, string reldir, vector<string> path) const;
-	bool  originPermitted(string uri) const;
+	typedef Value (*Hook)(Value& ctx, HookStep step, char* name, void* misc);
+	typedef bool  (*OriginMatcher)(const char* pattern, const char* subject);
+	typedef bool  (*ModuleInit)(ntValue* module);
+
+	Require(Value ctx);
+	bool initialize(Value config);
+	bool initialize(const char* config);
+	Value getConfig();
+
+	bool addHook(const char* name, Hook func, void* misc, FreeFunction free);
+	bool delHook(const char* name);
+
+	bool addOriginMatcher(const char* name, OriginMatcher func, void* misc, FreeFunction free);
+	bool delOriginMatcher(const char* name);
+
+	Value require(const char* name);
+	bool  originPermitted(const char* name);
 
 private:
-	void *internal;
+	Value ctx;
 };
 
 }
-#endif /* MODULELOADER_HPP_ */
+#endif /* MODULE_HPP_ */
 

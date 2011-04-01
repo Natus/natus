@@ -30,7 +30,7 @@
 
 #include "engine.hpp"
 #include "value.hpp"
-//#include "moduleloader.hpp"
+#include "require.hpp"
 #include "misc.hpp"
 
 #endif /* NATUS_HPP_ */

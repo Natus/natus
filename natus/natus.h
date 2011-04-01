@@ -30,8 +30,8 @@
 
 #include "engine.h"
 #include "value.h"
-#include "moduleloader.h"
 #include "misc.h"
+#include "require.h"
 
 #endif /* NATUS_H_ */
 

@@ -4,10 +4,10 @@ enginedir = $(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 natincdir = $(includedir)/$(PACKAGE_NAME)
 
 # Variables
-CHEADERS   = engine.h   misc.h   value.h   private.h natus.h   types.h   backend.h 
-CSOURCES   = engine.c   misc.c   value.c   private.c
-CXXHEADERS = engine.hpp misc.hpp value.hpp           natus.hpp types.hpp
-CXXSOURCES = engine.cc  misc.cc  value.cc
+CHEADERS   = engine.h   misc.h   value.h   require.h   private.h natus.h   types.h   backend.h 
+CSOURCES   = engine.c   misc.c   value.c   require.c   private.c
+CXXHEADERS = engine.hpp misc.hpp value.hpp require.hpp           natus.hpp types.hpp
+CXXSOURCES = engine.cc  misc.cc  value.cc  require.cc
 
 # Install the headers
 natinc_HEADERS = $(CHEADERS) $(CXXHEADERS)
