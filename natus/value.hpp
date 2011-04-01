@@ -127,6 +127,11 @@ public:
 	Value                 newString(UTF16 string) const;
 	Value                 newArray(const Value* const* array=NULL) const;
 	Value                 newArrayBuilder(Value item);
+	Value                 newArrayBuilder(long item);
+	Value                 newArrayBuilder(double item);
+	Value                 newArrayBuilder(UTF8 item);
+	Value                 newArrayBuilder(UTF16 item);
+	Value                 newArrayBuilder(NativeFunction item);
 	Value                 newFunction(NativeFunction func) const;
 	Value                 newObject(Class* cls=NULL) const;
 	Value                 newNull() const;
@@ -192,12 +197,12 @@ public:
 	Value                 set(size_t idx, UTF8           value);
 	Value                 set(size_t idx, UTF16          value);
 	Value                 set(size_t idx, NativeFunction value);
-	Value                 setRecursive(UTF8 path, Value          val, Value::PropAttr attrs, bool mkpath=false);
-	Value                 setRecursive(UTF8 path, long           val, Value::PropAttr attrs, bool mkpath=false);
-	Value                 setRecursive(UTF8 path, double         val, Value::PropAttr attrs, bool mkpath=false);
-	Value                 setRecursive(UTF8 path, UTF8           val, Value::PropAttr attrs, bool mkpath=false);
-	Value                 setRecursive(UTF8 path, UTF16          val, Value::PropAttr attrs, bool mkpath=false);
-	Value                 setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, Value          val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, long           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, double         val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, UTF8           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, UTF16          val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 enumerate() const;
 
 	bool                  setPrivate(const char* key, void *priv, FreeFunction free=NULL);

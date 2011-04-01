@@ -203,6 +203,26 @@ Value Value::newArrayBuilder(Value item) {
 	return nt_value_incref(tmp);
 }
 
+Value Value::newArrayBuilder(long item) {
+	return newArrayBuilder(newNumber(item));
+}
+
+Value Value::newArrayBuilder(double item) {
+	return newArrayBuilder(newNumber(item));
+}
+
+Value Value::newArrayBuilder(UTF8 item) {
+	return newArrayBuilder(newString(item));
+}
+
+Value Value::newArrayBuilder(UTF16 item) {
+	return newArrayBuilder(newString(item));
+}
+
+Value Value::newArrayBuilder(NativeFunction item) {
+	return newArrayBuilder(newFunction(item));
+}
+
 Value Value::newFunction(NativeFunction func) const {
 	Value f = nt_value_new_function(internal, txFunction);
 	f.setPrivate("natus::Function++", (void*) func);
