@@ -18,17 +18,29 @@ Value hook(Value& ctx, Require::HookStep step, char* name, void* misc) {
 
 int doTest(Engine& engine, Value& global) {
 	Value config = global.newObject();
-	Value   path = global.newArrayBuilder(".");
+	Value   path = global.newArrayBuilder("./lib");
 	config.setRecursive("natus.require.path", path, Value::PropAttrNone, true);
 
+	// Initialize the require system
 	Require req(global);
 	assert(req.initialize(config));
-
 	assert(req.addHook("__internal__", hook, (void*) 0x1234, hook_free));
-	Value module = req.require("__internal__");
-	assert(!module.isException());
-	assert(module.isObject());
-	assert(module.get("misc").toLong() == 0x1234);
+
+	// Load the internal module
+	Value modulea = req.require("__internal__");
+	assert(!modulea.isException());
+	assert(modulea.isObject());
+	assert(modulea.get("misc").toLong() == 0x1234);
+
+	// Load the internal module again
+	Value moduleb = req.require("__internal__");
+	assert(!modulea.isException());
+	assert(modulea.isObject());
+	assert(modulea.get("misc").toLong() == 0x1234);
+
+	// Check to make sure that the underlying values refer to the same object
+	assert(!modulea.set("test", 17L).isException());
+	assert(moduleb.get("test").toLong() == 17);
 
 	// Cleanup
 	return 0;
