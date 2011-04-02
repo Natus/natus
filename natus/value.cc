@@ -128,8 +128,11 @@ Value::Value() {
 	internal = NULL;
 }
 
-Value::Value(ntValue *value) {
-	internal = value;
+Value::Value(ntValue *value, bool steal) {
+	if (steal)
+		internal = value;
+	else
+		internal = nt_value_incref(value);
 }
 
 Value::Value(const Value& value) {
@@ -397,6 +400,16 @@ Value Value::set(Value idx, Value value, Value::PropAttr attrs) {
 	return nt_value_set(internal, idx.internal, value.internal, (ntPropAttr) attrs);
 }
 
+Value Value::set(Value idx, bool value, Value::PropAttr attrs) {
+	Value v = newBool(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(Value idx, int value, Value::PropAttr attrs) {
+	Value v = newNumber(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+}
+
 Value Value::set(Value idx, long value, Value::PropAttr attrs) {
 	Value v = newNumber(value);
 	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
@@ -425,6 +438,18 @@ Value Value::set(Value idx, NativeFunction value, Value::PropAttr attrs) {
 Value Value::set(UTF8 idx, Value value, Value::PropAttr attrs) {
 	Value n = newString(idx);
 	return nt_value_set(internal, n.borrowCValue(), value.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(UTF8 idx, bool value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newBool(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(UTF8 idx, int value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
 Value Value::set(UTF8 idx, long value, Value::PropAttr attrs) {
@@ -462,6 +487,18 @@ Value Value::set(UTF16 idx, Value value, Value::PropAttr attrs) {
 	return nt_value_set(internal, n.borrowCValue(), value.internal, (ntPropAttr) attrs);
 }
 
+Value Value::set(UTF16 idx, bool value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newBool(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(UTF16 idx, int value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
 Value Value::set(UTF16 idx, long value, Value::PropAttr attrs) {
 	Value n = newString(idx);
 	Value v = newNumber(value);
@@ -496,6 +533,16 @@ Value Value::set(size_t idx, Value value) {
 	return nt_value_set_index(internal, idx, value.internal);
 }
 
+Value Value::set(size_t idx, bool value) {
+	Value v = newBool(value);
+	return nt_value_set_index(internal, idx, v.internal);
+}
+
+Value Value::set(size_t idx, int value) {
+	Value v = newNumber(value);
+	return nt_value_set_index(internal, idx, v.internal);
+}
+
 Value Value::set(size_t idx, long value) {
 	Value v = newNumber(value);
 	return nt_value_set_index(internal, idx, v.internal);
@@ -523,6 +570,14 @@ Value Value::set(size_t idx, NativeFunction value) {
 
 Value Value::setRecursive(UTF8 path, Value val, Value::PropAttr attrs, bool mkpath) {
 	return nt_value_set_recursive_utf8(internal, path.c_str(), val.internal, (ntPropAttr) attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, bool val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newBool(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, int val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newNumber(val), attrs, mkpath);
 }
 
 Value Value::setRecursive(UTF8 path, long val, Value::PropAttr attrs, bool mkpath) {

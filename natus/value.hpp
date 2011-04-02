@@ -58,7 +58,8 @@ public:
 		FlagSet       = 1 << 3,
 		FlagEnumerate = 1 << 4,
 		FlagCall      = 1 << 5,
-		FlagAll       = FlagDelete | FlagGet | FlagSet | FlagEnumerate | FlagCall,
+		FlagObject    = FlagDelete | FlagGet | FlagSet | FlagEnumerate,
+		FlagFunction  = FlagObject | FlagCall,
 	} Flags;
 
 	virtual Class::Flags getFlags ();
@@ -112,7 +113,7 @@ public:
 	} PropAttr;
 
 	Value();
-	Value(ntValue *value);
+	Value(ntValue *value, bool steal=true);
 	Value(const Value& value);
 	~Value();
 	Value&                operator=(const Value& value);
@@ -174,30 +175,40 @@ public:
 	Value                 get(size_t idx) const;
 	Value                 getRecursive(UTF8 path);
 	Value                 set(Value  idx, Value          value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(Value  idx, bool           value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(Value  idx, int            value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, double         value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, UTF8           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, UTF16          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, NativeFunction value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, Value          value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF8   idx, bool           value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF8   idx, int            value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, double         value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, UTF8           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, UTF16          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, NativeFunction value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, Value          value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF16  idx, bool           value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF16  idx, int            value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, double         value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, UTF8           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, UTF16          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, NativeFunction value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(size_t idx, Value          value);
+	Value                 set(size_t idx, bool           value);
+	Value                 set(size_t idx, int            value);
 	Value                 set(size_t idx, long           value);
 	Value                 set(size_t idx, double         value);
 	Value                 set(size_t idx, UTF8           value);
 	Value                 set(size_t idx, UTF16          value);
 	Value                 set(size_t idx, NativeFunction value);
 	Value                 setRecursive(UTF8 path, Value          val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, bool           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, int            val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, long           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, double         val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, UTF8           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
