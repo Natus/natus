@@ -330,6 +330,10 @@ double Value::toDouble() const {
 	return nt_value_to_double(internal);
 }
 
+int Value::toInt() const {
+	return nt_value_to_int(internal);
+}
+
 long Value::toLong() const {
 	return nt_value_to_long(internal);
 }

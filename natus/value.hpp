@@ -160,6 +160,7 @@ public:
 	Value                 toException();
 	bool                  toBool() const;
 	double                toDouble() const;
+	int                   toInt() const;
 	long                  toLong() const;
 	UTF8                  toStringUTF8() const;
 	UTF16                 toStringUTF16() const;

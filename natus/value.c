@@ -246,6 +246,11 @@ ntValue *nt_value_to_exception(ntValue *val) {
 	return val;
 }
 
+int nt_value_to_int(const ntValue *val) {
+	if (!val) return 0;
+	return (int) nt_value_to_double(val);
+}
+
 long nt_value_to_long(const ntValue *val) {
 	if (!val) return 0;
 	return (long) nt_value_to_double(val);
@@ -275,6 +280,12 @@ double            nt_value_as_double              (ntValue *val) {
 	double d = nt_value_to_double(val);
 	nt_value_decref(val);
 	return d;
+}
+
+int               nt_value_as_int                 (ntValue *val) {
+	int i = nt_value_to_int(val);
+	nt_value_decref(val);
+	return i;
 }
 
 long              nt_value_as_long                (ntValue *val) {
