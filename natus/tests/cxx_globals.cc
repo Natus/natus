@@ -24,12 +24,12 @@ int doTest(Engine& engine, Value& global) {
 	assert(!glb.set("object", global.get("object")).isException());
 	assert(!glb.set("string", global.get("string")).isException());
 
-	assert(glb.get("array").get("length").toLong() == 0);
-	assert(glb.get("bool").toBool());
+	assert(glb.get("array").get("length").to<int>() == 0);
+	assert(glb.get("bool").to<bool>());
 	assert(glb.get("nill").isNull());
-	assert(glb.get("number").toLong());
+	assert(glb.get("number").to<int>());
 	assert(glb.get("object").isObject());
-	assert(glb.get("string").toStringUTF8() == "hi");
+	assert(glb.get("string").to<UTF8>() == "hi");
 
 	return 0;
 }

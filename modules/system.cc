@@ -36,21 +36,21 @@ public:
 	virtual Value del(Value& obj, Value& idx) {
 		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
 
-		unsetenv(idx.toStringUTF8().c_str());
+		unsetenv(idx.to<UTF8>().c_str());
 		return obj.newBool(true);
 	}
 
 	virtual Value get(Value& obj, Value& idx) {
 		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
 
-		char *value = getenv(idx.toStringUTF8().c_str());
+		char *value = getenv(idx.to<UTF8>().c_str());
 		return value ? obj.newString(value) : obj.newUndefined();
 	}
 
 	virtual Value set(Value& obj, Value& idx, Value& value) {
 		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
 
-		setenv(idx.toStringUTF8().c_str(), value.toStringUTF8().c_str(), true);
+		setenv(idx.to<UTF8>().c_str(), value.to<UTF8>().c_str(), true);
 		return obj.newBool(true);
 	}
 

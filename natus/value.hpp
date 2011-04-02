@@ -158,12 +158,7 @@ public:
 	bool                  isUndefined() const;
 
 	Value                 toException();
-	bool                  toBool() const;
-	double                toDouble() const;
-	int                   toInt() const;
-	long                  toLong() const;
-	UTF8                  toStringUTF8() const;
-	UTF16                 toStringUTF16() const;
+	template <class T> T  to() const { return (T) to<double>(); }
 
 	Value                 del(Value  idx);
 	Value                 del(UTF8   idx);
@@ -234,6 +229,12 @@ public:
 private:
 	ntValue *internal;
 };
+template <> bool   Value::to<bool>()   const;
+template <> double Value::to<double>() const;
+template <> int    Value::to<int>()    const;
+template <> long   Value::to<long>()   const;
+template <> UTF8   Value::to<UTF8>()   const;
+template <> UTF16  Value::to<UTF16>()  const;
 template <> void* Value::getPrivate<void*>(const char* key) const;
 template <> Value Value::getPrivate<Value>(const char* key) const;
 

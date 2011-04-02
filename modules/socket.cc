@@ -78,7 +78,7 @@ static Value socket_accept(Value& ths, Value& fnc, Value& arg) {
 
 	int newsock = accept(fd, NULL, NULL);
 	if (newsock < 0) return throwException(ths, errno);
-	return socket_from_sock(ths, newsock, ths.get("domain").toLong(), ths.get("type").toLong(), ths.get("protocol").toLong());
+	return socket_from_sock(ths, newsock, ths.get("domain").to<int>(), ths.get("type").to<int>(), ths.get("protocol").to<int>());
 }
 
 static Value socket_bind(Value& ths, Value& fnc, Value& arg) {
@@ -88,10 +88,10 @@ static Value socket_bind(Value& ths, Value& fnc, Value& arg) {
 	string ip = "0.0.0.0";
 	string port;
 
-	if (arg.get("length").toLong() > 0) {
-		ip = arg[0].toStringUTF8();
-		if (arg.get("length").toLong() > 1)
-			port = arg[1].toStringUTF8();
+	if (arg.get("length").to<int>() > 0) {
+		ip = arg[0].to<UTF8>();
+		if (arg.get("length").to<int>() > 1)
+			port = arg[1].to<UTF8>();
 	}
 
 	struct addrinfo* ai = NULL;
@@ -114,7 +114,7 @@ static Value socket_connect(Value& ths, Value& fnc, Value& arg) {
 	int fd = ths.getPrivate<long>("posix.fd");
 
 	struct addrinfo* ai = NULL;
-	int status = getaddrinfo(arg[0].toStringUTF8().c_str(), arg[1].toStringUTF8().c_str(), NULL, &ai);
+	int status = getaddrinfo(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str(), NULL, &ai);
 	if (status != 0) {
 		freeaddrinfo(ai);
 		return throwexc_eai(ths, status);
@@ -131,7 +131,7 @@ static Value socket_listen(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int fd = ths.getPrivate<long>("posix.fd");
-	if (listen(fd, arg.get("length").toLong() > 0 ? arg[0].toLong() : 1024) < 0)
+	if (listen(fd, arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
@@ -141,7 +141,7 @@ static Value fd_read(Value& ths, Value& fnc, Value& arg) {
 
 	int fd = ths.getPrivate<long>("posix.fd");
 
-	int bs = arg.get("length").toLong() > 0 ? arg[0].toLong() : 1024;
+	int bs = arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024;
 	char *buff = new char[bs];
 	ssize_t rcvd = read(fd, buff, bs);
 	if (rcvd < 0) {
@@ -172,7 +172,7 @@ static Value socket_receive(Value& ths, Value& fnc, Value& arg) {
 
 	int fd = ths.getPrivate<long>("posix.fd");
 
-	int bs = arg.get("length").toLong() > 0 ? arg[0].toLong() : 1024;
+	int bs = arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024;
 	char *buff = new char[bs];
 	ssize_t rcvd = recv(fd, buff, bs, 0);
 	if (rcvd < 0) {
@@ -189,7 +189,7 @@ static Value socket_send(Value& ths, Value& fnc, Value& arg) {
 
 	int fd = ths.getPrivate<long>("posix.fd");
 
-	string buff = arg[0].toStringUTF8();
+	string buff = arg[0].to<UTF8>();
 	ssize_t snt = send(fd, buff.c_str(), buff.length(), 0);
 	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
@@ -199,7 +199,7 @@ static Value socket_shutdown(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
 	int fd = ths.getPrivate<long>("posix.fd");
-	if (shutdown(fd, arg.get("length").toLong() > 0 ? arg[0].toLong() : SHUT_RDWR) < 0)
+	if (shutdown(fd, arg.get("length").to<int>() > 0 ? arg[0].to<int>() : SHUT_RDWR) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
@@ -208,7 +208,7 @@ static Value fd_write(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 
 	int fd = ths.getPrivate<long>("posix.fd");
-	string buff = arg[0].toStringUTF8();
+	string buff = arg[0].to<UTF8>();
 	ssize_t snt = write(fd, buff.c_str(), buff.length());
 	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
@@ -225,12 +225,12 @@ static Value socket_ctor(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|nnn");
 
 	int domain = AF_INET, type = SOCK_STREAM, prot = 0;
-	if (arg.get("length").toLong() > 0) {
-		domain = arg[0].toLong();
-		if (arg.get("length").toLong() > 1) {
-			type = arg[1].toLong();
-			if (arg.get("length").toLong() > 2)
-				prot = arg[2].toLong();
+	if (arg.get("length").to<int>() > 0) {
+		domain = arg[0].to<int>();
+		if (arg.get("length").to<int>() > 1) {
+			type = arg[1].to<int>();
+			if (arg.get("length").to<int>() > 2)
+				prot = arg[2].to<int>();
 		}
 	}
 

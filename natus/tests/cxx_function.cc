@@ -5,7 +5,7 @@ static Value firstarg_function(Value& fnc, Value& ths, Value& arg) {
 	assert(ths.isGlobal() || ths.isUndefined());
 	assert(fnc.isFunction());
 	assert(arg.isArray());
-	assert(arg.get("length").toLong() > 0);
+	assert(arg.get("length").to<int>() > 0);
 	return arg.get(0);
 }
 
@@ -33,10 +33,10 @@ int doTest(Engine& engine, Value& global) {
 	printf("%d\n", __LINE__);
 	rslt = global.call("x", global.newArrayBuilder(global.newNumber(123)));
 	assert(!rslt.isException());
-	assert(123 == rslt.toLong());
+	assert(123 == rslt.to<int>());
 	rslt = glbl.call("x", glbl.newArrayBuilder(glbl.newNumber(123)));
 	assert(!rslt.isException());
-	assert(123 == rslt.toLong());
+	assert(123 == rslt.to<int>());
 
 	// New from C++
 	printf("%d\n", __LINE__);
@@ -51,10 +51,10 @@ int doTest(Engine& engine, Value& global) {
 	printf("%d\n", __LINE__);
 	rslt = global.evaluate("x(123);");
 	assert(!rslt.isException());
-	assert(123 == rslt.toLong());
+	assert(123 == rslt.to<int>());
 	rslt = glbl.evaluate("x(123);");
 	assert(!rslt.isException());
-	assert(123 == rslt.toLong());
+	assert(123 == rslt.to<int>());
 
 	// New from JS
 	rslt = global.evaluate("new x({});");

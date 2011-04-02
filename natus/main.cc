@@ -55,18 +55,18 @@ Value* glbl;
 static Value alert(Value& ths, Value& fnc, Value& args) {
 	NATUS_CHECK_ARGUMENTS(fnc, "s");
 
-	fprintf(stderr, "%s\n", args[0].toStringUTF8().c_str());
+	fprintf(stderr, "%s\n", args[0].to<UTF8>().c_str());
 	return ths.newUndefined();
 }
 
 static Value dir(Value& ths, Value& fnc, Value& args) {
 	Value obj = ths.getGlobal();
-	if (args.get("length").toLong() > 0)
+	if (args.get("length").to<long>() > 0)
 		obj = args[0];
 
 	Value names = obj.enumerate();
-	for (long i=0 ; i < names.get("length").toLong() ; i++)
-		fprintf(stderr, "\t%s\n", names[i].toStringUTF8().c_str());
+	for (long i=0 ; i < names.get("length").to<long>() ; i++)
+		fprintf(stderr, "\t%s\n", names[i].to<UTF8>().c_str());
 	return ths.newUndefined();
 }
 
@@ -136,8 +136,8 @@ static char* completion_generator(const char* text, int state) {
 		}
 
 		Value nm = obj.enumerate();
-		for (long i=0 ; i < nm.get("length").toLong() ; i++)
-			names.insert(nm[i].toStringUTF8().c_str());
+		for (long i=0 ; i < nm.get("length").to<long>() ; i++)
+			names.insert(nm[i].to<UTF8>().c_str());
 		it = names.begin();
 	}
 	if (last) last++;
@@ -268,11 +268,11 @@ int main(int argc, char** argv) {
 
 		// Print uncaught exceptions
 		if (res.isException())
-			error(8, 0, "Uncaught Exception: %s", res.toStringUTF8().c_str());
+			error(8, 0, "Uncaught Exception: %s", res.to<UTF8>().c_str());
 
 		// Let the script return exitcodes
 		if (res.isNumber())
-			exitcode = (int) res.toLong();
+			exitcode = (int) res.to<long>();
 
 		return exitcode;
 	}
@@ -322,7 +322,7 @@ int main(int argc, char** argv) {
 				fmt = "%s\n";
 
 			if (!res.isUndefined() && !res.isNull())
-				fprintf(stderr, fmt.c_str(), res.toStringUTF8().c_str());
+				fprintf(stderr, fmt.c_str(), res.to<UTF8>().c_str());
 			prev = "";
 		}
 		printf("\n");
@@ -363,11 +363,11 @@ int main(int argc, char** argv) {
 
 	// Print uncaught exceptions
 	if (res.isException())
-		error(8, 0, "Uncaught Exception: %s", res.toStringUTF8().c_str());
+		error(8, 0, "Uncaught Exception: %s", res.to<UTF8>().c_str());
 
 	// Let the script return exitcodes
 	if (res.isNumber())
-		exitcode = (int) res.toLong();
+		exitcode = (int) res.to<long>();
 
 	return exitcode;
 }

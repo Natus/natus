@@ -8,33 +8,33 @@ public:
 
 	virtual Value del(Value& obj, Value& name) {
 		assert(obj.isObject());
-		if (name.toStringUTF8() == "exc")
+		if (name.to<UTF8>() == "exc")
 			return obj.newString("error").toException();
-		if (name.toStringUTF8() == "oom")
+		if (name.to<UTF8>() == "oom")
 			return NULL;
 		if (name.isNumber())
-			obj.setPrivate("test", (void *) name.toLong());
+			obj.setPrivate("test", (void *) name.to<int>());
 		else
-			obj.setPrivate("test", (void *) name.toStringUTF8().length());
+			obj.setPrivate("test", (void *) name.to<UTF8>().length());
 		return obj.newBool(true);
 	}
 
 	virtual Value get(Value& obj, Value& name) {
 		assert(obj.isObject());
-		if (name.toStringUTF8() == "exc")
+		if (name.to<UTF8>() == "exc")
 			return obj.newString("error").toException();
-		if (name.toStringUTF8() == "oom")
+		if (name.to<UTF8>() == "oom")
 			return NULL;
 		return name;
 	}
 
 	virtual Value set(Value& obj, Value& name, Value& value) {
 		assert(obj.isObject());
-		if (name.toStringUTF8() == "exc")
+		if (name.to<UTF8>() == "exc")
 			return obj.newString("error").toException();
-		if (name.toStringUTF8() == "oom")
+		if (name.to<UTF8>() == "oom")
 			return NULL;
-		obj.setPrivate("test", (void *) value.toLong());
+		obj.setPrivate("test", (void *) value.to<int>());
 		return obj.newBool(true);
 	}
 
@@ -46,7 +46,7 @@ public:
 	virtual Value call(Value& obj, Value& ths,  Value& args) {
 		assert(obj.isObject());
 		assert(args.isArray());
-		assert(args.get("length").toLong() > 0);
+		assert(args.get("length").to<int>() > 0);
 		return args.get(0);
 	}
 };
@@ -65,10 +65,10 @@ int doTest(Engine& engine, Value& global) {
 	// Get
 	Value y = x.get("foo");
 	assert(y.isString());
-	assert(y.toStringUTF8() == "foo");
+	assert(y.to<UTF8>() == "foo");
 	y = x.get(7);
 	assert(y.isNumber());
-	assert(7 == y.toLong());
+	assert(7 == y.to<int>());
 
 	// Set
 	assert(!x.set("foo", x.newNumber(7)).isException());
@@ -79,7 +79,7 @@ int doTest(Engine& engine, Value& global) {
 	// Call from C++
 	y = global.call("x", global.newArrayBuilder(global.newNumber(123)));
 	assert(!y.isException());
-	assert(123 == y.toLong());
+	assert(123 == y.to<int>());
 
 	// New from C++
 	y = global.callNew("x", global.newArrayBuilder(global.newObject()));
@@ -89,7 +89,7 @@ int doTest(Engine& engine, Value& global) {
 	// Call from JS
 	y = global.evaluate("x(123);");
 	assert(!y.isException());
-	assert(123 == y.toLong());
+	assert(123 == y.to<int>());
 
 	// New from JS
 	y = global.evaluate("new x({});");
@@ -100,9 +100,9 @@ int doTest(Engine& engine, Value& global) {
 	x.setPrivate("enumerate", x.newArrayBuilder(x.newNumber(5)).newArrayBuilder(x.newNumber(10)));
 	y = x.enumerate();
 	assert(y.isArray());
-	assert(y.get("length").toLong() == 2);
-	assert(y.get(0).toLong() == 5);
-	assert(y.get(1).toLong() == 10);
+	assert(y.get("length").to<int>() == 2);
+	assert(y.get(0).to<int>() == 5);
+	assert(y.get(1).to<int>() == 10);
 
 	// Now we check for fault states
 	/*assert(!x.del("exc"));

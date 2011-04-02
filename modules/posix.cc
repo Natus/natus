@@ -28,56 +28,56 @@ using namespace natus;
 static Value posix_WCOREDUMP(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newBool(WCOREDUMP(status));
 }
 
 static Value posix_WEXITSTATUS(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newNumber(WEXITSTATUS(status));
 }
 
 static Value posix_WIFCONTINUED(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newBool(WIFCONTINUED(status));
 }
 
 static Value posix_WIFEXITED(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newBool(WIFEXITED(status));
 }
 
 static Value posix_WIFSIGNALED(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newBool(WIFSIGNALED(status));
 }
 
 static Value posix_WIFSTOPPED(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newBool(WIFSTOPPED(status));
 }
 
 static Value posix_WSTOPSIG(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newNumber(WSTOPSIG(status));
 }
 
 static Value posix_WTERMSIG(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int status = arg[0].toLong();
+	int status = arg[0].to<int>();
 	return ths.newNumber(WTERMSIG(status));
 }
 
@@ -88,9 +88,9 @@ static Value posix_abort(Value& ths, Value& fnc, Value& arg) {
 
 static Value posix_access(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	int res = access(arg[0].toStringUTF8().c_str(), arg[1].toLong());
+	int res = access(arg[0].to<UTF8>().c_str(), arg[1].to<int>());
 	if (res == 0)        return ths.newBool(true);
 	if (errno == EACCES) return ths.newBool(false);
 	return ths.newString(strerror(errno)).toException();
@@ -98,36 +98,36 @@ static Value posix_access(Value& ths, Value& fnc, Value& arg) {
 
 static Value posix_chdir(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	doerr(chdir(arg[0].toStringUTF8().c_str()));
+	doerr(chdir(arg[0].to<UTF8>().c_str()));
 }
 
 static Value posix_chmod(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	doerr(chmod(arg[0].toStringUTF8().c_str(), arg[1].toLong()));
+	doerr(chmod(arg[0].to<UTF8>().c_str(), arg[1].to<int>()));
 }
 
 static Value posix_chown(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "snn");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	doerr(chown(arg[0].toStringUTF8().c_str(), arg[1].toLong(), arg[2].toLong()));
+	doerr(chown(arg[0].to<UTF8>().c_str(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
 static Value posix_chroot(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	doerr(chroot(arg[0].toStringUTF8().c_str()));
+	doerr(chroot(arg[0].to<UTF8>().c_str()));
 }
 
 static Value posix_close(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(close(arg[0].toLong()));
+	doerr(close(arg[0].to<int>()));
 }
 
 static Value posix_ctermid(Value& ths, Value& fnc, Value& arg) {
@@ -137,7 +137,7 @@ static Value posix_ctermid(Value& ths, Value& fnc, Value& arg) {
 static Value posix_dup(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int fd = dup(arg[0].toLong());
+	int fd = dup(arg[0].to<int>());
 	if (fd < 0) return doexc();
 	return ths.newNumber(fd);
 }
@@ -145,7 +145,7 @@ static Value posix_dup(Value& ths, Value& fnc, Value& arg) {
 static Value posix_dup2(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	int fd = dup2(arg[0].toLong(), arg[1].toLong());
+	int fd = dup2(arg[0].to<int>(), arg[1].to<int>());
 	if (fd < 0) return doexc();
 	return ths.newNumber(fd);
 }
@@ -153,14 +153,14 @@ static Value posix_dup2(Value& ths, Value& fnc, Value& arg) {
 static Value posix_execv(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sa");
 
-	const char** argv = new const char*[arg[1].get("length").toLong()+1];
-	memset(argv, 0, sizeof(char*) * (arg[1].get("length").toLong() + 1));
-	for (int i=0,j=0 ; i < arg[1].get("length").toLong() ; i++) {
+	const char** argv = new const char*[arg[1].get("length").to<int>()+1];
+	memset(argv, 0, sizeof(char*) * (arg[1].get("length").to<int>() + 1));
+	for (int i=0,j=0 ; i < arg[1].get("length").to<int>() ; i++) {
 		if (!arg[1][i].isString()) continue;
-		argv[j++] = arg[1][i].toStringUTF8().c_str();
+		argv[j++] = arg[1][i].to<UTF8>().c_str();
 	}
 
-	execv(arg[0].toStringUTF8().c_str(), (char* const*) argv);
+	execv(arg[0].to<UTF8>().c_str(), (char* const*) argv);
 	delete[] argv;
 	return doexc();
 }
@@ -168,20 +168,20 @@ static Value posix_execv(Value& ths, Value& fnc, Value& arg) {
 static Value posix_execve(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sao");
 
-	const char** argv = new const char*[arg[1].get("length").toLong()+1];
-	memset(argv, 0, sizeof(char*) * (arg[1].get("length").toLong() + 1));
-	for (int i=0,j=0 ; i < arg[1].get("length").toLong() ; i++) {
+	const char** argv = new const char*[arg[1].get("length").to<int>()+1];
+	memset(argv, 0, sizeof(char*) * (arg[1].get("length").to<int>() + 1));
+	for (int i=0,j=0 ; i < arg[1].get("length").to<int>() ; i++) {
 		if (!arg[1][i].isString()) continue;
-		argv[j++] = arg[1][i].toStringUTF8().c_str();
+		argv[j++] = arg[1][i].to<UTF8>().c_str();
 	}
 
 	Value env = arg[2].enumerate();
-	const char** envv = new const char*[env.get("length").toLong() + 1];
-	memset(envv, 0, sizeof(char*) * (env.get("length").toLong() + 1));
-	for (int i=0 ; i < env.get("length").toLong() ; i++)
-		envv[i] = strdup((env[i].toStringUTF8() + "=" + arg[2].get(env[i]).toStringUTF8()).c_str());
+	const char** envv = new const char*[env.get("length").to<int>() + 1];
+	memset(envv, 0, sizeof(char*) * (env.get("length").to<int>() + 1));
+	for (int i=0 ; i < env.get("length").to<int>() ; i++)
+		envv[i] = strdup((env[i].to<UTF8>() + "=" + arg[2].get(env[i]).to<UTF8>()).c_str());
 
-	execve(arg[0].toStringUTF8().c_str(), (char* const*) argv, (char* const*) envv);
+	execve(arg[0].to<UTF8>().c_str(), (char* const*) argv, (char* const*) envv);
 	delete[] argv;
 	for (int i=0 ; envv[i] ; i++)
 		free((void*) envv[i]);
@@ -192,25 +192,25 @@ static Value posix_execve(Value& ths, Value& fnc, Value& arg) {
 static Value posix_fchdir(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(fchdir(arg[0].toLong()));
+	doerr(fchdir(arg[0].to<int>()));
 }
 
 static Value posix_fchmod(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(fchmod(arg[0].toLong(), arg[1].toLong()));
+	doerr(fchmod(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 static Value posix_fchown(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
-	doerr(fchown(arg[0].toLong(), arg[1].toLong(), arg[2].toLong()));
+	doerr(fchown(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
 static Value posix_fdatasync(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(fdatasync(arg[0].toLong()));
+	doerr(fdatasync(arg[0].to<int>()));
 }
 
 static Value posix_fork(Value& ths, Value& fnc, Value& arg) {
@@ -231,7 +231,7 @@ static Value posix_fpathconf(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	errno = 0;
-	int res = fpathconf(arg[0].toLong(), arg[1].toLong());
+	int res = fpathconf(arg[0].to<int>(), arg[1].to<int>());
 	if (res == -1 && errno != 0) doexc();
 	return ths.newNumber(res);
 }
@@ -240,7 +240,7 @@ static Value posix_fstat(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	struct stat st;
-	int res = fstat(arg[0].toLong(), &st);
+	int res = fstat(arg[0].to<int>(), &st);
 	if (res == -1) return doexc();
 
 	Value stt = ths.newObject();
@@ -264,7 +264,7 @@ static Value posix_fstatvfs(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	struct statvfs st;
-	int res = fstatvfs(arg[0].toLong(), &st);
+	int res = fstatvfs(arg[0].to<int>(), &st);
 	if (res == -1) return doexc();
 
 	Value stt = ths.newObject();
@@ -285,13 +285,13 @@ static Value posix_fstatvfs(Value& ths, Value& fnc, Value& arg) {
 static Value posix_fsync(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(fsync(arg[0].toLong()));
+	doerr(fsync(arg[0].to<int>()));
 }
 
 static Value posix_ftruncate(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(ftruncate(arg[0].toLong(), arg[1].toLong()));
+	doerr(ftruncate(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 static Value posix_getcwd(Value& ths, Value& fnc, Value& arg) {
@@ -345,7 +345,7 @@ static Value posix_getlogin(Value& ths, Value& fnc, Value& arg) {
 static Value posix_getpgid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	pid_t pgid = getpgid(arg[0].toLong());
+	pid_t pgid = getpgid(arg[0].to<int>());
 	if (pgid < 0) doexc();
 	return ths.newNumber(pgid);
 }
@@ -381,7 +381,7 @@ static Value posix_getresuid(Value& ths, Value& fnc, Value& arg) {
 static Value posix_getsid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	pid_t sid = getsid(arg[0].toLong());
+	pid_t sid = getsid(arg[0].to<int>());
 	if (sid < 0) doexc();
 	return ths.newNumber(sid);
 }
@@ -393,43 +393,43 @@ static Value posix_getuid(Value& ths, Value& fnc, Value& arg) {
 static Value posix_initgroups(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
 
-	doerr(initgroups(arg[0].toStringUTF8().c_str(), arg[1].toLong()));
+	doerr(initgroups(arg[0].to<UTF8>().c_str(), arg[1].to<int>()));
 }
 
 static Value posix_isatty(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	return ths.newBool(isatty(arg[0].toLong()));
+	return ths.newBool(isatty(arg[0].to<int>()));
 }
 
 static Value posix_kill(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(kill(arg[0].toLong(), arg[0].toLong()));
+	doerr(kill(arg[0].to<int>(), arg[0].to<int>()));
 }
 
 static Value posix_killpg(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(kill(arg[0].toLong(), arg[0].toLong()));
+	doerr(kill(arg[0].to<int>(), arg[0].to<int>()));
 }
 
 static Value posix_lchown(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "snn");
 
-	doerr(lchown(arg[0].toStringUTF8().c_str(), arg[1].toLong(), arg[2].toLong()));
+	doerr(lchown(arg[0].to<UTF8>().c_str(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
 static Value posix_link(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ss");
 
-	doerr(link(arg[0].toStringUTF8().c_str(), arg[1].toStringUTF8().c_str()));
+	doerr(link(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str()));
 }
 
 static Value posix_lseek(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
-	off_t offset = lseek(arg[0].toLong(), arg[1].toLong(), arg[2].toLong());
+	off_t offset = lseek(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>());
 	if (offset < 0) return doexc();
 	return ths.newNumber(offset);
 }
@@ -438,7 +438,7 @@ static Value posix_lstat(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 
 	struct stat st;
-	int res = lstat(arg[0].toStringUTF8().c_str(), &st);
+	int res = lstat(arg[0].to<UTF8>().c_str(), &st);
 	if (res == -1) return doexc();
 
 	Value stt = ths.newObject();
@@ -461,92 +461,92 @@ static Value posix_lstat(Value& ths, Value& fnc, Value& arg) {
 static Value posix_major(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	return ths.newNumber(major(arg[0].toLong()));
+	return ths.newNumber(major(arg[0].to<int>()));
 }
 
 static Value posix_makedev(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	return ths.newNumber(makedev(arg[0].toLong(), arg[0].toLong()));
+	return ths.newNumber(makedev(arg[0].to<int>(), arg[0].to<int>()));
 }
 
 static Value posix_minor(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	return ths.newNumber(minor(arg[0].toLong()));
+	return ths.newNumber(minor(arg[0].to<int>()));
 }
 
 static Value posix_mkdir(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	mode_t mode = 0777;
-	if (arg.get("length").toLong() > 1) {
+	if (arg.get("length").to<int>() > 1) {
 		if (!arg[1].isNumber())
 			return ths.newString("mode must be a number!").toException();
-		mode = arg[1].toLong();
+		mode = arg[1].to<int>();
 	}
-	doerr(mkdir(arg[0].toStringUTF8().c_str(), mode));
+	doerr(mkdir(arg[0].to<UTF8>().c_str(), mode));
 }
 
 static Value posix_mkfifo(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	mode_t mode = 0666;
-	if (arg.get("length").toLong() > 1) {
+	if (arg.get("length").to<int>() > 1) {
 		if (!arg[1].isNumber())
 			return ths.newString("mode must be a number!").toException();
-		mode = arg[1].toLong();
+		mode = arg[1].to<int>();
 	}
-	doerr(mkfifo(arg[0].toStringUTF8().c_str(), mode));
+	doerr(mkfifo(arg[0].to<UTF8>().c_str(), mode));
 }
 
 static Value posix_mknod(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	mode_t mode = 0666;
 	dev_t  dev = 0;
-	if (arg.get("length").toLong() > 1) {
+	if (arg.get("length").to<int>() > 1) {
 		if (!arg[1].isNumber())
 			return ths.newString("mode must be a number!").toException();
-		mode = arg[1].toLong();
-		if (arg.get("length").toLong() > 2) {
+		mode = arg[1].to<int>();
+		if (arg.get("length").to<int>() > 2) {
 			if (!arg[2].isNumber())
 				return ths.newString("dev must be a number!").toException();
-			dev = arg[2].toLong();
+			dev = arg[2].to<int>();
 		}
 	}
-	doerr(mknod(arg[0].toStringUTF8().c_str(), mode, dev));
+	doerr(mknod(arg[0].to<UTF8>().c_str(), mode, dev));
 }
 
 static Value posix_nice(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	errno = 0;
-	int prio = nice(arg[0].toLong());
+	int prio = nice(arg[0].to<int>());
 	if (errno != 0) return doexc();
 	return ths.newNumber(prio);
 }
 
 static Value posix_open(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s|nn");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	int    flags = 0;
 	mode_t mode  = 0666;
-	if (arg.get("length").toLong() > 1) {
+	if (arg.get("length").to<int>() > 1) {
 		if (!arg[1].isNumber())
 			return ths.newString("flags must be a number!").toException();
-		flags = arg[1].toLong();
-		if (arg.get("length").toLong() > 2) {
+		flags = arg[1].to<int>();
+		if (arg.get("length").to<int>() > 2) {
 			if (!arg[2].isNumber())
 				return ths.newString("mode must be a number!").toException();
-			mode = arg[2].toLong();
+			mode = arg[2].to<int>();
 		}
 	}
-	int fd = open(arg[0].toStringUTF8().c_str(), flags, mode);
+	int fd = open(arg[0].to<UTF8>().c_str(), flags, mode);
 	if (fd < 0) return doexc();
 	return ths.newNumber(fd);
 }
@@ -561,10 +561,10 @@ static Value posix_openpty(Value& ths, Value& fnc, Value& arg) {
 
 static Value posix_pathconf(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	errno = 0;
-	int res = pathconf(arg[0].toStringUTF8().c_str(), arg[1].toLong());
+	int res = pathconf(arg[0].to<UTF8>().c_str(), arg[1].to<int>());
 	if (res == -1 && errno != 0) doexc();
 	return ths.newNumber(res);
 }
@@ -579,8 +579,8 @@ static Value posix_pipe(Value& ths, Value& fnc, Value& arg) {
 static Value posix_read(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	char* buffer = new char[arg[1].toLong()];
-	if (read(arg[0].toLong(), buffer, arg[1].toLong()) < 0)
+	char* buffer = new char[arg[1].to<int>()];
+	if (read(arg[0].to<int>(), buffer, arg[1].to<int>()) < 0)
 		return doexc();
 	string str = buffer;
 	delete[] buffer;
@@ -589,55 +589,55 @@ static Value posix_read(Value& ths, Value& fnc, Value& arg) {
 
 static Value posix_readlink(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	char buffer[4096];
 	memset(buffer, 0, sizeof(char) * 4096);
-	ssize_t rd = readlink(arg[0].toStringUTF8().c_str(), buffer, 4096);
+	ssize_t rd = readlink(arg[0].to<UTF8>().c_str(), buffer, 4096);
 	if (rd < 0) return doexc();
 	return ths.newString(string(buffer, rd));
 }
 
 static Value posix_rename(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ss");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[1].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[1].to<UTF8>()).c_str());
 
-	doerr(rename(arg[0].toStringUTF8().c_str(), arg[1].toStringUTF8().c_str()));
+	doerr(rename(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str()));
 }
 
 static Value posix_rmdir(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	doerr(rmdir(arg[0].toStringUTF8().c_str()));
+	doerr(rmdir(arg[0].to<UTF8>().c_str()));
 }
 
 static Value posix_setegid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(setegid(arg[0].toLong()));
+	doerr(setegid(arg[0].to<int>()));
 }
 
 static Value posix_seteuid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(seteuid(arg[0].toLong()));
+	doerr(seteuid(arg[0].to<int>()));
 }
 
 static Value posix_setgid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(setgid(arg[0].toLong()));
+	doerr(setgid(arg[0].to<int>()));
 }
 
 static Value posix_setgroups(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "a");
 
-	long    len = arg[0].get("length").toLong();
+	long    len = arg[0].get("length").to<int>();
 	gid_t* list = new gid_t[len];
 	for (int i=0 ; i < len ; i++)
-		list[i] = arg[0][i].toLong();
+		list[i] = arg[0][i].to<int>();
 	if (setgroups(len, list) < 0) {
 		delete[] list;
 		return doexc();
@@ -649,7 +649,7 @@ static Value posix_setgroups(Value& ths, Value& fnc, Value& arg) {
 static Value posix_setpgid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(setpgid(arg[0].toLong(), arg[1].toLong()));
+	doerr(setpgid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 static Value posix_setpgrp(Value& ths, Value& fnc, Value& arg) {
@@ -659,25 +659,25 @@ static Value posix_setpgrp(Value& ths, Value& fnc, Value& arg) {
 static Value posix_setregid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(setregid(arg[0].toLong(), arg[1].toLong()));
+	doerr(setregid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 static Value posix_setresgid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
-	doerr(setresgid(arg[0].toLong(), arg[1].toLong(), arg[2].toLong()));
+	doerr(setresgid(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
 static Value posix_setresuid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
-	doerr(setresuid(arg[0].toLong(), arg[1].toLong(), arg[2].toLong()));
+	doerr(setresuid(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
 static Value posix_setreuid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(setreuid(arg[0].toLong(), arg[1].toLong()));
+	doerr(setreuid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 static Value posix_setsid(Value& ths, Value& fnc, Value& arg) {
@@ -689,15 +689,15 @@ static Value posix_setsid(Value& ths, Value& fnc, Value& arg) {
 static Value posix_setuid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	doerr(setuid(arg[0].toLong()));
+	doerr(setuid(arg[0].to<int>()));
 }
 
 static Value posix_stat(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	struct stat st;
-	int res = stat(arg[0].toStringUTF8().c_str(), &st);
+	int res = stat(arg[0].to<UTF8>().c_str(), &st);
 	if (res == -1) return doexc();
 
 	Value stt = ths.newObject();
@@ -719,10 +719,10 @@ static Value posix_stat(Value& ths, Value& fnc, Value& arg) {
 
 static Value posix_statvfs(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	struct statvfs st;
-	int res = statvfs(arg[0].toStringUTF8().c_str(), &st);
+	int res = statvfs(arg[0].to<UTF8>().c_str(), &st);
 	if (res == -1) return doexc();
 
 	Value stt = ths.newObject();
@@ -743,21 +743,21 @@ static Value posix_statvfs(Value& ths, Value& fnc, Value& arg) {
 static Value posix_strerror(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	return ths.newString(strerror(arg[0].toLong()));
+	return ths.newString(strerror(arg[0].to<int>()));
 }
 
 static Value posix_symlink(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ss");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[1].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[1].to<UTF8>()).c_str());
 
-	doerr(symlink(arg[0].toStringUTF8().c_str(), arg[1].toStringUTF8().c_str()));
+	doerr(symlink(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str()));
 }
 
 static Value posix_sysconf(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	long res = sysconf(arg[0].toLong());
+	long res = sysconf(arg[0].to<int>());
 	if (res < 0) return doexc();
 	return ths.newNumber(res);
 }
@@ -768,7 +768,7 @@ static Value posix_system(Value& ths, Value& fnc, Value& arg) {
 
 	int res;
 	if (arg[0].isString())
-		res = system(arg[0].toStringUTF8().c_str());
+		res = system(arg[0].to<UTF8>().c_str());
 	else
 		res = system(NULL);
 	if (res < 0) return doexc();
@@ -778,7 +778,7 @@ static Value posix_system(Value& ths, Value& fnc, Value& arg) {
 static Value posix_tcgetpgrp(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	pid_t res = tcgetpgrp(arg[0].toLong());
+	pid_t res = tcgetpgrp(arg[0].to<int>());
 	if (res < 0) return doexc();
 	return ths.newNumber(res);
 }
@@ -786,7 +786,7 @@ static Value posix_tcgetpgrp(Value& ths, Value& fnc, Value& arg) {
 static Value posix_tcsetpgrp(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
-	doerr(tcsetpgrp(arg[0].toLong(), arg[1].toLong()));
+	doerr(tcsetpgrp(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 static Value posix_tempnam(Value& ths, Value& fnc, Value& arg) {
@@ -794,10 +794,10 @@ static Value posix_tempnam(Value& ths, Value& fnc, Value& arg) {
 
 	string dir = "";
 	string prefix = "";
-	if (arg.get("length").toLong() > 0) {
-		dir = arg[0].toStringUTF8();
-		if (arg.get("length").toLong() > 1)
-			prefix = arg[1].toStringUTF8();
+	if (arg.get("length").to<int>() > 0) {
+		dir = arg[0].to<UTF8>();
+		if (arg.get("length").to<int>() > 1)
+			prefix = arg[1].to<UTF8>();
 	}
 	char* name = tempnam(dir.c_str(), prefix.c_str());
 	if (!name) return doexc();
@@ -829,7 +829,7 @@ static Value posix_tmpnam(Value& ths, Value& fnc, Value& arg) {
 static Value posix_ttyname(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	const char* name = ttyname(arg[0].toLong());
+	const char* name = ttyname(arg[0].to<int>());
 	if (!name) return doexc();
 	return ths.newString(name);
 }
@@ -837,7 +837,7 @@ static Value posix_ttyname(Value& ths, Value& fnc, Value& arg) {
 static Value posix_umask(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	return ths.newNumber(umask(arg[0].toLong()));
+	return ths.newNumber(umask(arg[0].to<int>()));
 }
 
 static Value posix_uname(Value& ths, Value& fnc, Value& arg) {
@@ -855,26 +855,26 @@ static Value posix_uname(Value& ths, Value& fnc, Value& arg) {
 
 static Value posix_unlink(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
-	doerr(unlink(arg[0].toStringUTF8().c_str()));
+	doerr(unlink(arg[0].to<UTF8>().c_str()));
 }
 
 static Value posix_utime(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s(nN)|n");
-	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].toStringUTF8()).c_str());
+	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	if (arg[1].isNull())
-		doerr(utime(arg[0].toStringUTF8().c_str(), NULL));
+		doerr(utime(arg[0].to<UTF8>().c_str(), NULL));
 
 	_exc = ensureArguments(arg, "snn");
 	if (_exc.isException()) return _exc;
 
 	struct utimbuf buf = {
-		arg[1].toLong(),
-		arg[2].toLong(),
+		arg[1].to<int>(),
+		arg[2].to<int>(),
 	};
-	doerr(utime(arg[0].toStringUTF8().c_str(), &buf));
+	doerr(utime(arg[0].to<UTF8>().c_str(), &buf));
 }
 
 static Value posix_wait(Value& ths, Value& fnc, Value& arg) {
@@ -888,7 +888,7 @@ static Value posix_waitpid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	int status;
-	pid_t pid = waitpid(arg[0].toLong(), &status, arg[1].toLong());
+	pid_t pid = waitpid(arg[0].to<int>(), &status, arg[1].to<int>());
 	if (pid < 0) return doexc();
 
 	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) status);
@@ -897,8 +897,8 @@ static Value posix_waitpid(Value& ths, Value& fnc, Value& arg) {
 static Value posix_write(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ns");
 
-	string str = arg[1].toStringUTF8();
-	ssize_t size = write(arg[0].toLong(), str.c_str(), str.length());
+	string str = arg[1].to<UTF8>();
+	ssize_t size = write(arg[0].to<int>(), str.c_str(), str.length());
 	if (size < 0) return doexc();
 	return ths.newNumber(size);
 }

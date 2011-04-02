@@ -11,7 +11,7 @@ int doTest(Engine& engine, Value& global) {
 
 	assert(!global.getRecursive("step.step.value").isException());
 	assert(global.getRecursive("step.step.value").isNumber());
-	assert(global.getRecursive("step.step.value").toLong() == 3);
+	assert(global.getRecursive("step.step.value").to<int>() == 3);
 
 	assert(!global.delRecursive("step.step.value").isException());
 	assert(!global.getRecursive("step.step").isException());

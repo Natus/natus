@@ -30,24 +30,24 @@ int doTest(Engine& engine, Value& global) {
 	Value modulea = req.require("__internal__");
 	assert(!modulea.isException());
 	assert(modulea.isObject());
-	assert(modulea.get("misc").toLong() == 0x1234);
+	assert(modulea.get("misc").to<int>() == 0x1234);
 
 	// Load the internal module again
 	Value moduleb = req.require("__internal__");
 	assert(!moduleb.isException());
 	assert(moduleb.isObject());
-	assert(moduleb.get("misc").toLong() == 0x1234);
+	assert(moduleb.get("misc").to<int>() == 0x1234);
 
 	// Check to make sure that the underlying values refer to the same object
 	assert(!modulea.set("test", 17L).isException());
-	assert(moduleb.get("test").toLong() == 17);
+	assert(moduleb.get("test").to<int>() == 17);
 
 	// Load a script file
 	Value scriptmod = req.require("script");
 	assert(!scriptmod.isException());
 	assert(scriptmod.isObject());
-	assert(scriptmod.get("number").toLong() == 115);
-	assert(scriptmod.get("string").toStringUTF8() == "hello world");
+	assert(scriptmod.get("number").to<int>() == 115);
+	assert(scriptmod.get("string").to<UTF8>() == "hello world");
 
 
 	// Cleanup

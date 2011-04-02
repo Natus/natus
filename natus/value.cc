@@ -322,23 +322,23 @@ Value Value::toException() {
 	return nt_value_incref(nt_value_to_exception(internal));
 }
 
-bool Value::toBool() const {
+template <> bool   Value::to<bool>()   const {
 	return nt_value_to_bool(internal);
 }
 
-double Value::toDouble() const {
+template <> double Value::to<double>() const {
 	return nt_value_to_double(internal);
 }
 
-int Value::toInt() const {
+template <> int    Value::to<int>()    const {
 	return nt_value_to_int(internal);
 }
 
-long Value::toLong() const {
+template <> long   Value::to<long>()   const {
 	return nt_value_to_long(internal);
 }
 
-UTF8 Value::toStringUTF8() const {
+template <> UTF8   Value::to<UTF8>()   const {
 	size_t len;
 	char* tmp = nt_value_to_string_utf8(internal, &len);
 	if (!tmp) return UTF8();
@@ -347,7 +347,7 @@ UTF8 Value::toStringUTF8() const {
 	return rslt;
 }
 
-UTF16 Value::toStringUTF16() const {
+template <> UTF16  Value::to<UTF16>()  const {
 	size_t len;
 	Char* tmp = nt_value_to_string_utf16(internal, &len);
 	if (!tmp) return UTF16();
