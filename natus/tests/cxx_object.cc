@@ -3,7 +3,7 @@
 class TestClass : public Class {
 public:
 	Class::Flags getFlags() {
-		return Class::FlagAll;
+		return Class::FlagFunction;
 	}
 
 	virtual Value del(Value& obj, Value& name) {
