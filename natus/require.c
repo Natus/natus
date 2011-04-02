@@ -164,7 +164,7 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 		char *prefix = nt_value_as_string_utf8(nt_value_get_index(path, i), NULL);
 
 		// Check for native modules
-		char *file = check_path(&st, "%s/%s.%s", prefix, name, MODSUFFIX);
+		char *file = check_path(&st, "%s/%s%s", prefix, name, MODSUFFIX);
 		if (file) {
 			if (!module) goto out;
 
