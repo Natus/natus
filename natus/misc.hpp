@@ -27,8 +27,8 @@
 #include "value.hpp"
 #include <cstdarg>
 
-#define NT_CHECK_ARGUMENTS(arg, fmt) \
-	Value _exc = checkArguments(arg, fmt); \
+#define NATUS_CHECK_ARGUMENTS(arg, fmt) \
+	Value _exc = ensureArguments(arg, fmt); \
 	if (_exc.isException()) return _exc;
 
 namespace natus {
@@ -41,7 +41,7 @@ Value throwException(Value ctx, const char* type, const char* format, va_list ap
 Value throwException(Value ctx, const char* type, int code, const char* format, ...);
 Value throwException(Value ctx, const char* type, int code, const char* format, va_list ap);
 Value throwException(Value ctx, int errorno);
-Value checkArguments(Value args, const char* fmt);
+Value ensureArguments(Value args, const char* fmt);
 
 Value fromJSON(Value json);
 Value fromJSON(Value ctx, UTF8 json);
