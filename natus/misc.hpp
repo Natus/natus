@@ -27,6 +27,10 @@
 #include "value.hpp"
 #include <cstdarg>
 
+#define NT_CHECK_ARGUMENTS(arg, fmt) \
+	Value _exc = checkArguments(arg, fmt); \
+	if (_exc.isException()) return _exc;
+
 namespace natus {
 
 char* vsprintf(const char* format, va_list ap);
