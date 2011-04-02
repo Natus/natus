@@ -25,10 +25,10 @@ libnatus_la_LIBADD   = libnatusc.la
 libnatus_la_LDFLAGS  = $(AM_LDFLAGS) -ldl -lpthread
 
 # Build/install the shell
-#bin_PROGRAMS         = natus
-#natus_SOURCES        = main.cc
-#natus_CXXFLAGS       = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -I../
-#natus_LDFLAGS        = $(AM_LDFLAGS) -lreadline
-#natus_LDADD          = libnatus.la
+bin_PROGRAMS         = natus
+natus_SOURCES        = main.cc
+natus_CXXFLAGS       = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -I../
+natus_LDFLAGS        = $(AM_LDFLAGS) -lreadline
+natus_LDADD          = libnatus.la
 
 SUBDIRS = . engines tests

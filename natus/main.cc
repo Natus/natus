@@ -52,27 +52,21 @@ using namespace natus;
 
 Value* glbl;
 
-static Value alert(Value& ths, Value& fnc, Value** args) {
-	Value exc = checkArguments(ths, args, "s");
-	if (exc.isException()) return exc;
+static Value alert(Value& ths, Value& fnc, Value& args) {
+	NT_CHECK_ARGUMENTS(fnc, "s");
 
-	char* tmp = args[0]->toString();
-	fprintf(stderr, "%s\n", tmp);
-	free(tmp);
+	fprintf(stderr, "%s\n", args[0].toStringUTF8().c_str());
 	return ths.newUndefined();
 }
 
-static Value dir(Value& ths, Value& fnc, Value** args) {
+static Value dir(Value& ths, Value& fnc, Value& args) {
 	Value obj = ths.getGlobal();
-	if (args && args[0])
-		obj = *args[0];
+	if (args.get("length").toLong() > 0)
+		obj = args[0];
 
 	Value names = obj.enumerate();
-	for (long i=0 ; i < names.get("length").toLong() ; i++) {
-		char* tmp = names[i].toString();
-		fprintf(stderr, "\t%s\n", tmp);
-		free(tmp);
-	}
+	for (long i=0 ; i < names.get("length").toLong() ; i++)
+		fprintf(stderr, "\t%s\n", names[i].toStringUTF8().c_str());
 	return ths.newUndefined();
 }
 
@@ -142,11 +136,8 @@ static char* completion_generator(const char* text, int state) {
 		}
 
 		Value nm = obj.enumerate();
-		for (long i=0 ; i < nm.get("length").toLong() ; i++) {
-			char* tmp = nm[i].toString();
-			names.insert(tmp);
-			free(tmp);
-		}
+		for (long i=0 ; i < nm.get("length").toLong() ; i++)
+			names.insert(nm[i].toStringUTF8().c_str());
 		it = names.begin();
 	}
 	if (last) last++;
@@ -167,19 +158,17 @@ static char** completion(const char* text, int start, int end) {
 	return rl_completion_matches(text, completion_generator);
 }
 
-Value set_path(Value& module, string& name, string& reldir, vector<string>& path, void* misc) {
-	const char** argv = (const char **) misc;
-	Value ret = module.newUndefined();
-	if (name != "system") return ret;
-	Value args = module.get("args");
-	if (!args.isArray()) return ret;
+static Value set_path(Value& ctx, Require::HookStep step, char* name, void* misc) {
+	if (step == Require::HookStepProcess && !strcmp(name, "system")) {
+		Value args = ctx.get("args");
+		if (!args.isArray()) return NULL;
 
-	for (int i=0 ; argv[i] ; i++) {
-		Value  pth = module.newString(argv[i]);
-		Value* pushargs[2] = { &pth, NULL };
-		args.call("push", pushargs);
+		const char** argv = (const char **) misc;
+		for (int i=0 ; argv[i] ; i++)
+			args.newArrayBuilder(argv[i]);
 	}
-	return ret;
+
+	return NULL;
 }
 
 int main(int argc, char** argv) {
@@ -243,8 +232,7 @@ int main(int argc, char** argv) {
 	if (!path.empty()) {
 		while (path.find(':') != string::npos)
 			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
-		string data = "[\"" + path + "\"]";
-		cfg.set("natus.path", fromJSON(global, data.c_str(), -1), Value::PropAttrNone, true);
+		cfg.setRecursive("natus.path", fromJSON(global, "[\"" + path + "\"]"), Value::PropAttrNone, true);
 	}
 	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
 		if (access(it->c_str(), R_OK) == 0) {
@@ -254,21 +242,20 @@ int main(int argc, char** argv) {
 				string key = line.substr(0, line.find('='));
 				Value  val = fromJSON(global, line.substr(line.find('=')+1).c_str());
 				if (val.isException()) continue;
-				cfg.set(key, val, Value::PropAttrNone, true);
+				cfg.setRecursive(key, val, Value::PropAttrNone, true);
 			}
 			file.close();
 		} else if (it->find("=") != string::npos) {
 			string key = it->substr(0, it->find('='));
 			Value  val = fromJSON(global, it->substr(it->find('=')+1));
 			if (val.isException()) continue;
-			cfg.set(key, val, Value::PropAttrNone, true);
+			cfg.setRecursive(key, val, Value::PropAttrNone, true);
 		}
 	}
-	string config = toJSONUTF8(cfg);
 
 	// Bring up the Module Loader
-	ModuleLoader ml(global);
-	if (ml.initialize(config).isException())
+	Require req(global);
+	if (!req.initialize(cfg))
 		error(3, 0, "Unable to init module loader!");
 
 	// Export some basic functions
@@ -280,10 +267,8 @@ int main(int argc, char** argv) {
 		Value res = global.evaluate(eval);
 
 		// Print uncaught exceptions
-		if (res.isException()) {
-			string msg = res.toString();
-			error(8, 0, "Uncaught Exception: %s", msg.c_str());
-		}
+		if (res.isException())
+			error(8, 0, "Uncaught Exception: %s", res.toStringUTF8().c_str());
 
 		// Let the script return exitcodes
 		if (res.isNumber())
@@ -326,9 +311,7 @@ int main(int argc, char** argv) {
 			add_history(prev.c_str());
 
 			Value res = global.evaluate(prev.c_str(), "", lcnt++);
-			string msg;
 			string fmt;
-			msg = res.toString();
 			if (res.isException()) {
 				fmt = "Uncaught Exception: %s\n";
 				if (prev == "exit" || prev == "quit") {
@@ -339,7 +322,7 @@ int main(int argc, char** argv) {
 				fmt = "%s\n";
 
 			if (!res.isUndefined() && !res.isNull())
-				fprintf(stderr, fmt.c_str(), msg.c_str());
+				fprintf(stderr, fmt.c_str(), res.toStringUTF8().c_str());
 			prev = "";
 		}
 		printf("\n");
@@ -374,15 +357,13 @@ int main(int argc, char** argv) {
 	jscript[st.st_size] = '\0';
 
 	// Evaluate it
-	ml.addRequireHook(true, set_path, argv+optind);
+	req.addHook("system_args", set_path, argv+optind);
 	Value res = global.evaluate(jscript, filename ? filename : "");
 	delete[] jscript;
 
 	// Print uncaught exceptions
-	if (res.isException()) {
-		string msg = res.toString();
-		error(8, 0, "Uncaught Exception: %s", msg.c_str());
-	}
+	if (res.isException())
+		error(8, 0, "Uncaught Exception: %s", res.toStringUTF8().c_str());
 
 	// Let the script return exitcodes
 	if (res.isNumber())
