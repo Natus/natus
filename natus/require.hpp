@@ -25,8 +25,12 @@
 #define MODULE_HPP_
 #include "types.hpp"
 #include "value.hpp"
+#include "misc.hpp"
 
 #define NATUS_MODULE_INIT natus_module_init
+#define NATUS_CHECK_ORIGIN(ctx, uri) \
+	if (!Require(ctx).originPermitted(uri)) \
+		return throwException(ctx, "SecurityError", "Permission denied!");
 
 namespace natus {
 

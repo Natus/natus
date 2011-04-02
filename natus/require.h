@@ -25,8 +25,12 @@
 #define MODULES_H_
 #include "types.h"
 #include "value.h"
+#include "misc.h"
 
 #define NATUS_MODULE_INIT natus_module_init
+#define NT_CHECK_ORIGIN(ctx, uri) \
+	if (!nt_require_origin_permitted(ctx, uri)) \
+		return nt_throw_exception(ctx, "SecurityError", "Permission denied!");
 
 #ifdef __cplusplus
 extern "C" {
