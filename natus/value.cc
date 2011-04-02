@@ -129,10 +129,8 @@ Value::Value() {
 }
 
 Value::Value(ntValue *value, bool steal) {
-	if (steal)
-		internal = value;
-	else
-		internal = nt_value_incref(value);
+	if (!steal) nt_value_incref(value);
+	internal = value;
 }
 
 Value::Value(const Value& value) {
