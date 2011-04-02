@@ -13,7 +13,7 @@
 using namespace std;
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/natus.h>
+#include <natus/natus.hpp>
 using namespace natus;
 
 static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int protocol);
@@ -43,7 +43,7 @@ static Value throwexc_eai(const Value& ctx, int error) {
 
 class SocketClass : public Class {
 	virtual Class::Flags getFlags() {
-		return Class::FlagGetProperty;
+		return Class::FlagGet;
 	}
 
 	virtual Value get(Value& obj, string key) {
@@ -52,7 +52,7 @@ class SocketClass : public Class {
 		char name[1024], port[21];
 		int status = 0;
 
-		int fd = (long) obj.getPrivate("posix.fd");
+		int fd = obj.getPrivate<long>("posix.fd");
 
 		if (key == "remoteAddress" || key == "remotePort")
 			status = getpeername(fd, (sockaddr*) &addr, &len);
@@ -73,26 +73,25 @@ class SocketClass : public Class {
 	}
 };
 
-static Value socket_accept(Value& ths, Value& fnc, vector<Value>& arg) {
-	int fd = (long) ths.getPrivate("posix.fd");
+static Value socket_accept(Value& ths, Value& fnc, Value& arg) {
+	int fd = ths.getPrivate<long>("posix.fd");
 
 	int newsock = accept(fd, NULL, NULL);
 	if (newsock < 0) return throwException(ths, errno);
-	return socket_from_sock(ths, newsock, ths.get("domain").toInt(), ths.get("type").toInt(), ths.get("protocol").toInt());
+	return socket_from_sock(ths, newsock, ths.get("domain").toLong(), ths.get("type").toLong(), ths.get("protocol").toLong());
 }
 
-static Value socket_bind(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "|s(sn)");
-	if (exc.isException()) return exc;
+static Value socket_bind(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "|s(sn)");
 
-	int    fd = (long) ths.getPrivate("posix.fd");
+	int    fd = ths.getPrivate<long>("posix.fd");
 	string ip = "0.0.0.0";
 	string port;
 
-	if (arg.size() > 0) {
-		ip = arg[0].toString();
-		if (arg.size() > 1)
-			port = arg[1].toString();
+	if (arg.get("length").toLong() > 0) {
+		ip = arg[0].toStringUTF8();
+		if (arg.get("length").toLong() > 1)
+			port = arg[1].toStringUTF8();
 	}
 
 	struct addrinfo* ai = NULL;
@@ -109,14 +108,13 @@ static Value socket_bind(Value& ths, Value& fnc, vector<Value>& arg) {
 	return ths.newUndefined();
 }
 
-static Value socket_connect(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "s(sn)");
-	if (exc.isException()) return exc;
+static Value socket_connect(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "s(sn)");
 
-	int fd = (long) ths.getPrivate("posix.fd");
+	int fd = ths.getPrivate<long>("posix.fd");
 
 	struct addrinfo* ai = NULL;
-	int status = getaddrinfo(arg[0].toString().c_str(), arg[1].toString().c_str(), NULL, &ai);
+	int status = getaddrinfo(arg[0].toStringUTF8().c_str(), arg[1].toStringUTF8().c_str(), NULL, &ai);
 	if (status != 0) {
 		freeaddrinfo(ai);
 		return throwexc_eai(ths, status);
@@ -129,23 +127,21 @@ static Value socket_connect(Value& ths, Value& fnc, vector<Value>& arg) {
 	return ths.newUndefined();
 }
 
-static Value socket_listen(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "|n");
-	if (exc.isException()) return exc;
+static Value socket_listen(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int fd = (long) ths.getPrivate("posix.fd");
-	if (listen(fd, arg.size() > 0 ? arg[0].toInt() : 1024) < 0)
+	int fd = ths.getPrivate<long>("posix.fd");
+	if (listen(fd, arg.get("length").toLong() > 0 ? arg[0].toLong() : 1024) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
-static Value fd_read(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "|n");
-	if (exc.isException()) return exc;
+static Value fd_read(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
-	int fd = (long) ths.getPrivate("posix.fd");
+	int fd = ths.getPrivate<long>("posix.fd");
 
-	int bs = arg.size() > 0 ? arg[0].toInt() : 1024;
+	int bs = arg.get("length").toLong() > 0 ? arg[0].toLong() : 1024;
 	char *buff = new char[bs];
 	ssize_t rcvd = read(fd, buff, bs);
 	if (rcvd < 0) {
@@ -166,21 +162,17 @@ static string _readline(int fd) {
 	return string(&c, 1) + _readline(fd);
 }
 
-static Value fd_readline(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "");
-	if (exc.isException()) return exc;
-
-	int fd = (long) ths.getPrivate("posix.fd");
+static Value fd_readline(Value& ths, Value& fnc, Value& arg) {
+	int fd = ths.getPrivate<long>("posix.fd");
 	return ths.newString(_readline(fd));
 }
 
-static Value socket_receive(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "|n");
-	if (exc.isException()) return exc;
+static Value socket_receive(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
-	int fd = (long) ths.getPrivate("posix.fd");
+	int fd = ths.getPrivate<long>("posix.fd");
 
-	int bs = arg.size() > 0 ? arg[0].toInt() : 1024;
+	int bs = arg.get("length").toLong() > 0 ? arg[0].toLong() : 1024;
 	char *buff = new char[bs];
 	ssize_t rcvd = recv(fd, buff, bs, 0);
 	if (rcvd < 0) {
@@ -192,57 +184,53 @@ static Value socket_receive(Value& ths, Value& fnc, vector<Value>& arg) {
 	return ths.newString(ret);
 }
 
-static Value socket_send(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "s");
-	if (exc.isException()) return exc;
+static Value socket_send(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "s");
 
-	int fd = (long) ths.getPrivate("posix.fd");
+	int fd = ths.getPrivate<long>("posix.fd");
 
-	string buff = arg[0].toString();
+	string buff = arg[0].toStringUTF8();
 	ssize_t snt = send(fd, buff.c_str(), buff.length(), 0);
 	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
 }
 
-static Value socket_shutdown(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "|n");
-	if (exc.isException()) return exc;
+static Value socket_shutdown(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
-	int fd = (long) ths.getPrivate("posix.fd");
-	if (shutdown(fd, arg.size() > 0 ? arg[0].toInt() : SHUT_RDWR) < 0)
+	int fd = ths.getPrivate<long>("posix.fd");
+	if (shutdown(fd, arg.get("length").toLong() > 0 ? arg[0].toLong() : SHUT_RDWR) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
-static Value fd_write(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "s");
-	if (exc.isException()) return exc;
+static Value fd_write(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "s");
 
-	int fd = (long) ths.getPrivate("posix.fd");
-	string buff = arg[0].toString();
+	int fd = ths.getPrivate<long>("posix.fd");
+	string buff = arg[0].toStringUTF8();
 	ssize_t snt = write(fd, buff.c_str(), buff.length());
 	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
 }
 
-static Value fd_close(Value& ths, Value& fnc, vector<Value>& arg) {
-	int fd = (long) ths.getPrivate("posix.fd");
+static Value fd_close(Value& ths, Value& fnc, Value& arg) {
+	int fd = ths.getPrivate<long>("posix.fd");
 	if (close(fd) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
-static Value socket_ctor(Value& ths, Value& fnc, vector<Value>& arg) {
-	Value exc = checkArguments(ths, arg, "|nnn");
-	if (exc.isException()) return exc;
+static Value socket_ctor(Value& ths, Value& fnc, Value& arg) {
+	NATUS_CHECK_ARGUMENTS(arg, "|nnn");
 
 	int domain = AF_INET, type = SOCK_STREAM, prot = 0;
-	if (arg.size() > 0) {
-		domain = arg[0].toInt();
-		if (arg.size() > 1) {
-			type = arg[1].toInt();
-			if (arg.size() > 2)
-				prot = arg[2].toInt();
+	if (arg.get("length").toLong() > 0) {
+		domain = arg[0].toLong();
+		if (arg.get("length").toLong() > 1) {
+			type = arg[1].toLong();
+			if (arg.get("length").toLong() > 2)
+				prot = arg[2].toLong();
 		}
 	}
 
@@ -279,10 +267,11 @@ static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int pr
 	return obj;
 }
 
-#define OK(x) ok = (x) || ok
+#define OK(x) ok = (!x.isException()) || ok
 #define NCONST(macro) OK(base.set("exports." # macro, macro))
 
-extern "C" bool natus_require(Value& base) {
+extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
+	Value base(module, false);
 	bool ok = false;
 
 	// Objects

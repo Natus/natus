@@ -24,7 +24,7 @@
 #include <stdlib.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/natus.h>
+#include <natus/natus.hpp>
 using namespace natus;
 
 class EnvClass : public Class {
@@ -33,37 +33,43 @@ public:
 		return Class::FlagObject;
 	}
 
-	virtual Value del(Value& obj, string name) {
-		unsetenv(name.c_str());
+	virtual Value del(Value& obj, Value& idx) {
+		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
+
+		unsetenv(idx.toStringUTF8().c_str());
 		return obj.newBool(true);
 	}
 
-	virtual Value get(Value& obj, string name) {
-		char *value = getenv(name.c_str());
+	virtual Value get(Value& obj, Value& idx) {
+		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
+
+		char *value = getenv(idx.toStringUTF8().c_str());
 		return value ? obj.newString(value) : obj.newUndefined();
 	}
 
-	virtual Value set(Value& obj, string name, Value& value) {
-		setenv(name.c_str(), value.toString().c_str(), true);
+	virtual Value set(Value& obj, Value& idx, Value& value) {
+		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
+
+		setenv(idx.toStringUTF8().c_str(), value.toStringUTF8().c_str(), true);
 		return obj.newBool(true);
 	}
 
 	virtual Value enumerate(Value& obj) {
 		extern char **environ;
 
-		vector<Value> keys;
+		Value properties = obj.newArray();
 		for (int i=0 ; environ[i] ; i++) {
-			string key = environ[i];
-			if (key.find_first_of('=') == string::npos) continue;
-			key = key.substr(0, key.find_first_of('='));
-			keys.push_back(obj.newString(key));
+			UTF8 key = environ[i];
+			if (key.find_first_of('=') == UTF8::npos) continue;
+			properties.newArrayBuilder(key.substr(0, key.find_first_of('=')));
 		}
-		return obj.newArray(keys);
+		return properties;
 	}
 };
 
-extern "C" bool natus_require(Value& base) {
-	bool ok = base.set("exports.args", base.newArray());
-	     ok = base.set("exports.env", base.newObject(new EnvClass())) || ok;
+extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
+	Value base(module, false);
+	bool ok = !base.set("exports.args", base.newArray()).isException();
+	     ok = !base.set("exports.env", base.newObject(new EnvClass())).isException() || ok;
 	return ok;
 }
