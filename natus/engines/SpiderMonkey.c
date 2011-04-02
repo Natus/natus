@@ -45,6 +45,8 @@ typedef enum {
 	smPropertyActionSet
 } smPropertyAction;
 
+static void obj_finalize(JSContext *ctx, JSObject *obj);
+
 static inline ntPrivate *get_private(JSContext *ctx, JSObject *obj) {
 	if (!ctx || !obj) return NULL;
 	if (JS_IsArrayObject(ctx, obj)) return NULL;
@@ -55,7 +57,11 @@ static inline ntPrivate *get_private(JSContext *ctx, JSObject *obj) {
 			return NULL;
 		obj = JSVAL_TO_OBJECT(privval);
 	}
-	return obj ? JS_GetPrivate(ctx, obj) : NULL;
+
+	JSClass *cls = JS_GetClass(ctx, obj);
+	if (!cls || cls->finalize != obj_finalize) return NULL;
+
+	return JS_GetPrivate(ctx, obj);
 }
 
 static inline ntPrivate *get_private_val(JSContext *ctx, jsval val) {
