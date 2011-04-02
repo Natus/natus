@@ -53,7 +53,7 @@ using namespace natus;
 Value* glbl;
 
 static Value alert(Value& ths, Value& fnc, Value& args) {
-	NT_CHECK_ARGUMENTS(fnc, "s");
+	NATUS_CHECK_ARGUMENTS(fnc, "s");
 
 	fprintf(stderr, "%s\n", args[0].toStringUTF8().c_str());
 	return ths.newUndefined();
