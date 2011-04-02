@@ -47,10 +47,10 @@ public:
 	bool initialize(const char* config);
 	Value getConfig();
 
-	bool addHook(const char* name, Hook func, void* misc, FreeFunction free);
+	bool addHook(const char* name, Hook func, void* misc=NULL, FreeFunction free=NULL);
 	bool delHook(const char* name);
 
-	bool addOriginMatcher(const char* name, OriginMatcher func, void* misc, FreeFunction free);
+	bool addOriginMatcher(const char* name, OriginMatcher func, void* misc=NULL, FreeFunction free=NULL);
 	bool delOriginMatcher(const char* name);
 
 	Value require(const char* name);
