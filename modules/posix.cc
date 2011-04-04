@@ -826,11 +826,11 @@ static Value posix_times(Value& ths, Value& fnc, Value& arg) {
 	if (c == ((clock_t) -1)) return doexc();
 
 	Value res = ths.newObject();
-	res.set("tms_utime",  t.tms_utime);
-	res.set("tms_stime",  t.tms_stime);
-	res.set("tms_cutime", t.tms_utime);
-	res.set("tms_cstime", t.tms_stime);
-	res.set("tms_ticks",  c);
+	res.set("tms_utime",  (double) t.tms_utime);
+	res.set("tms_stime",  (double) t.tms_stime);
+	res.set("tms_cutime", (double) t.tms_utime);
+	res.set("tms_cstime", (double) t.tms_stime);
+	res.set("tms_ticks",  (double) c);
 	return res;
 }
 
