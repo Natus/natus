@@ -9,7 +9,9 @@
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#ifdef __linux__
 #include <asm-generic/socket.h>
+#endif
 using namespace std;
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
@@ -241,7 +243,7 @@ static Value socket_ctor(Value& ths, Value& fnc, Value& arg) {
 
 static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int protocol) {
 	Value obj = ctx.newObject(new SocketClass);
-	obj.setPrivate("posix.fd", (void*) sock);
+	obj.setPrivate("posix.fd", (void*) (size_t) sock);
 	obj.set("accept",        socket_accept);
 	obj.set("bind",          socket_bind);
 	obj.set("connect",       socket_connect);
@@ -278,99 +280,279 @@ extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	OK(base.set("exports.Socket", socket_ctor));
 
 	// Constants
+#ifdef AF_APPLETALK
 	NCONST(AF_APPLETALK);
+#endif
+#ifdef AF_ASH
 	NCONST(AF_ASH);
+#endif
+#ifdef AF_ATMPVC
 	NCONST(AF_ATMPVC);
+#endif
+#ifdef AF_ATMSVC
 	NCONST(AF_ATMSVC);
+#endif
+#ifdef AF_AX25
 	NCONST(AF_AX25);
+#endif
+#ifdef AF_BRIDGE
 	NCONST(AF_BRIDGE);
+#endif
+#ifdef AF_DECnet
 	NCONST(AF_DECnet);
+#endif
+#ifdef AF_ECONET
 	NCONST(AF_ECONET);
+#endif
+#ifdef AF_INET
 	NCONST(AF_INET);
+#endif
+#ifdef AF_INET6
 	NCONST(AF_INET6);
+#endif
+#ifdef AF_IPX
 	NCONST(AF_IPX);
+#endif
+#ifdef AF_IRDA
 	NCONST(AF_IRDA);
+#endif
+#ifdef AF_KEY
 	NCONST(AF_KEY);
+#endif
+#ifdef AF_LLC
 	NCONST(AF_LLC);
+#endif
+#ifdef AF_NETBEUI
 	NCONST(AF_NETBEUI);
+#endif
+#ifdef AF_NETLINK
 	NCONST(AF_NETLINK);
+#endif
+#ifdef AF_NETROM
 	NCONST(AF_NETROM);
+#endif
+#ifdef AF_PACKET
 	NCONST(AF_PACKET);
+#endif
+#ifdef AF_PPPOX
 	NCONST(AF_PPPOX);
+#endif
+#ifdef AF_ROSE
 	NCONST(AF_ROSE);
+#endif
+#ifdef AF_ROUTE
 	NCONST(AF_ROUTE);
+#endif
+#ifdef AF_SECURITY
 	NCONST(AF_SECURITY);
+#endif
+#ifdef AF_SNA
 	NCONST(AF_SNA);
+#endif
+#ifdef AF_TIPC
 	NCONST(AF_TIPC);
+#endif
+#ifdef AF_UNIX
 	NCONST(AF_UNIX);
+#endif
+#ifdef AF_UNSPEC
 	NCONST(AF_UNSPEC);
+#endif
+#ifdef AF_WANPIPE
 	NCONST(AF_WANPIPE);
+#endif
+#ifdef AF_X25
 	NCONST(AF_X25);
+#endif
+#ifdef SOCK_DGRAM
 	NCONST(SOCK_DGRAM);
+#endif
+#ifdef SOCK_RAW
 	NCONST(SOCK_RAW);
+#endif
+#ifdef SOCK_RDM
 	NCONST(SOCK_RDM);
+#endif
+#ifdef SOCK_SEQPACKET
 	NCONST(SOCK_SEQPACKET);
+#endif
+#ifdef SOCK_STREAM
 	NCONST(SOCK_STREAM);
+#endif
+#ifdef SHUT_RD
 	NCONST(SHUT_RD);
+#endif
+#ifdef SHUT_RDWR
 	NCONST(SHUT_RDWR);
+#endif
+#ifdef SHUT_WR
 	NCONST(SHUT_WR);
+#endif
+#ifdef SOL_IP
 	NCONST(SOL_IP);
+#endif
+#ifdef SOL_SOCKET
 	NCONST(SOL_SOCKET);
+#endif
+#ifdef SOL_TCP
 	NCONST(SOL_TCP);
+#endif
+#ifdef SOL_UDP
 	NCONST(SOL_UDP);
+#endif
+#ifdef SO_DEBUG
 	NCONST(SO_DEBUG);
+#endif
+#ifdef SO_REUSEADDR
 	NCONST(SO_REUSEADDR);
+#endif
+#ifdef SO_TYPE
 	NCONST(SO_TYPE);
+#endif
+#ifdef SO_ERROR
 	NCONST(SO_ERROR);
+#endif
+#ifdef SO_DONTROUTE
 	NCONST(SO_DONTROUTE);
+#endif
+#ifdef SO_BROADCAST
 	NCONST(SO_BROADCAST);
+#endif
+#ifdef SO_SNDBUF
 	NCONST(SO_SNDBUF);
+#endif
+#ifdef SO_RCVBUF
 	NCONST(SO_RCVBUF);
+#endif
+#ifdef SO_SNDBUFFORCE
 	NCONST(SO_SNDBUFFORCE);
+#endif
+#ifdef SO_RCVBUFFORCE
 	NCONST(SO_RCVBUFFORCE);
+#endif
+#ifdef SO_KEEPALIVE
 	NCONST(SO_KEEPALIVE);
+#endif
+#ifdef SO_OOBINLINE
 	NCONST(SO_OOBINLINE);
+#endif
+#ifdef SO_NO_CHECK
 	NCONST(SO_NO_CHECK);
+#endif
+#ifdef SO_PRIORITY
 	NCONST(SO_PRIORITY);
+#endif
+#ifdef SO_LINGER
 	NCONST(SO_LINGER);
+#endif
 #ifdef SO_BSDCOMPAT
 	NCONST(SO_BSDCOMPAT);
 #endif
+#ifdef SO_PASSCRED
 	NCONST(SO_PASSCRED);
+#endif
+#ifdef SO_PEERCRED
 	NCONST(SO_PEERCRED);
+#endif
+#ifdef SO_RCVLOWAT
 	NCONST(SO_RCVLOWAT);
+#endif
+#ifdef SO_SNDLOWAT
 	NCONST(SO_SNDLOWAT);
+#endif
+#ifdef SO_RCVTIMEO
 	NCONST(SO_RCVTIMEO);
+#endif
+#ifdef SO_SNDTIMEO
 	NCONST(SO_SNDTIMEO);
+#endif
+#ifdef SO_SECURITY_AUTHENTICATION
 	NCONST(SO_SECURITY_AUTHENTICATION);
+#endif
+#ifdef SO_SECURITY_ENCRYPTION_TRANSPORT
 	NCONST(SO_SECURITY_ENCRYPTION_TRANSPORT);
+#endif
+#ifdef SO_SECURITY_ENCRYPTION_NETWORK
 	NCONST(SO_SECURITY_ENCRYPTION_NETWORK);
+#endif
+#ifdef SO_BINDTODEVICE
 	NCONST(SO_BINDTODEVICE);
+#endif
+#ifdef SO_ATTACH_FILTER
 	NCONST(SO_ATTACH_FILTER);
+#endif
+#ifdef SO_DETACH_FILTER
 	NCONST(SO_DETACH_FILTER);
+#endif
+#ifdef SO_PEERNAME
 	NCONST(SO_PEERNAME);
+#endif
+#ifdef SO_TIMESTAMP
 	NCONST(SO_TIMESTAMP);
+#endif
+#ifdef SO_ACCEPTCONN
 	NCONST(SO_ACCEPTCONN);
+#endif
+#ifdef SO_PEERSEC
 	NCONST(SO_PEERSEC);
+#endif
+#ifdef SO_PASSSEC
 	NCONST(SO_PASSSEC);
+#endif
+#ifdef SO_TIMESTAMPNS
 	NCONST(SO_TIMESTAMPNS);
+#endif
+#ifdef SO_MARK
 	NCONST(SO_MARK);
+#endif
+#ifdef SO_TIMESTAMPING
 	NCONST(SO_TIMESTAMPING);
+#endif
+#ifdef SO_PROTOCOL
 	NCONST(SO_PROTOCOL);
+#endif
+#ifdef SO_DOMAIN
 	NCONST(SO_DOMAIN);
+#endif
+#ifdef SO_RXQ_OVFL
 	NCONST(SO_RXQ_OVFL);
+#endif
+#ifdef TCP_CORK
 	NCONST(TCP_CORK);
+#endif
+#ifdef TCP_KEEPIDLE
 	NCONST(TCP_KEEPIDLE);
+#endif
+#ifdef TCP_KEEPINTVL
 	NCONST(TCP_KEEPINTVL);
+#endif
+#ifdef TCP_KEEPCNT
 	NCONST(TCP_KEEPCNT);
+#endif
+#ifdef TCP_SYNCNT
 	NCONST(TCP_SYNCNT);
+#endif
+#ifdef TCP_LINGER2
 	NCONST(TCP_LINGER2);
+#endif
+#ifdef TCP_DEFER_ACCEPT
 	NCONST(TCP_DEFER_ACCEPT);
+#endif
+#ifdef TCP_WINDOW_CLAMP
 	NCONST(TCP_WINDOW_CLAMP);
+#endif
+#ifdef TCP_INFO
 	NCONST(TCP_INFO);
+#endif
+#ifdef TCP_CONGESTION
 	NCONST(TCP_CONGESTION);
+#endif
+#ifdef TCP_MD5SIG
 	NCONST(TCP_MD5SIG);
+#endif
+#ifdef TCP_MD5SIG_MAXKEYLEN
 	NCONST(TCP_MD5SIG_MAXKEYLEN);
+#endif
 
 	return ok;
 }
