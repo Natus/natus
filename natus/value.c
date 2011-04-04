@@ -335,8 +335,9 @@ ntValue *nt_value_del_recursive_utf8(ntValue *obj, const char *id) {
 
 	char *next = strchr(id, '.');
 	if (next == NULL) return nt_value_del_utf8(obj, id);
-	char *base = strndup(id, next++ - id);
+	char *base = strdup(id);
 	if (!base) return NULL;
+	base[next++ - id] = '\0';
 
 	ntValue *tmp = nt_value_del_recursive_utf8(nt_value_get_utf8(obj, base), next);
 	free(base);
@@ -371,8 +372,9 @@ ntValue *nt_value_get_recursive_utf8(ntValue *obj, const char *id) {
 
 	char *next = strchr(id, '.');
 	if (next == NULL) return nt_value_get_utf8(obj, id);
-	char *base = strndup(id, next++ - id);
+	char *base = strdup(id);
 	if (!base) return NULL;
+	base[next++ - id] = '\0';
 
 	ntValue *tmp = nt_value_get_recursive_utf8(nt_value_get_utf8(obj, base), next);
 	free(base);
@@ -408,8 +410,9 @@ ntValue *nt_value_set_recursive_utf8(ntValue *obj, const char *id, const ntValue
 
 	char *next = strchr(id, '.');
 	if (next == NULL) return nt_value_set_utf8(obj, id, value, attrs);
-	char *base = strndup(id, next++ - id);
+	char *base = strdup(id);
 	if (!base) return NULL;
+	base[next++ - id] = '\0';
 
 	ntValue *step = nt_value_get_utf8(obj, base);
 	if (mkpath && (!step || nt_value_is_undefined(step))) {
