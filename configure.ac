@@ -129,8 +129,9 @@ printf "\tV8\t\t\t${with_v8:-no}\n"
 
 echo 
 echo "Building Modules:"
-printf "\tsystem\t\t\tyes\n"
 printf "\tposix\t\t\tyes\n"
+printf "\tsocket\t\t\tyes\n"
+printf "\tsystem\t\t\tyes\n"
 
 echo
 echo "Building Bindings:"
