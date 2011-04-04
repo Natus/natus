@@ -50,14 +50,21 @@ AM_CONDITIONAL([WITH_SPIDERMONKEY], [test x$with_spidermonkey = xyes])
 
 PKG_CHECK_MODULES(JavaScriptCore, webkitgtk-3.0, have_javascriptcore=yes,
 	[PKG_CHECK_MODULES(JavaScriptCore, webkit-1.0, have_javascriptcore=yes, have_javascriptcore=no)])
+if test x$have_javascriptcore = xno; then
+	AC_CHECK_HEADER(JavaScriptCore/JavaScriptCore.h, have_javascriptcore=yes, have_javascriptcore=no)
+	if test x$have_javascriptcore = xyes; then
+		WITH_JAVASCRIPTCORE=1
+		JavaScriptCore_LIBS="-framework JavaScriptCore"
+	fi
+fi
 AC_ARG_WITH([javascriptcore],
             [AS_HELP_STRING([--without-javascriptcore],
               [build the JavaScriptCore (WebKit) engine @<:@automatic@:>@])],
             [with_javascriptcore=no],
             [test x$have_javascriptcore = xyes && with_javascriptcore=yes])
 if test x$with_javascriptcore = xyes; then
-	AC_SUBST(javascriptcore_CFLAGS)
-	AC_SUBST(javascriptcore_LIBS)
+	AC_SUBST(JavaScriptCore_CFLAGS)
+	AC_SUBST(JavaScriptCore_LIBS)
 	if test x$have_javascriptcore = xno; then
 		echo "JavaScriptCore (WebKit) engine requires: webkit!"
 		exit 1
