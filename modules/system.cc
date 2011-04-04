@@ -27,6 +27,19 @@
 #include <natus/natus.hpp>
 using namespace natus;
 
+#ifdef __linux__
+static inline const char** __getenviron() {
+	extern char **environ;
+	return (const char**) environ;
+}
+#endif
+#ifdef __APPLE__
+#include <crt_externs.h>
+static inline const char** __getenviron() {
+	return (const char**) (*_NSGetEnviron());
+}
+#endif
+
 class EnvClass : public Class {
 public:
 	virtual Class::Flags getFlags () {
@@ -55,7 +68,7 @@ public:
 	}
 
 	virtual Value enumerate(Value& obj) {
-		extern char **environ;
+		const char **environ = __getenviron();
 
 		Value properties = obj.newArray();
 		for (int i=0 ; environ[i] ; i++) {

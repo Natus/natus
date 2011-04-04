@@ -14,7 +14,15 @@
 #include <fcntl.h>
 #include <grp.h>
 #include <signal.h>
+
+#ifdef __linux__
 #include <pty.h>
+#endif
+
+#ifdef __APPLE__
+#include <util.h>
+#endif
+
 using namespace std;
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
@@ -207,11 +215,13 @@ static Value posix_fchown(Value& ths, Value& fnc, Value& arg) {
 	doerr(fchown(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
+#ifdef __linux__
 static Value posix_fdatasync(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(fdatasync(arg[0].to<int>()));
 }
+#endif
 
 static Value posix_fork(Value& ths, Value& fnc, Value& arg) {
 	pid_t pid = fork();
@@ -362,6 +372,7 @@ static Value posix_getppid(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(getppid());
 }
 
+#ifdef __linux__
 static Value posix_getresgid(Value& ths, Value& fnc, Value& arg) {
 	gid_t rgid, egid, sgid;
 	if (getresgid(&rgid, &egid, &sgid) < 0)
@@ -377,6 +388,7 @@ static Value posix_getresuid(Value& ths, Value& fnc, Value& arg) {
 
 	return ths.newArrayBuilder((long) ruid).newArrayBuilder((long) euid).newArrayBuilder((long) suid);
 }
+#endif
 
 static Value posix_getsid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
@@ -662,6 +674,7 @@ static Value posix_setregid(Value& ths, Value& fnc, Value& arg) {
 	doerr(setregid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
+#ifdef __linux__
 static Value posix_setresgid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
@@ -673,6 +686,7 @@ static Value posix_setresuid(Value& ths, Value& fnc, Value& arg) {
 
 	doerr(setresuid(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
+#endif
 
 static Value posix_setreuid(Value& ths, Value& fnc, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
@@ -809,7 +823,7 @@ static Value posix_tempnam(Value& ths, Value& fnc, Value& arg) {
 static Value posix_times(Value& ths, Value& fnc, Value& arg) {
 	struct tms t;
 	clock_t c = times(&t);
-	if (c == -1) return doexc();
+	if (c == ((clock_t) -1)) return doexc();
 
 	Value res = ths.newObject();
 	res.set("tms_utime",  (double) t.tms_utime);
@@ -935,7 +949,9 @@ extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	NFUNC(fchdir);
 	NFUNC(fchmod);
 	NFUNC(fchown);
+#ifdef __linux__
 	NFUNC(fdatasync);
+#endif
 	NFUNC(fork);
 	NFUNC(forkpty);
 	NFUNC(fpathconf);
@@ -954,8 +970,10 @@ extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	NFUNC(getpgrp);
 	NFUNC(getpid);
 	NFUNC(getppid);
+#ifdef __linux__
 	NFUNC(getresgid);
 	NFUNC(getresuid);
+#endif
 	NFUNC(getsid);
 	NFUNC(getuid);
 	NFUNC(initgroups);
@@ -988,10 +1006,10 @@ extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	NFUNC(setpgid);
 	NFUNC(setpgrp);
 	NFUNC(setregid);
+#ifdef __linux__
 	NFUNC(setresgid);
 	NFUNC(setresuid);
-	NFUNC(setegid);
-	NFUNC(setresuid);
+#endif
 	NFUNC(setreuid);
 	NFUNC(setsid);
 	NFUNC(setuid);
@@ -1016,60 +1034,168 @@ extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	NFUNC(write);
 
 	// Constants
+#ifdef EX_CANTCREAT
 	NCONST(EX_CANTCREAT);
+#endif
+#ifdef EX_CONFIG
 	NCONST(EX_CONFIG);
+#endif
+#ifdef EX_DATAERR
 	NCONST(EX_DATAERR);
+#endif
+#ifdef EX_IOERR
 	NCONST(EX_IOERR);
+#endif
+#ifdef EX_NOHOST
 	NCONST(EX_NOHOST);
+#endif
+#ifdef EX_NOINPUT
 	NCONST(EX_NOINPUT);
+#endif
+#ifdef EX_NOPERM
 	NCONST(EX_NOPERM);
+#endif
+#ifdef EX_NOUSER
 	NCONST(EX_NOUSER);
+#endif
+#ifdef EX_OK
 	NCONST(EX_OK);
+#endif
+#ifdef EX_OSERR
 	NCONST(EX_OSERR);
+#endif
+#ifdef EX_OSFILE
 	NCONST(EX_OSFILE);
+#endif
+#ifdef EX_PROTOCOL
 	NCONST(EX_PROTOCOL);
+#endif
+#ifdef EX_SOFTWARE
 	NCONST(EX_SOFTWARE);
+#endif
+#ifdef EX_TEMPFAIL
 	NCONST(EX_TEMPFAIL);
+#endif
+#ifdef EX_UNAVAILABLE
 	NCONST(EX_UNAVAILABLE);
+#endif
+#ifdef EX_USAGE
 	NCONST(EX_USAGE);
+#endif
+#ifdef F_OK
 	NCONST(F_OK);
+#endif
+#ifdef NGROUPS_MAX
 	NCONST(NGROUPS_MAX);
+#endif
+#ifdef O_APPEND
 	NCONST(O_APPEND);
+#endif
+#ifdef O_ASYNC
 	NCONST(O_ASYNC);
+#endif
+#ifdef O_CREAT
 	NCONST(O_CREAT);
+#endif
+#ifdef O_DIRECT
 	NCONST(O_DIRECT);
+#endif
+#ifdef O_DIRECTORY
 	NCONST(O_DIRECTORY);
+#endif
+#ifdef O_DSYNC
 	NCONST(O_DSYNC);
+#endif
+#ifdef O_EXCL
 	NCONST(O_EXCL);
+#endif
+#ifdef O_LARGEFILE
 	NCONST(O_LARGEFILE);
+#endif
+#ifdef O_NDELAY
 	NCONST(O_NDELAY);
+#endif
+#ifdef O_NOATIME
 	NCONST(O_NOATIME);
+#endif
+#ifdef O_NOCTTY
 	NCONST(O_NOCTTY);
+#endif
+#ifdef O_NOFOLLOW
 	NCONST(O_NOFOLLOW);
+#endif
+#ifdef O_NONBLOCK
 	NCONST(O_NONBLOCK);
+#endif
+#ifdef O_RDONLY
 	NCONST(O_RDONLY);
+#endif
+#ifdef O_RDWR
 	NCONST(O_RDWR);
+#endif
+#ifdef O_RSYNC
 	NCONST(O_RSYNC);
+#endif
+#ifdef O_SYNC
 	NCONST(O_SYNC);
+#endif
+#ifdef O_TRUNC
 	NCONST(O_TRUNC);
+#endif
+#ifdef O_WRONLY
 	NCONST(O_WRONLY);
+#endif
+#ifdef R_OK
 	NCONST(R_OK);
+#endif
+#ifdef ST_APPEND
 	NCONST(ST_APPEND);
+#endif
+#ifdef ST_MANDLOCK
 	NCONST(ST_MANDLOCK);
+#endif
+#ifdef ST_NOATIME
 	NCONST(ST_NOATIME);
+#endif
+#ifdef ST_NODEV
 	NCONST(ST_NODEV);
+#endif
+#ifdef ST_NODIRATIME
 	NCONST(ST_NODIRATIME);
+#endif
+#ifdef ST_NOEXEC
 	NCONST(ST_NOEXEC);
+#endif
+#ifdef ST_NOSUID
 	NCONST(ST_NOSUID);
+#endif
+#ifdef ST_RDONLY
 	NCONST(ST_RDONLY);
+#endif
+#ifdef ST_RELATIME
 	NCONST(ST_RELATIME);
+#endif
+#ifdef ST_SYNCHRONOUS
 	NCONST(ST_SYNCHRONOUS);
+#endif
+#ifdef ST_WRITE
 	NCONST(ST_WRITE);
+#endif
+#ifdef TMP_MAX
 	NCONST(TMP_MAX);
+#endif
+#ifdef WCONTINUED
 	NCONST(WCONTINUED);
+#endif
+#ifdef WNOHANG
 	NCONST(WNOHANG);
+#endif
+#ifdef WUNTRACED
 	NCONST(WUNTRACED);
+#endif
+#ifdef W_OK
 	NCONST(W_OK);
+#endif
 
 	return ok;
 }
