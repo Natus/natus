@@ -32,7 +32,6 @@ using namespace std;
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
-#include <error.h>
 #include <sys/stat.h>
 
 #include <readline/readline.h>
@@ -49,6 +48,10 @@ using namespace natus;
 #define PROMPT ">>> "
 #define NPRMPT "... "
 #define HISTORYFILE ".natus_history"
+#define error(status, num, ...) { \
+        fprintf(stderr, __VA_ARGS__); \
+        return status; \
+}
 
 Value* glbl;
 
@@ -225,7 +228,7 @@ int main(int argc, char** argv) {
 	// Setup our global
 	global = engine.newGlobal();
 	if (global.isUndefined() || global.isException())
-			error(2, 0, "Unable to init global!");
+		error(2, 0, "Unable to init global!");
 
 	// Setup our config
 	Value cfg = global.newObject();
