@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-m4_define_default([PKG_CHECK_MODULES], [:])
+m4_define_default([PKG_CHECK_MODULES], [$4])
 
 AC_PREREQ(2.59)
 AC_INIT(natus, 0.2.0)
