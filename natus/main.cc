@@ -285,7 +285,7 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "Natus v" PACKAGE_VERSION " - Using: %s\n", engine.getName());
 		if (getenv("HOME"))
 			read_history((string(getenv("HOME")) + "/" + HISTORYFILE).c_str());
-		rl_readline_name = "natus";
+		rl_readline_name = (char*) "natus";
 		rl_attempted_completion_function = completion;
 		read_history(HISTORYFILE);
 
