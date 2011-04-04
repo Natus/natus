@@ -149,139 +149,399 @@ ntValue          *nt_throw_exception_code_varg(const ntValue *ctx, const char *t
 ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno) {
 	const char* type = "OSError";
 	switch (errorno) {
+#ifdef ENOMEM
 		case ENOMEM:
 			return NULL;
+#endif
+#ifdef EPERM
 		case EPERM:
 			type = "PermissionError";
 			break;
+#endif
+#ifdef ENOENT
 		case ENOENT:
+#endif
+#ifdef ESRCH
 		case ESRCH:
+#endif
+#ifdef EINTR
 		case EINTR:
+#endif
+#ifdef EIO
 		case EIO:
+#endif
+#ifdef ENXIO
 		case ENXIO:
+#endif
+#ifdef E2BIG
 		case E2BIG:
+#endif
+#ifdef ENOEXEC
 		case ENOEXEC:
+#endif
+#ifdef EBADF
 		case EBADF:
+#endif
+#ifdef ECHILD
 		case ECHILD:
+#endif
+#ifdef EAGAIN
 		case EAGAIN:
+#endif
+#ifdef EACCES
 		case EACCES:
+#endif
+#ifdef EFAULT
 		case EFAULT:
+#endif
+#ifdef ENOTBLK
 		case ENOTBLK:
+#endif
+#ifdef EBUSY
 		case EBUSY:
+#endif
+#ifdef EEXIST
 		case EEXIST:
+#endif
+#ifdef EXDEV
 		case EXDEV:
+#endif
+#ifdef ENODEV
 		case ENODEV:
+#endif
+#ifdef ENOTDIR
 		case ENOTDIR:
+#endif
+#ifdef EISDIR
 		case EISDIR:
+#endif
+#ifdef EINVAL
 		case EINVAL:
+#endif
+#ifdef ENFILE
 		case ENFILE:
+#endif
+#ifdef EMFILE
 		case EMFILE:
+#endif
+#ifdef ENOTTY
 		case ENOTTY:
+#endif
+#ifdef ETXTBSY
 		case ETXTBSY:
+#endif
+#ifdef EFBIG
 		case EFBIG:
+#endif
+#ifdef ENOSPC
 		case ENOSPC:
+#endif
+#ifdef ESPIPE
 		case ESPIPE:
+#endif
+#ifdef EROFS
 		case EROFS:
+#endif
+#ifdef EMLINK
 		case EMLINK:
+#endif
+#ifdef EPIPE
 		case EPIPE:
+#endif
+#ifdef EDOM
 		case EDOM:
+#endif
+#ifdef ERANGE
 		case ERANGE:
+#endif
+#ifdef EDEADLK
 		case EDEADLK:
+#endif
+#ifdef ENAMETOOLONG
 		case ENAMETOOLONG:
+#endif
+#ifdef ENOLCK
 		case ENOLCK:
+#endif
+#ifdef ENOSYS
 		case ENOSYS:
+#endif
+#ifdef ENOTEMPTY
 		case ENOTEMPTY:
+#endif
+#ifdef ELOOP
 		case ELOOP:
+#endif
+#ifdef ENOMSG
 		case ENOMSG:
+#endif
+#ifdef EIDRM
 		case EIDRM:
+#endif
+#ifdef ECHRNG
 		case ECHRNG:
+#endif
+#ifdef EL2NSYNC
 		case EL2NSYNC:
+#endif
+#ifdef EL3HLT
 		case EL3HLT:
+#endif
+#ifdef EL3RST
 		case EL3RST:
+#endif
+#ifdef ELNRNG
 		case ELNRNG:
+#endif
+#ifdef EUNATCH
 		case EUNATCH:
+#endif
+#ifdef ENOCSI
 		case ENOCSI:
+#endif
+#ifdef EL2HLT
 		case EL2HLT:
+#endif
+#ifdef EBADE
 		case EBADE:
+#endif
+#ifdef EBADR
 		case EBADR:
+#endif
+#ifdef EXFULL
 		case EXFULL:
+#endif
+#ifdef ENOANO
 		case ENOANO:
+#endif
+#ifdef EBADRQC
 		case EBADRQC:
+#endif
+#ifdef EBADSLT
 		case EBADSLT:
+#endif
+#ifdef EBFONT
 		case EBFONT:
+#endif
+#ifdef ENOSTR
 		case ENOSTR:
+#endif
+#ifdef ENODATA
 		case ENODATA:
+#endif
+#ifdef ETIME
 		case ETIME:
+#endif
+#ifdef ENOSR
 		case ENOSR:
+#endif
+#ifdef ENONET
 		case ENONET:
+#endif
+#ifdef ENOPKG
 		case ENOPKG:
+#endif
+#ifdef EREMOTE
 		case EREMOTE:
+#endif
+#ifdef ENOLINK
 		case ENOLINK:
+#endif
+#ifdef EADV
 		case EADV:
+#endif
+#ifdef ESRMNT
 		case ESRMNT:
+#endif
+#ifdef ECOMM
 		case ECOMM:
+#endif
+#ifdef EPROTO
 		case EPROTO:
+#endif
+#ifdef EMULTIHOP
 		case EMULTIHOP:
+#endif
+#ifdef EDOTDOT
 		case EDOTDOT:
+#endif
+#ifdef EBADMSG
 		case EBADMSG:
+#endif
+#ifdef EOVERFLOW
 		case EOVERFLOW:
+#endif
+#ifdef ENOTUNIQ
 		case ENOTUNIQ:
+#endif
+#ifdef EBADFD
 		case EBADFD:
+#endif
+#ifdef EREMCHG
 		case EREMCHG:
+#endif
+#ifdef ELIBACC
 		case ELIBACC:
+#endif
+#ifdef ELIBBAD
 		case ELIBBAD:
+#endif
+#ifdef ELIBSCN
 		case ELIBSCN:
+#endif
+#ifdef ELIBMAX
 		case ELIBMAX:
+#endif
+#ifdef ELIBEXEC
 		case ELIBEXEC:
+#endif
+#ifdef EILSEQ
 		case EILSEQ:
+#endif
+#ifdef ERESTART
 		case ERESTART:
+#endif
+#ifdef ESTRPIPE
 		case ESTRPIPE:
+#endif
+#ifdef EUSERS
 		case EUSERS:
+#endif
+#ifdef ENOTSOCK
 		case ENOTSOCK:
+#endif
+#ifdef EDESTADDRREQ
 		case EDESTADDRREQ:
+#endif
+#ifdef EMSGSIZE
 		case EMSGSIZE:
+#endif
+#ifdef EPROTOTYPE
 		case EPROTOTYPE:
+#endif
+#ifdef ENOPROTOOPT
 		case ENOPROTOOPT:
+#endif
+#ifdef EPROTONOSUPPORT
 		case EPROTONOSUPPORT:
+#endif
+#ifdef ESOCKTNOSUPPORT
 		case ESOCKTNOSUPPORT:
+#endif
+#ifdef EOPNOTSUPP
 		case EOPNOTSUPP:
+#endif
+#ifdef EPFNOSUPPORT
 		case EPFNOSUPPORT:
+#endif
+#ifdef EAFNOSUPPORT
 		case EAFNOSUPPORT:
+#endif
+#ifdef EADDRINUSE
 		case EADDRINUSE:
+#endif
+#ifdef EADDRNOTAVAIL
 		case EADDRNOTAVAIL:
+#endif
+#ifdef ENETDOWN
 		case ENETDOWN:
+#endif
+#ifdef ENETUNREACH
 		case ENETUNREACH:
+#endif
+#ifdef ENETRESET
 		case ENETRESET:
+#endif
+#ifdef ECONNABORTED
 		case ECONNABORTED:
+#endif
+#ifdef ECONNRESET
 		case ECONNRESET:
+#endif
+#ifdef ENOBUFS
 		case ENOBUFS:
+#endif
+#ifdef EISCONN
 		case EISCONN:
+#endif
+#ifdef ENOTCONN
 		case ENOTCONN:
+#endif
+#ifdef ESHUTDOWN
 		case ESHUTDOWN:
+#endif
+#ifdef ETOOMANYREFS
 		case ETOOMANYREFS:
+#endif
+#ifdef ETIMEDOUT
 		case ETIMEDOUT:
+#endif
+#ifdef ECONNREFUSED
 		case ECONNREFUSED:
+#endif
+#ifdef EHOSTDOWN
 		case EHOSTDOWN:
+#endif
+#ifdef EHOSTUNREACH
 		case EHOSTUNREACH:
+#endif
+#ifdef EALREADY
 		case EALREADY:
+#endif
+#ifdef EINPROGRESS
 		case EINPROGRESS:
+#endif
+#ifdef ESTALE
 		case ESTALE:
+#endif
+#ifdef EUCLEAN
 		case EUCLEAN:
+#endif
+#ifdef ENOTNAM
 		case ENOTNAM:
+#endif
+#ifdef ENAVAIL
 		case ENAVAIL:
+#endif
+#ifdef EISNAM
 		case EISNAM:
+#endif
+#ifdef EREMOTEIO
 		case EREMOTEIO:
+#endif
+#ifdef EDQUOT
 		case EDQUOT:
+#endif
+#ifdef ENOMEDIUM
 		case ENOMEDIUM:
+#endif
+#ifdef EMEDIUMTYPE
 		case EMEDIUMTYPE:
+#endif
+#ifdef ECANCELED
 		case ECANCELED:
+#endif
+#ifdef ENOKEY
 		case ENOKEY:
+#endif
+#ifdef EKEYEXPIRED
 		case EKEYEXPIRED:
+#endif
+#ifdef EKEYREVOKED
 		case EKEYREVOKED:
+#endif
+#ifdef EKEYREJECTED
 		case EKEYREJECTED:
+#endif
+#ifdef EOWNERDEAD
 		case EOWNERDEAD:
+#endif
+#ifdef ENOTRECOVERABLE
 		case ENOTRECOVERABLE:
+#endif
+#ifdef ERFKILL
 		case ERFKILL:
+#endif
 		default:
 			break;
 	}
