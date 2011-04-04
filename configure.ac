@@ -1,5 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
+m4_define_default([PKG_CHECK_MODULES], [:])
+
 AC_PREREQ(2.59)
 AC_INIT(natus, 0.2.0)
 AC_SUBST(PACKAGE_NAME)
@@ -16,6 +18,7 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AM_PROG_LIBTOOL
 AM_PROG_CC_C_O
+
 
 m4_ifdef([AM_SILENT_RULES], [
   AM_SILENT_RULES([yes])
@@ -113,16 +116,18 @@ AM_CONDITIONAL([WITH_PYTHON], [test x$with_python = xyes])
 echo
 echo
 echo "Building Engines:"
-echo -e "\tJavaScriptCore\t\t${with_javascriptcore:-no}"
-echo -e "\tSpiderMonkey\t\t${with_spidermonkey:-no}"
-echo -e "\tV8\t\t\t${with_v8:-no}"
+printf "\tJavaScriptCore\t\t${with_javascriptcore:-no}\n"
+printf "\tSpiderMonkey\t\t${with_spidermonkey:-no}\n"
+printf "\tV8\t\t\t${with_v8:-no}\n"
+
 echo 
 echo "Building Modules:"
-echo -e "\tsystem\t\t\tyes"
-echo -e "\tposix\t\t\tyes"
+printf "\tsystem\t\t\tyes\n"
+printf "\tposix\t\t\tyes\n"
+
 echo
 echo "Building Bindings:"
-echo -e "\tpython\t\t\t${with_python:-no}"
+printf "\tpython\t\t\t${with_python:-no}\n"
 echo
 echo
 
