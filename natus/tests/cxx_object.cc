@@ -13,9 +13,9 @@ public:
 		if (name.to<UTF8>() == "oom")
 			return NULL;
 		if (name.isNumber())
-			obj.setPrivate("test", (void *) name.to<int>());
+			obj.setPrivate("test", (void*) name.to<size_t>());
 		else
-			obj.setPrivate("test", (void *) name.to<UTF8>().length());
+			obj.setPrivate("test", (void*) name.to<UTF8>().length());
 		return obj.newBool(true);
 	}
 
@@ -34,7 +34,7 @@ public:
 			return obj.newString("error").toException();
 		if (name.to<UTF8>() == "oom")
 			return NULL;
-		obj.setPrivate("test", (void *) value.to<int>());
+		obj.setPrivate("test", (void*) value.to<size_t>());
 		return obj.newBool(true);
 	}
 
