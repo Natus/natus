@@ -44,7 +44,7 @@ int main() {
 			retval = 1;
 			fprintf(stderr, "Unable to init engine! %s\n",tmp);
 		}
-		printf("Engine: %s\n", engine.getName());
+		//printf("Engine: %s\n", engine.getName());
 
 		if (retval == 0) {
 			Value global = engine.newGlobal();
