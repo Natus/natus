@@ -14,12 +14,6 @@ static Value exception_function(Value& fnc, Value& ths, Value& arg) {
 }
 
 int doTest(Engine& engine, Value& global) {
-	printf("%d\n", __LINE__);
-	//global.newObject();
-	printf("%d\n", __LINE__);
-	//global.newObject();
-	printf("%d\n", __LINE__);
-
 	Value glbl = engine.newGlobal(global);
 	Value rslt;
 	Value func = global.newFunction(firstarg_function);
@@ -30,7 +24,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(glbl.get("x").isFunction());
 
 	// Call from C++
-	printf("%d\n", __LINE__);
 	rslt = global.call("x", global.newArrayBuilder(global.newNumber(123)));
 	assert(!rslt.isException());
 	assert(123 == rslt.to<int>());
@@ -39,7 +32,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(123 == rslt.to<int>());
 
 	// New from C++
-	printf("%d\n", __LINE__);
 	rslt = global.callNew("x", global.newArrayBuilder(global.newObject()));
 	assert(!rslt.isException());
 	assert(rslt.isObject());
@@ -48,7 +40,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(rslt.isObject());
 
 	// Call from JS
-	printf("%d\n", __LINE__);
 	rslt = global.evaluate("x(123);");
 	assert(!rslt.isException());
 	assert(123 == rslt.to<int>());
@@ -79,9 +70,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(rslt.isException());
 
 	// Exception New from C++
-	printf("%d\n", __LINE__);
 	rslt = global.callNew("x", global.newArrayBuilder(global.newObject()));
-	printf("%d\n", __LINE__);
 	assert(rslt.isException());
 	rslt = glbl.callNew("x", glbl.newArrayBuilder(glbl.newObject()));
 	assert(rslt.isException());
