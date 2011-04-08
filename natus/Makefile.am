@@ -31,4 +31,4 @@ natus_CXXFLAGS       = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -I../
 natus_LDFLAGS        = $(AM_LDFLAGS) -lreadline
 natus_LDADD          = libnatus.la
 
-SUBDIRS = . engines tests
+SUBDIRS = . engines

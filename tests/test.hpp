@@ -10,7 +10,7 @@
 #include <natus/natus.hpp>
 using namespace natus;
 
-#define ENGINEDIR "../engines/.libs"
+#define ENGINEDIR "../natus/engines/.libs"
 
 int doTest(Engine& engine, Value& global);
 
