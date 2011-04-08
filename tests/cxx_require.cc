@@ -18,7 +18,7 @@ Value hook(Value& ctx, Require::HookStep step, char* name, void* misc) {
 
 int doTest(Engine& engine, Value& global) {
 	Value config = global.newObject();
-	Value   path = global.newArrayBuilder("./lib");
+	Value   path = global.newArrayBuilder("./");
 	config.setRecursive("natus.require.path", path, Value::PropAttrNone, true);
 
 	// Initialize the require system
@@ -43,12 +43,11 @@ int doTest(Engine& engine, Value& global) {
 	assert(moduleb.get("test").to<int>() == 17);
 
 	// Load a script file
-	Value scriptmod = req.require("script");
+	Value scriptmod = req.require("scriptmod");
 	assert(!scriptmod.isException());
 	assert(scriptmod.isObject());
 	assert(scriptmod.get("number").to<int>() == 115);
 	assert(scriptmod.get("string").to<UTF8>() == "hello world");
-
 
 	// Cleanup
 	return 0;
