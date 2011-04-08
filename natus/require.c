@@ -166,7 +166,7 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 		// Check for native modules
 		char *file = check_path(&st, "%s/%s%s", prefix, name, MODSUFFIX);
 		if (file) {
-			if (!module) goto out;
+			if (step == ntRequireHookStepResolve) goto out;
 
 			void *dll = dlopen(file, RTLD_NOW | RTLD_GLOBAL);
 			if (!dll) {
@@ -191,7 +191,7 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 		file = check_path(&st, "%s/%s.js", prefix, name);
 		if (!file) file = check_path(&st, "%s/%s/__init__.js", prefix, name);
 		if (file) {
-			if (!module) goto out;
+			if (step == ntRequireHookStepResolve) goto out;
 
 			// If we have a javascript text module
 			FILE *modfile = fopen(file, "r");
