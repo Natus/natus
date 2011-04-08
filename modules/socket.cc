@@ -270,14 +270,14 @@ static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int pr
 }
 
 #define OK(x) ok = (!x.isException()) || ok
-#define NCONST(macro) OK(base.set("exports." # macro, macro))
+#define NCONST(macro) OK(mod.setRecursive("exports." # macro, macro))
 
 extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
-	Value base(module, false);
+	Value mod(module, false);
 	bool ok = false;
 
 	// Objects
-	OK(base.set("exports.Socket", socket_ctor));
+	OK(mod.setRecursive("exports.Socket", socket_ctor));
 
 	// Constants
 #ifdef AF_APPLETALK
