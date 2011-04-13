@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
 	if (!path.empty()) {
 		while (path.find(':') != string::npos)
 			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
-		cfg.setRecursive("natus.require.path", fromJSON(global, "[\"" + path + "\"]"), Value::PropAttrNone, true);
+		assert(!cfg.setRecursive("natus.require.path", fromJSON(global, "[\"" + path + "\"]"), Value::PropAttrNone, true).isException());
 	}
 	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
 		if (access(it->c_str(), R_OK) == 0) {
@@ -244,15 +244,24 @@ int main(int argc, char** argv) {
 				if (line.find('=') == string::npos) continue;
 				string key = line.substr(0, line.find('='));
 				Value  val = fromJSON(global, line.substr(line.find('=')+1).c_str());
-				if (val.isException()) continue;
-				cfg.setRecursive(key, val, Value::PropAttrNone, true);
+				if (val.isException()) {
+					fprintf(stderr, "An error occurred in file '%s'\n", it->c_str());
+					fprintf(stderr, "\tline: %s\n", line.c_str());
+					fprintf(stderr, "\t%s\n", val.to<UTF8>().c_str());
+					continue;
+				}
+				assert(!cfg.setRecursive(key, val, Value::PropAttrNone, true).isException());
 			}
 			file.close();
 		} else if (it->find("=") != string::npos) {
 			string key = it->substr(0, it->find('='));
 			Value  val = fromJSON(global, it->substr(it->find('=')+1));
-			if (val.isException()) continue;
-			cfg.setRecursive(key, val, Value::PropAttrNone, true);
+			if (val.isException()) {
+				fprintf(stderr, "An error occurred on '%s'\n", it->c_str());
+				fprintf(stderr, "\t%s\n", val.to<UTF8>().c_str());
+				continue;
+			}
+			assert(!cfg.setRecursive(key, val, Value::PropAttrNone, true).isException());
 		}
 	}
 
