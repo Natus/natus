@@ -14,5 +14,6 @@ TESTS = cxx_globals \
         cxx_string \
         cxx_json \
         cxx_recursive \
-        cxx_require
+        cxx_require \
+        cxx_exception
 noinst_PROGRAMS  = $(TESTS)
