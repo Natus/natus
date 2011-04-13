@@ -440,7 +440,7 @@ static char            *jsc_value_to_string_utf8  (const ntValue *val, size_t *l
 	if (!str) return NULL;
 
 	*len = JSStringGetMaximumUTF8CStringSize(str);
-	char *buff = calloc(sizeof(char), *len);
+	char *buff = calloc(*len, sizeof(char));
 	if (!buff) {
 		JSStringRelease(str);
 		return NULL;
@@ -457,12 +457,13 @@ static ntChar          *jsc_value_to_string_utf16 (const ntValue *val, size_t *l
 	if (!str) return NULL;
 
 	*len = JSStringGetLength(str);
-	ntChar *buff = calloc(sizeof(ntChar), *len);
+	ntChar *buff = calloc(*len+1, sizeof(ntChar));
 	if (!buff) {
 		JSStringRelease(str);
 		return NULL;
 	}
-	memcpy(buff, JSStringGetCharactersPtr(str), *len);
+	memcpy(buff, JSStringGetCharactersPtr(str), *len * sizeof(JSChar));
+	buff[*len] = '\0';
 	JSStringRelease(str);
 
 	return buff;
