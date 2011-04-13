@@ -48,6 +48,7 @@
 #include "misc.h"
 #include "private.h"
 #include "require.h"
+#include "vsprintf.h"
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "backend.h"
@@ -110,7 +111,7 @@ static void _foreach_match(const char *name, reqOriginMatcher *om, loopData *ld)
 static char *check_path(struct stat *st, const char *fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
-	char *fn = nt_vsprintf(fmt, ap);
+	char *fn = _vsprintf(fmt, ap);
 	va_end(ap);
 	if (!fn) return NULL;
 
@@ -224,8 +225,7 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 			return retval;
 	}
 	nt_value_decref(path);
-
-	return nt_throw_exception(module, "ImportError", "%s not found!", name);
+	return nt_throw_exception(module, "ImportError", "Module '%s' not found!", name);
 }
 
 static ntValue *require_js(ntValue *require, ntValue *ths, ntValue *arg) {
@@ -504,7 +504,7 @@ typedef struct {
 	ntValue              *res;
 } ntHookData;
 
-static void do_hooks(const char *notused, reqHook *hook, ntHookData *misc) {
+static void do_hooks(const char *hookname, reqHook *hook, ntHookData *misc) {
 	if (!misc || misc->res) return;
 	char name[PATH_MAX];
 	strcpy(name, misc->name);
