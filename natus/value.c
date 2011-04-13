@@ -469,6 +469,21 @@ ntValue *nt_value_private_get_value(const ntValue *obj, const char *key) {
 
 ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filename, unsigned int lineno) {
 	if (!ths || !javascript) return NULL;
+	ntValue *jscript = NULL;
+
+	// Remove shebang line if present
+	size_t len;
+	ntChar *chars = nt_value_to_string_utf16(javascript, &len);
+	if (len > 2 && chars[0] == '#' && chars[1] == '!') {
+		size_t i;
+		for (i=2 ; i < len ; i++) {
+			if (chars[i] == '\n') {
+				jscript = nt_value_new_string_utf16_length(ths, chars+i, len-i);
+				break;
+			}
+		}
+	}
+	free(chars);
 
 	// Add the file's directory to the require stack
 	bool pushed = false;
@@ -486,7 +501,8 @@ ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValu
 		nt_value_decref(args);
 	}
 
-	ntValue *rslt = ths->eng->espec->value.evaluate(ths, javascript, filename, lineno);
+	ntValue *rslt = ths->eng->espec->value.evaluate(ths, jscript ? jscript : javascript, filename, lineno);
+	nt_value_decref(jscript);
 
 	// Remove the directory from the stack
 	if (pushed) nt_value_decref(nt_value_call_utf8(stck, "pop", NULL));
@@ -498,10 +514,6 @@ ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValu
 ntValue *nt_value_evaluate_utf8(ntValue *ths, const char *javascript, const char *filename, unsigned int lineno) {
 	if (!ths || !javascript) return NULL;
 	if (!(nt_value_get_type(ths) & (ntValueTypeArray | ntValueTypeFunction | ntValueTypeObject))) return NULL;
-
-	// Remove shebang line if present
-	if (!strncmp(javascript, "#!", 2))
-		while (*javascript++ != '\n');
 
 	ntValue *jscript = nt_value_new_string_utf8(ths, javascript);
 	if (!jscript) return NULL;
