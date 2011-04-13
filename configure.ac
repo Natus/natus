@@ -34,7 +34,7 @@ PKG_CHECK_MODULES(SpiderMonkey, libjs >= 1.8, have_spidermonkey=yes,
 	[PKG_CHECK_MODULES(SpiderMonkey, seamonkey-js >= 2, have_spidermonkey=yes,
 	[PKG_CHECK_MODULES(SpiderMonkey, mozilla2-js  >= 2, have_spidermonkey=yes, have_spidermonkey=no)])])])])])
 AC_ARG_WITH([SpiderMonkey],
-            [AS_HELP_STRING([--without-spidermonkey],
+            [AS_HELP_STRING([--without-SpiderMonkey],
               [disable the SpiderMonkey (Mozilla) engine @<:@automatic@:>@])],
             [with_spidermonkey=no],
             [test x$have_spidermonkey = xyes && with_spidermonkey=yes])
@@ -57,8 +57,8 @@ if test x$have_javascriptcore = xno; then
 		JavaScriptCore_LIBS="-framework JavaScriptCore"
 	fi
 fi
-AC_ARG_WITH([javascriptcore],
-            [AS_HELP_STRING([--without-javascriptcore],
+AC_ARG_WITH([JavaScriptCore],
+            [AS_HELP_STRING([--without-JavaScriptCore],
               [build the JavaScriptCore (WebKit) engine @<:@automatic@:>@])],
             [with_javascriptcore=no],
             [test x$have_javascriptcore = xyes && with_javascriptcore=yes])
@@ -77,7 +77,7 @@ AC_CHECK_HEADER(v8.h, have_v8=yes, have_v8=no)
 AC_LANG_POP
 AC_ARG_WITH([v8],
             [AS_HELP_STRING([--without-v8],
-              [disable the V8 (Chrome/Chromium) engine @<:@automatic@:>@])],
+              [disable the v8 (Chrome/Chromium) engine @<:@automatic@:>@])],
             [with_v8=no],
             [test x$have_v8 = xyes && with_v8=yes])
 if test x$with_v8 = xyes; then
@@ -141,6 +141,6 @@ echo
 
 MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
-AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile tests/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
+AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile tests/Makefile tests/native/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
 AC_OUTPUT
 
