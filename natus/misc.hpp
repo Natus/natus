@@ -36,10 +36,10 @@ namespace natus {
 char* vsprintf(const char* format, va_list ap);
 char* sprintf(const char* format, ...);
 
-Value throwException(Value ctx, const char* type, const char* format, ...);
 Value throwException(Value ctx, const char* type, const char* format, va_list ap);
-Value throwException(Value ctx, const char* type, int code, const char* format, ...);
+Value throwException(Value ctx, const char* type, const char* format, ...);
 Value throwException(Value ctx, const char* type, int code, const char* format, va_list ap);
+Value throwException(Value ctx, const char* type, int code, const char* format, ...);
 Value throwException(Value ctx, int errorno);
 Value ensureArguments(Value args, const char* fmt);
 
