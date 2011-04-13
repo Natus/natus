@@ -6,6 +6,9 @@
 *.m4
 *.in
 *.tar.gz
+*.log
+*.pc
+*.spec
 .deps
 .libs
 Makefile
@@ -22,6 +25,9 @@ config.log
 config.status
 config.guess
 autom4te.cache
+compile
 
 natus/natus
-tests/cxx_*
+tests/runjstest
+tests/native/cxx_*
+!tests/native/*.cc
