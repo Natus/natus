@@ -7,10 +7,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,32 +18,27 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
 
-#ifndef MISCXX_HPP_
-#define MISCXX_HPP_
-#include "types.hpp"
-#include "value.hpp"
-#include <cstdarg>
+#ifndef VSPRINTF_H_
+#define VSPRINTF_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 
-#define NATUS_CHECK_ARGUMENTS(arg, fmt) \
-	Value _exc = ensureArguments(arg, fmt); \
-	if (_exc.isException()) return _exc;
+static inline char *_vsprintf(const char *format, va_list ap) {
+	va_list apc;
+	int size = 0;
 
-namespace natus {
-Value throwException(Value ctx, const char* type, const char* format, va_list ap);
-Value throwException(Value ctx, const char* type, const char* format, ...);
-Value throwException(Value ctx, const char* type, int code, const char* format, va_list ap);
-Value throwException(Value ctx, const char* type, int code, const char* format, ...);
-Value throwException(Value ctx, int errorno);
-Value ensureArguments(Value args, const char* fmt);
+	va_copy(apc, ap);
+	size = vsnprintf(NULL, 0, format, apc);
+	va_end(apc);
 
-Value fromJSON(Value json);
-Value fromJSON(Value ctx, UTF8 json);
-Value fromJSON(Value ctx, UTF16 json);
-Value toJSON(Value val);
-
+	char *buf = malloc(size+1);
+	if (!size) return NULL;
+	assert(size == vsnprintf(buf, size+1, format, ap));
+	return buf;
 }
-#endif /* MISCXX_HPP_ */
 
+#endif /* VSPRINTF_H_ */

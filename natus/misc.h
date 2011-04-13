@@ -34,10 +34,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-char    *nt_vsprintf(const char *format, va_list ap);
-char    *nt_sprintf(const char *format, ...);
-
 ntValue *nt_throw_exception          (const ntValue *ctx, const char *type, const char *format, ...);
 ntValue *nt_throw_exception_varg     (const ntValue *ctx, const char *type, const char *format, va_list ap);
 ntValue *nt_throw_exception_code     (const ntValue *ctx, const char *type, int code, const char *format, ...);

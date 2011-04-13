@@ -9,8 +9,9 @@ CSOURCES   = engine.c   misc.c   value.c   require.c   private.c
 CXXHEADERS = engine.hpp misc.hpp value.hpp require.hpp           natus.hpp types.hpp
 CXXSOURCES = engine.cc  misc.cc  value.cc  require.cc
 
-# Install the headers
+# Handle the headers
 natinc_HEADERS = $(CHEADERS) $(CXXHEADERS)
+noinst_HEADERS = vsprintf.h
 
 # Build our internal C library
 noinst_LTLIBRARIES   = libnatusc.la

@@ -29,6 +29,7 @@
 
 #include "misc.h"
 #include "value.h"
+#include "vsprintf.h"
 
 static ntValue *exception_toString(ntValue *fnc, ntValue *ths, ntValue *args) {
 	size_t typelen, msglen, codelen, len;
@@ -81,28 +82,6 @@ static ntValue *exception_toString(ntValue *fnc, ntValue *ths, ntValue *args) {
 	return vstr;
 }
 
-char *nt_vsprintf(const char *format, va_list ap) {
-	va_list apc;
-	int size = 0;
-
-	va_copy(apc, ap);
-	size = vsnprintf(NULL, 0, format, apc);
-	va_end(apc);
-
-	char *buf = malloc(size+1);
-	if (!size) return NULL;
-	assert(size == vsnprintf(buf, size+1, format, ap));
-	return buf;
-}
-
-char *nt_sprintf(const char *format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	char *tmp = nt_vsprintf(format, ap);
-	va_end(ap);
-	return tmp;
-}
-
 ntValue          *nt_throw_exception(const ntValue *ctx, const char *type, const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
@@ -113,7 +92,7 @@ ntValue          *nt_throw_exception(const ntValue *ctx, const char *type, const
 }
 
 ntValue *nt_throw_exception_varg(const ntValue *ctx, const char *type, const char *format, va_list ap) {
-	char *msg = nt_vsprintf(format, ap);
+	char *msg = _vsprintf(format, ap);
 	if (!msg) return NULL;
 
 	ntValue *exc   = nt_value_new_object(ctx, NULL);

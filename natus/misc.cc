@@ -26,19 +26,6 @@
 using namespace natus;
 
 namespace natus {
-
-char* vsprintf(const char* format, va_list ap) {
-	return nt_vsprintf(format, ap);
-}
-
-char* sprintf(const char* format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	char *tmp = nt_vsprintf(format, ap);
-	va_end(ap);
-	return tmp;
-}
-
 Value throwException(Value ctx, const char* type, const char* format, va_list ap) {
 	return nt_throw_exception_varg(ctx.borrowCValue(), type, format, ap);
 }
