@@ -223,12 +223,12 @@ int main(int argc, char** argv) {
 
 	// Initialize the engine
 	if (!engine.initialize(eng))
-		error(1, 0, "Unable to init engine!");
+		error(1, 0, "Unable to init engine!\n");
 
 	// Setup our global
 	global = engine.newGlobal();
 	if (global.isUndefined() || global.isException())
-		error(2, 0, "Unable to init global!");
+		error(2, 0, "Unable to init global!\n");
 
 	// Setup our config
 	Value cfg = global.newObject();
@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
 	// Bring up the Module Loader
 	Require req(global);
 	if (!req.initialize(cfg))
-		error(3, 0, "Unable to init module loader!");
+		error(3, 0, "Unable to init module loader\n!");
 
 	// Export some basic functions
 	global.set("alert", global.newFunction(alert));
@@ -340,21 +340,21 @@ int main(int argc, char** argv) {
 	// Stat our file
 	struct stat st;
 	if (stat(filename, &st))
-		error(3, 0, "Script file does not exist: %s", filename);
+		error(3, 0, "Script file does not exist: %s\n", filename);
 
 	// Read in our script file
 	FILE *file = fopen(filename, "r");
 	if (!file)
-		error(4, 0, "Unable to open file: %s", filename);
+		error(4, 0, "Unable to open file: %s\n", filename);
 	char *jscript = new char[st.st_size + 1];
 	if (!jscript) {
 		fclose(file);
-		error(5, 0, "Out of memory!");
+		error(5, 0, "Out of memory!\n");
 	}
 	if ((size_t) fread(jscript, 1, st.st_size, file) != (size_t) st.st_size) {
 		delete[] jscript;
 		fclose(file);
-		error(6, 0, "Error reading file: %s", filename);
+		error(6, 0, "Error reading file: %s\n", filename);
 	}
 	fclose(file);
 	jscript[st.st_size] = '\0';
@@ -366,7 +366,7 @@ int main(int argc, char** argv) {
 
 	// Print uncaught exceptions
 	if (res.isException())
-		error(8, 0, "Uncaught Exception: %s", res.to<UTF8>().c_str());
+		error(8, 0, "Uncaught Exception: %s\n", res.to<UTF8>().c_str());
 
 	// Let the script return exitcodes
 	if (res.isNumber())
