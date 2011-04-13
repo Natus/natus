@@ -71,7 +71,7 @@ static ntValue* get_instance(const ntValue* ctx, JSValueRef val, bool exc)  {
 
 	CTX(self) = CTX(ctx);
 	VAL(self) = val ? val : JSValueMakeUndefined(CTX(ctx));
-	self->typ = _ntValueTypeUnknown;
+	self->typ = ntValueTypeUnknown;
 	if (!VAL(self)) {
 		free(self);
 		return NULL;
@@ -228,7 +228,7 @@ static JSValueRef obj_call(JSContextRef ctx, JSObjectRef object, JSObjectRef thi
 
 	// Do the call
 	ntValue *fnc = get_instance(glbl, object, false);
-	ntValue *ths = thisObject ? get_instance(glbl, thisObject, false) : NULL;
+	ntValue *ths = thisObject ? get_instance(glbl, thisObject, false) : nt_value_new_undefined(glbl);
 	ntValue *arg = get_instance(glbl, arga, false);
 	ntValue *res = func ? func(fnc, ths, arg) : clss->call(clss, fnc, ths, arg);
 	nt_value_decref(arg);
@@ -312,16 +312,16 @@ static ntValueType      jsc_value_get_type        (const ntValue *val) {
 
 	// ARRAY
 	JSStringRef str = JSStringCreateWithUTF8CString("constructor");
-	if (!str) return _ntValueTypeUnknown;
+	if (!str) return ntValueTypeUnknown;
 	JSValueRef  prp = JSObjectGetProperty(CTX(val), OBJ(val), str, NULL);
 	JSStringRelease(str);
 	JSObjectRef obj = JSValueIsObject(CTX(val), prp) ? JSValueToObject(CTX(val), prp, NULL) : NULL;
 	str = JSStringCreateWithUTF8CString("name");
-	if (!str) return _ntValueTypeUnknown;
+	if (!str) return ntValueTypeUnknown;
 	if (obj && (prp = JSObjectGetProperty(CTX(val), obj, str, NULL)) && JSValueIsString(CTX(val), prp)) {
 		JSStringRelease(str);
 		str = JSValueToStringCopy(CTX(val), prp, NULL);
-		if (!str) return _ntValueTypeUnknown;
+		if (!str) return ntValueTypeUnknown;
 		if (JSStringIsEqualToUTF8CString(str, "Array")) {
 			JSStringRelease(str);
 			return ntValueTypeArray;

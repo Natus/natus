@@ -145,13 +145,15 @@ ntEngine *nt_value_get_engine(const ntValue *ctx) {
 }
 
 ntValueType nt_value_get_type(const ntValue *ctx) {
-	if (!ctx) return _ntValueTypeUnknown;
-	if (ctx->typ == _ntValueTypeUnknown)
+	if (!ctx) return ntValueTypeUnknown;
+	if (ctx->typ == ntValueTypeUnknown)
 		((ntValue*) ctx)->typ = ctx->eng->espec->value.get_type(ctx);
 	return ctx->typ;
 }
 
 const char *nt_value_get_type_name(const ntValue *ctx) {
+	if (!ctx) return "outofmemory";
+
 	switch (nt_value_get_type(ctx)) {
 		case ntValueTypeArray:
 			return "array";
@@ -226,7 +228,6 @@ bool nt_value_is_string(const ntValue *val) {
 }
 
 bool nt_value_is_undefined(const ntValue *val) {
-	if (!val) return true;
 	return nt_value_is_type(val, ntValueTypeUndefined);
 }
 
@@ -536,6 +537,10 @@ ntValue *nt_value_evaluate_utf8(ntValue *ths, const char *javascript, const char
 ntValue *nt_value_call(ntValue *func, ntValue *ths, ntValue *args) {
 	ntValue *newargs = NULL;
 	if (!args) args = newargs = nt_value_new_array(func, NULL);
+	if (ths)
+		nt_value_incref(ths);
+	else
+		ths = nt_value_new_undefined(func);
 
 	// If the function is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
@@ -551,6 +556,7 @@ ntValue *nt_value_call(ntValue *func, ntValue *ths, ntValue *args) {
 		res = func->eng->espec->value.call(func, ths, args);
 	}
 
+	nt_value_decref(ths);
 	nt_value_decref(newargs);
 	return res;
 }
@@ -573,11 +579,11 @@ ntValue *nt_value_call_utf8(ntValue *ths, const char *name, ntValue *args) {
 	return ret;
 }
 
-ntValue *nt_value_call_new               (ntValue *func, ntValue *args) {
+ntValue *nt_value_call_new(ntValue *func, ntValue *args) {
 	return nt_value_call(func, NULL, args);
 }
 
-ntValue *nt_value_call_new_utf8          (ntValue *obj, const char *name, ntValue *args) {
+ntValue *nt_value_call_new_utf8(ntValue *obj, const char *name, ntValue *args) {
 	ntValue *fnc = nt_value_get_utf8(obj, name);
 	ntValue *ret = nt_value_call(fnc, NULL, args);
 	nt_value_decref(fnc);

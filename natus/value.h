@@ -40,7 +40,7 @@
 typedef ntValue *(*ntNativeFunction)(ntValue *fnc, ntValue *ths, ntValue *arg);
 
 typedef enum {
-	_ntValueTypeUnknown  = 0, // Internal use only
+	ntValueTypeUnknown   = 0 << 0,
 	ntValueTypeArray     = 1 << 0,
 	ntValueTypeBool      = 1 << 1,
 	ntValueTypeFunction  = 1 << 2,
@@ -119,7 +119,7 @@ char             *nt_value_to_string_utf8         (const ntValue *val, size_t *l
 ntChar           *nt_value_to_string_utf16        (const ntValue *val, size_t *len);
 bool              nt_value_as_bool                (ntValue *val);
 double            nt_value_as_double              (ntValue *val);
-int               nt_value_as_int                (ntValue *val);
+int               nt_value_as_int                 (ntValue *val);
 long              nt_value_as_long                (ntValue *val);
 char             *nt_value_as_string_utf8         (ntValue *val, size_t *len);
 ntChar           *nt_value_as_string_utf16        (ntValue *val, size_t *len);

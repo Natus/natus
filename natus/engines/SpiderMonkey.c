@@ -79,7 +79,7 @@ static ntValue* get_instance(const ntValue* ctx, jsval val, bool exc)  {
 
 	CTX(self) = CTX(ctx);
 	VAL(self) = val;
-	self->typ = _ntValueTypeUnknown;
+	self->typ = ntValueTypeUnknown;
 	JSVAL_LOCK(CTX(ctx), val);
 
 	self->eng = nt_engine_incref(ctx->eng);
@@ -324,7 +324,7 @@ static ntValueType      sm_value_get_type         (const ntValue *val) {
 		else
 			return ntValueTypeObject;
 	}
-	return _ntValueTypeUnknown;
+	return ntValueTypeUnknown;
 }
 
 void             sm_value_free             (ntValue *val) {
