@@ -30,8 +30,8 @@
 #include "misc.h"
 #include "value.h"
 
-static ntValue *exception_toString(ntValue *ths, ntValue *fnc, ntValue *args) {
-	size_t typelen, msglen, codelen;
+static ntValue *exception_toString(ntValue *fnc, ntValue *ths, ntValue *args) {
+	size_t typelen, msglen, codelen, len;
 
 	ntValue *type = nt_value_get_utf8(ths, "type");
 	ntValue *msg  = nt_value_get_utf8(ths, "msg");
@@ -40,7 +40,8 @@ static ntValue *exception_toString(ntValue *ths, ntValue *fnc, ntValue *args) {
 	ntChar *stype = nt_value_to_string_utf16(type, &typelen);
 	ntChar *smsg  = nt_value_to_string_utf16(msg,  &msglen);
 	ntChar *scode = nt_value_to_string_utf16(code, &codelen);
-	bool hascode  = nt_value_is_undefined(code);
+	bool hascode  = !nt_value_is_undefined(code);
+	len = typelen + msglen + 2 + (hascode ? codelen + 2 : 0);
 
 	nt_value_decref(type);
 	nt_value_decref(msg);
@@ -62,15 +63,17 @@ static ntValue *exception_toString(ntValue *ths, ntValue *fnc, ntValue *args) {
 	}
 	ntChar *tmp = str;
 
-	memcpy(tmp, stype, sizeof(ntChar) * typelen); tmp += sizeof(ntChar) * typelen;
-	memcpy(tmp, L": ", sizeof(ntChar) * 2);       tmp += sizeof(ntChar) * 2;
+	memcpy(tmp, stype, sizeof(ntChar) * typelen); tmp += typelen;
+	*tmp = ':'; tmp++;
+	*tmp = ' '; tmp++;
 	if (hascode) {
-		memcpy(tmp, scode, sizeof(ntChar) * codelen); tmp += sizeof(ntChar) * codelen;
-		memcpy(tmp, L": ", sizeof(ntChar) * 2);       tmp += sizeof(ntChar) * 2;
+		memcpy(tmp, scode, sizeof(ntChar) * codelen); tmp += codelen;
+		*tmp = ':'; tmp++;
+		*tmp = ' '; tmp++;
 	}
 	memcpy(tmp, smsg, sizeof(ntChar) * msglen);
 
-	ntValue *vstr = nt_value_new_string_utf16_length(ths, str, typelen + msglen + codelen + 4);
+	ntValue *vstr = nt_value_new_string_utf16_length(ths, str, len);
 	free(stype);
 	free(smsg);
 	free(scode);
