@@ -80,7 +80,7 @@ static ntValue* get_instance(const ntValue* ctx, jsval val, bool exc)  {
 	CTX(self) = CTX(ctx);
 	VAL(self) = val;
 	self->typ = _ntValueTypeUnknown;
-	JS_AddValueRoot(CTX(ctx), &val);
+	JSVAL_LOCK(CTX(ctx), val);
 
 	self->eng = nt_engine_incref(ctx->eng);
 	self->exc = exc;
@@ -211,7 +211,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 
 		// If we have finished our iteration, end
 		if ((jsuint) JSVAL_TO_INT(step) >= len) {
-			JS_RemoveValueRoot(ctx, statep);
+			JSVAL_UNLOCK(ctx, *statep);
 			*statep = JSVAL_NULL;
 			return JS_TRUE;
 		}
@@ -227,7 +227,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 		return JS_TRUE;
 	} else if (enum_op == JSENUMERATE_DESTROY) {
 		assert(statep);
-		JS_RemoveValueRoot(ctx, statep);
+		JSVAL_UNLOCK(ctx, *statep);
 		return JS_TRUE;
 	}
 	assert(enum_op == JSENUMERATE_INIT);
@@ -256,7 +256,7 @@ static JSBool obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, js
 	// Keep the jsval, but dispose of the ntValue
 	*statep = VAL(res);
 	nt_value_decref(res);
-	JS_AddValueRoot(ctx, statep);
+	JSVAL_LOCK(ctx, *statep);
 	if (idp) *idp = INT_TO_JSVAL(len);
 	return JS_TRUE;
 }
@@ -328,7 +328,7 @@ static ntValueType      sm_value_get_type         (const ntValue *val) {
 }
 
 void             sm_value_free             (ntValue *val) {
-	JS_RemoveValueRoot(CTX(val), &VAL(val));
+	JSVAL_UNLOCK(CTX(val), VAL(val));
 	if (JS_GetGlobalObject(CTX(val)) == OBJ(val)) {
 		JS_GC(CTX(val));
 		JS_DestroyContext(CTX(val));
@@ -431,36 +431,37 @@ static double           sm_value_to_double        (const ntValue *val) {
 	return d;
 }
 
-static char            *sm_value_to_string_utf8   (const ntValue *val, size_t *len) {
+static inline JSString *_val_to_string(JSContext *ctx, jsval val) {
 	JSClass* jsc = NULL;
 	jsval v;
-	if (!JSVAL_IS_OBJECT(VAL(val))
-			|| !(jsc = JS_GetClass(CTX(val), OBJ(val)))
+	if (!JSVAL_IS_OBJECT(val)
+			|| !(jsc = JS_GetClass(ctx, JSVAL_TO_OBJECT(val)))
 			|| !jsc->convert
-			|| !jsc->convert(CTX(val), OBJ(val), JSTYPE_STRING, &v))
-		JS_ConvertValue(CTX(val), VAL(val), JSTYPE_STRING, &v);
+			|| !jsc->convert(ctx, JSVAL_TO_OBJECT(val), JSTYPE_STRING, &v))
+		JS_ConvertValue(ctx, val, JSTYPE_STRING, &v);
 
-	size_t bufflen = JS_GetStringEncodingLength(CTX(val), JSVAL_TO_STRING(v));
+	if (JSVAL_IS_OBJECT(v))
+		return JS_NewStringCopyN(ctx, "[object Object]", strlen("[object Object]"));
+	return JS_ValueToString(ctx, v);
+}
+
+static char            *sm_value_to_string_utf8   (const ntValue *val, size_t *len) {
+	JSString *str = _val_to_string(CTX(val), VAL(val));
+	*len = JS_GetStringLength(str);
+
+	size_t bufflen = JS_GetStringEncodingLength(CTX(val), str);
 	char  *buff = calloc(bufflen+1, sizeof(char));
 	if (!buff) return NULL;
 	memset(buff, 0, sizeof(char) * (bufflen+1));
 
-	*len = JS_EncodeStringToBuffer(JSVAL_TO_STRING(v), buff, bufflen);
+	*len = JS_EncodeStringToBuffer(str, buff, bufflen);
 	if (*len >= 0 && *len <= bufflen) return buff;
 	free(buff);
 	return NULL;
 }
 
 static ntChar          *sm_value_to_string_utf16  (const ntValue *val, size_t *len) {
-	JSClass* jsc = NULL;
-	jsval v;
-	if (!nt_value_is_type(val, ntValueTypeObject)
-			|| !(jsc = JS_GetClass(CTX(val), OBJ(val)))
-			|| !jsc->convert
-			|| !jsc->convert(CTX(val), OBJ(val), JSTYPE_STRING, &v))
-		JS_ConvertValue(CTX(val), VAL(val), JSTYPE_STRING, &v);
-
-	JSString *str = JS_ValueToString(CTX(val), v);
+	JSString *str = _val_to_string(CTX(val), VAL(val));
 	*len = JS_GetStringLength(str);
 
 	const jschar *jschars = JS_GetStringCharsAndLength(CTX(val), str, len);
@@ -659,7 +660,7 @@ static ntValue* sm_engine_newg(void *engine, ntValue *global) {
 		JS_DestroyContext(ctx);
 	}
 
-	JS_AddValueRoot(ctx, &VAL(self));
+	JSVAL_LOCK(ctx, VAL(self));
 	return self;
 }
 
