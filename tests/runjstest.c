@@ -3,7 +3,7 @@
 
 #include "test.h"
 
-#define CMDPREFIX "../natus/natus -C natus.require.path=\"['" MODULEDIR "']\" -e '"
+#define CMDPREFIX NATUSBIN " -C natus.require.path=\"['" MODULEDIR "']\" -e '"
 
 int onEngine(const char *engine, int argc, const char **argv) {
 	char cmd[PATH_MAX];
