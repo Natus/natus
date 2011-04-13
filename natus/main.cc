@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
 	if (!path.empty()) {
 		while (path.find(':') != string::npos)
 			path = path.substr(0, path.find(':')) + "\", \"" + path.substr(path.find(':')+1);
-		cfg.setRecursive("natus.path", fromJSON(global, "[\"" + path + "\"]"), Value::PropAttrNone, true);
+		cfg.setRecursive("natus.require.path", fromJSON(global, "[\"" + path + "\"]"), Value::PropAttrNone, true);
 	}
 	for (vector<string>::iterator it=configs.begin() ; it != configs.end() ; it++) {
 		if (access(it->c_str(), R_OK) == 0) {
