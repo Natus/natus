@@ -14,5 +14,6 @@ int onEngine(const char *engine, int argc, const char **argv) {
 		strncat(cmd, argv[1], PATH_MAX - strlen(cmd));
 
 	printf("%s\n", cmd);
-	return system(cmd);
+	int es = system(cmd);
+	return WEXITSTATUS(es);
 }
