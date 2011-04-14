@@ -1,6 +1,3 @@
-#include <sstream>
-#include <iostream>
-
 #include <cerrno>
 #include <cstring>
 #include <cstdlib>
@@ -17,6 +14,8 @@ using namespace std;
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/natus.hpp>
 using namespace natus;
+
+#define PRIV_POSIX_FD "posix::fd"
 
 static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int protocol);
 
@@ -54,7 +53,7 @@ class SocketClass : public Class {
 		char name[1024], port[21];
 		int status = 0;
 
-		int fd = obj.getPrivate<long>("posix.fd");
+		int fd = obj.getPrivate<long>(PRIV_POSIX_FD);
 
 		if (key.to<UTF8>() == "remoteAddress" || key.to<UTF8>() == "remotePort")
 			status = getpeername(fd, (sockaddr*) &addr, &len);
@@ -75,18 +74,18 @@ class SocketClass : public Class {
 	}
 };
 
-static Value socket_accept(Value& ths, Value& fnc, Value& arg) {
-	int fd = ths.getPrivate<long>("posix.fd");
+static Value socket_accept(Value& fnc, Value& ths, Value& arg) {
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 
 	int newsock = accept(fd, NULL, NULL);
 	if (newsock < 0) return throwException(ths, errno);
 	return socket_from_sock(ths, newsock, ths.get("domain").to<int>(), ths.get("type").to<int>(), ths.get("protocol").to<int>());
 }
 
-static Value socket_bind(Value& ths, Value& fnc, Value& arg) {
+static Value socket_bind(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|s(sn)");
 
-	int    fd = ths.getPrivate<long>("posix.fd");
+	int    fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 	string ip = "0.0.0.0";
 	string port;
 
@@ -110,10 +109,10 @@ static Value socket_bind(Value& ths, Value& fnc, Value& arg) {
 	return ths.newUndefined();
 }
 
-static Value socket_connect(Value& ths, Value& fnc, Value& arg) {
+static Value socket_connect(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s(sn)");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 
 	struct addrinfo* ai = NULL;
 	int status = getaddrinfo(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str(), NULL, &ai);
@@ -129,19 +128,19 @@ static Value socket_connect(Value& ths, Value& fnc, Value& arg) {
 	return ths.newUndefined();
 }
 
-static Value socket_listen(Value& ths, Value& fnc, Value& arg) {
+static Value socket_listen(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 	if (listen(fd, arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
-static Value fd_read(Value& ths, Value& fnc, Value& arg) {
+static Value fd_read(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 
 	int bs = arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024;
 	char *buff = new char[bs];
@@ -164,15 +163,15 @@ static string _readline(int fd) {
 	return string(&c, 1) + _readline(fd);
 }
 
-static Value fd_readline(Value& ths, Value& fnc, Value& arg) {
-	int fd = ths.getPrivate<long>("posix.fd");
+static Value fd_readline(Value& fnc, Value& ths, Value& arg) {
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 	return ths.newString(_readline(fd));
 }
 
-static Value socket_receive(Value& ths, Value& fnc, Value& arg) {
+static Value socket_receive(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 
 	int bs = arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024;
 	char *buff = new char[bs];
@@ -186,10 +185,10 @@ static Value socket_receive(Value& ths, Value& fnc, Value& arg) {
 	return ths.newString(ret);
 }
 
-static Value socket_send(Value& ths, Value& fnc, Value& arg) {
+static Value socket_send(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 
 	string buff = arg[0].to<UTF8>();
 	ssize_t snt = send(fd, buff.c_str(), buff.length(), 0);
@@ -197,33 +196,33 @@ static Value socket_send(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(snt);
 }
 
-static Value socket_shutdown(Value& ths, Value& fnc, Value& arg) {
+static Value socket_shutdown(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 	if (shutdown(fd, arg.get("length").to<int>() > 0 ? arg[0].to<int>() : SHUT_RDWR) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
-static Value fd_write(Value& ths, Value& fnc, Value& arg) {
+static Value fd_write(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 
-	int fd = ths.getPrivate<long>("posix.fd");
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 	string buff = arg[0].to<UTF8>();
 	ssize_t snt = write(fd, buff.c_str(), buff.length());
 	if (snt < 0) return throwException(ths, errno);
 	return ths.newNumber(snt);
 }
 
-static Value fd_close(Value& ths, Value& fnc, Value& arg) {
-	int fd = ths.getPrivate<long>("posix.fd");
+static Value fd_close(Value& fnc, Value& ths, Value& arg) {
+	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
 	if (close(fd) < 0)
 		return throwException(ths, errno);
 	return ths.newUndefined();
 }
 
-static Value socket_ctor(Value& ths, Value& fnc, Value& arg) {
+static Value socket_ctor(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|nnn");
 
 	int domain = AF_INET, type = SOCK_STREAM, prot = 0;
@@ -243,7 +242,7 @@ static Value socket_ctor(Value& ths, Value& fnc, Value& arg) {
 
 static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int protocol) {
 	Value obj = ctx.newObject(new SocketClass);
-	obj.setPrivate("posix.fd", (void*) (size_t) sock);
+	obj.setPrivate(PRIV_POSIX_FD, (void*) (size_t) sock);
 	obj.set("accept",        socket_accept);
 	obj.set("bind",          socket_bind);
 	obj.set("connect",       socket_connect);
@@ -259,10 +258,6 @@ static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int pr
 	obj.set("isConnected",   false);
 	obj.set("isReadable",    false);
 	obj.set("isWritable",    false);
-	obj.set("localAddress",  "");
-	obj.set("localPort",     -1);
-	obj.set("remoteAddress", "");
-	obj.set("remotePort",    -1);
 	obj.set("domain",        domain);
 	obj.set("type",          type);
 	obj.set("protocol",      protocol);
