@@ -594,11 +594,12 @@ ntValue          *nt_ensure_arguments      (const ntValue *arg, const char *fmt)
 					depth--;
 					break;
 				default:
+					nt_value_decref(thsArg);
 					return nt_throw_exception(arg, "LogicError", "Invalid format character!");
 			}
 
-			nt_value_decref(thsArg);
 		} while (!correct && depth > 0);
+		nt_value_decref(thsArg);
 
 		if (strlen(types) > 2)
 			types[strlen(types)-2] = '\0';
