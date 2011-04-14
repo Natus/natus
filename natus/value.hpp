@@ -127,11 +127,15 @@ public:
 	Value                 newString(UTF8 string) const;
 	Value                 newString(UTF16 string) const;
 	Value                 newArray(const Value* const* array=NULL) const;
-	Value                 newArrayBuilder(Value item);
-	Value                 newArrayBuilder(long item);
-	Value                 newArrayBuilder(double item);
-	Value                 newArrayBuilder(UTF8 item);
-	Value                 newArrayBuilder(UTF16 item);
+	Value                 newArrayBuilder(Value          item);
+	Value                 newArrayBuilder(bool           item);
+	Value                 newArrayBuilder(int            item);
+	Value                 newArrayBuilder(long           item);
+	Value                 newArrayBuilder(double         item);
+	Value                 newArrayBuilder(const char*    item);
+	Value                 newArrayBuilder(const Char*    item);
+	Value                 newArrayBuilder(UTF8           item);
+	Value                 newArrayBuilder(UTF16          item);
 	Value                 newArrayBuilder(NativeFunction item);
 	Value                 newFunction(NativeFunction func) const;
 	Value                 newObject(Class* cls=NULL) const;
@@ -174,6 +178,8 @@ public:
 	Value                 set(Value  idx, int            value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, double         value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(Value  idx, const char*    value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(Value  idx, const Char*    value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, UTF8           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, UTF16          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(Value  idx, NativeFunction value, Value::PropAttr attrs=PropAttrNone);
@@ -182,6 +188,8 @@ public:
 	Value                 set(UTF8   idx, int            value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, double         value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF8   idx, const char*    value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF8   idx, const Char*    value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, UTF8           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, UTF16          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF8   idx, NativeFunction value, Value::PropAttr attrs=PropAttrNone);
@@ -190,6 +198,8 @@ public:
 	Value                 set(UTF16  idx, int            value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, long           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, double         value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF16  idx, const char*    value, Value::PropAttr attrs=PropAttrNone);
+	Value                 set(UTF16  idx, const Char*    value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, UTF8           value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, UTF16          value, Value::PropAttr attrs=PropAttrNone);
 	Value                 set(UTF16  idx, NativeFunction value, Value::PropAttr attrs=PropAttrNone);
@@ -198,6 +208,8 @@ public:
 	Value                 set(size_t idx, int            value);
 	Value                 set(size_t idx, long           value);
 	Value                 set(size_t idx, double         value);
+	Value                 set(size_t idx, const char*    value);
+	Value                 set(size_t idx, const Char*    value);
 	Value                 set(size_t idx, UTF8           value);
 	Value                 set(size_t idx, UTF16          value);
 	Value                 set(size_t idx, NativeFunction value);
@@ -206,6 +218,8 @@ public:
 	Value                 setRecursive(UTF8 path, int            val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, long           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, double         val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, const char*    val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
+	Value                 setRecursive(UTF8 path, const Char*    val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, UTF8           val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, UTF16          val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);

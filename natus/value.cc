@@ -199,9 +199,17 @@ Value Value::newArray(const Value* const* array) const {
 }
 
 Value Value::newArrayBuilder(Value item) {
-	ntValue *tmp = nt_value_new_array_builder(internal, nt_value_incref(item.internal));
+	ntValue *tmp = nt_value_new_array_builder(internal, item.internal);
 	if (!isArray()) return tmp;
-	return nt_value_incref(tmp);
+	return Value(tmp, false);
+}
+
+Value Value::newArrayBuilder(bool item) {
+	return newArrayBuilder(newBool(item));
+}
+
+Value Value::newArrayBuilder(int item) {
+	return newArrayBuilder(newNumber(item));
 }
 
 Value Value::newArrayBuilder(long item) {
@@ -210,6 +218,14 @@ Value Value::newArrayBuilder(long item) {
 
 Value Value::newArrayBuilder(double item) {
 	return newArrayBuilder(newNumber(item));
+}
+
+Value Value::newArrayBuilder(const char* item) {
+	return newArrayBuilder(newString(item));
+}
+
+Value Value::newArrayBuilder(const Char* item) {
+	return newArrayBuilder(newString(item));
 }
 
 Value Value::newArrayBuilder(UTF8 item) {
@@ -418,6 +434,16 @@ Value Value::set(Value idx, double value, Value::PropAttr attrs) {
 	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
+Value Value::set(Value idx, const char* value, Value::PropAttr attrs) {
+	Value v = newString(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(Value idx, const Char* value, Value::PropAttr attrs) {
+	Value v = newString(value);
+	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+}
+
 Value Value::set(Value idx, UTF8 value, Value::PropAttr attrs) {
 	Value v = newString(value);
 	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
@@ -459,6 +485,18 @@ Value Value::set(UTF8 idx, long value, Value::PropAttr attrs) {
 Value Value::set(UTF8 idx, double value, Value::PropAttr attrs) {
 	Value n = newString(idx);
 	Value v = newNumber(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(UTF8 idx, const char* value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(UTF8 idx, const Char* value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
 	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
@@ -509,6 +547,18 @@ Value Value::set(UTF16 idx, double value, Value::PropAttr attrs) {
 	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
+Value Value::set(UTF16 idx, const char* value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
+Value Value::set(UTF16 idx, const Char* value, Value::PropAttr attrs) {
+	Value n = newString(idx);
+	Value v = newString(value);
+	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+}
+
 Value Value::set(UTF16 idx, UTF8 value, Value::PropAttr attrs) {
 	Value n = newString(idx);
 	Value v = newString(value);
@@ -551,6 +601,16 @@ Value Value::set(size_t idx, double value) {
 	return nt_value_set_index(internal, idx, v.internal);
 }
 
+Value Value::set(size_t idx, const char* value) {
+	Value v = newString(value);
+	return nt_value_set_index(internal, idx, v.internal);
+}
+
+Value Value::set(size_t idx, const Char* value) {
+	Value v = newString(value);
+	return nt_value_set_index(internal, idx, v.internal);
+}
+
 Value Value::set(size_t idx, UTF8 value) {
 	Value v = newString(value);
 	return nt_value_set_index(internal, idx, v.internal);
@@ -584,6 +644,14 @@ Value Value::setRecursive(UTF8 path, long val, Value::PropAttr attrs, bool mkpat
 
 Value Value::setRecursive(UTF8 path, double val, Value::PropAttr attrs, bool mkpath) {
 	return setRecursive(path, newNumber(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, const char* val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newString(val), attrs, mkpath);
+}
+
+Value Value::setRecursive(UTF8 path, const Char* val, Value::PropAttr attrs, bool mkpath) {
+	return setRecursive(path, newString(val), attrs, mkpath);
 }
 
 Value Value::setRecursive(UTF8 path, UTF8 val, Value::PropAttr attrs, bool mkpath) {
