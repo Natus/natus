@@ -13,7 +13,7 @@ int doTest(Engine& engine, Value& global) {
 	Value object    = global.newObject();
 	Value string    = global.newString("hi");
 	Value undefined = global.newUndefined();
-	Value oom       = NULL;
+	Value nullv     = NULL;
 
 	assert( array.isArray());
 	assert(!array.isBool());
@@ -24,7 +24,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(!array.isString());
 	assert(!array.isUndefined());
 	assert(!array.isGlobal());
-	assert(!array.isOOM());
 	assert(!array.isException());
 	assert( array.toException().isException());
 
@@ -37,7 +36,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(!boolean.isString());
 	assert(!boolean.isUndefined());
 	assert(!boolean.isGlobal());
-	assert(!boolean.isOOM());
 	assert(!boolean.isException());
 	assert( boolean.toException().isException());
 
@@ -50,7 +48,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(!func.isString());
 	assert(!func.isUndefined());
 	assert(!func.isGlobal());
-	assert(!func.isOOM());
 	assert(!func.isException());
 	assert( func.toException().isException());
 
@@ -63,7 +60,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(!null.isString());
 	assert(!null.isUndefined());
 	assert(!null.isGlobal());
-	assert(!null.isOOM());
 	assert(!null.isException());
 	assert( null.toException().isException());
 
@@ -76,7 +72,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(!number.isString());
 	assert(!number.isUndefined());
 	assert(!number.isGlobal());
-	assert(!number.isOOM());
 	assert(!number.isException());
 	assert( number.toException().isException());
 
@@ -89,7 +84,6 @@ int doTest(Engine& engine, Value& global) {
 	assert(!object.isString());
 	assert(!object.isUndefined());
 	assert(!object.isGlobal());
-	assert(!object.isOOM());
 	assert(!object.isException());
 	assert( object.toException().isException());
 
@@ -102,7 +96,6 @@ int doTest(Engine& engine, Value& global) {
 	assert( string.isString());
 	assert(!string.isUndefined());
 	assert(!string.isGlobal());
-	assert(!string.isOOM());
 	assert(!string.isException());
 	assert( string.toException().isException());
 
@@ -115,21 +108,19 @@ int doTest(Engine& engine, Value& global) {
 	assert(!undefined.isString());
 	assert( undefined.isUndefined());
 	assert(!undefined.isGlobal());
-	assert(!undefined.isOOM());
 	assert(!undefined.isException());
 	assert( undefined.toException().isException());
 
-	assert(!oom.isArray());
-	assert(!oom.isBool());
-	assert(!oom.isFunction());
-	assert(!oom.isNull());
-	assert(!oom.isNumber());
-	assert(!oom.isObject());
-	assert(!oom.isString());
-	assert(!oom.isUndefined());
-	assert(!oom.isGlobal());
-	assert( oom.isOOM());
-	assert( oom.isException());
+	assert(!nullv.isArray());
+	assert(!nullv.isBool());
+	assert(!nullv.isFunction());
+	assert(!nullv.isNull());
+	assert(!nullv.isNumber());
+	assert(!nullv.isObject());
+	assert(!nullv.isString());
+	assert( nullv.isUndefined());
+	assert(!nullv.isGlobal());
+	assert( nullv.isException());
 
 	return 0;
 }
