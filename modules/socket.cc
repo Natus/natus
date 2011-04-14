@@ -20,7 +20,7 @@ using namespace natus;
 
 static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int protocol);
 
-static Value throwexc_eai(const Value& ctx, int error) {
+static Value throwExceptionEAI(const Value& ctx, int error) {
 	const char* type = "IOError";
 	switch (error) {
 	case EAI_SYSTEM:
@@ -67,7 +67,7 @@ class SocketClass : public Class {
 
 		status = getnameinfo((sockaddr*) &addr, len, name, 1024, port, 21, NI_NUMERICHOST | NI_NUMERICSERV);
 		if (status < 0)
-			return throwexc_eai(obj, status);
+			return throwExceptionEAI(obj, status);
 
 		if (key.to<UTF8>().find("Address") != string::npos)
 			return obj.newString(name);
@@ -100,7 +100,7 @@ static Value socket_bind(Value& ths, Value& fnc, Value& arg) {
 	int status = getaddrinfo(ip.c_str(), port.empty() ? NULL : port.c_str(), NULL, &ai);
 	if (status != 0) {
 		freeaddrinfo(ai);
-		return throwexc_eai(ths, status);
+		return throwExceptionEAI(ths, status);
 	}
 	if (bind(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
 		freeaddrinfo(ai);
@@ -119,7 +119,7 @@ static Value socket_connect(Value& ths, Value& fnc, Value& arg) {
 	int status = getaddrinfo(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str(), NULL, &ai);
 	if (status != 0) {
 		freeaddrinfo(ai);
-		return throwexc_eai(ths, status);
+		return throwExceptionEAI(ths, status);
 	}
 	if (connect(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
 		freeaddrinfo(ai);
