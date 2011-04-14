@@ -99,7 +99,6 @@ bool              nt_value_borrow_context         (const ntValue *ctx, void **co
 
 bool              nt_value_is_global              (const ntValue *val);
 bool              nt_value_is_exception           (const ntValue *val);
-bool              nt_value_is_oom                 (const ntValue *val);
 bool              nt_value_is_type                (const ntValue *val, ntValueType types);
 bool              nt_value_is_array               (const ntValue *val);
 bool              nt_value_is_bool                (const ntValue *val);

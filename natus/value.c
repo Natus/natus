@@ -152,8 +152,6 @@ ntValueType nt_value_get_type(const ntValue *ctx) {
 }
 
 const char *nt_value_get_type_name(const ntValue *ctx) {
-	if (!ctx) return "outofmemory";
-
 	switch (nt_value_get_type(ctx)) {
 		case ntValueTypeArray:
 			return "array";
@@ -191,10 +189,6 @@ bool nt_value_is_exception(const ntValue *val) {
 	return !val || val->exc;
 }
 
-bool nt_value_is_oom(const ntValue *val) {
-	return val == NULL;
-}
-
 bool nt_value_is_type(const ntValue *val, ntValueType types) {
 	return nt_value_get_type(val) & types;
 }
@@ -228,7 +222,7 @@ bool nt_value_is_string(const ntValue *val) {
 }
 
 bool nt_value_is_undefined(const ntValue *val) {
-	return nt_value_is_type(val, ntValueTypeUndefined);
+	return !val || nt_value_is_type(val, ntValueTypeUndefined);
 }
 
 bool nt_value_to_bool(const ntValue *val) {

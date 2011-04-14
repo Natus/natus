@@ -276,10 +276,6 @@ bool Value::isException() const {
 	return nt_value_is_exception(internal);
 }
 
-bool Value::isOOM() const {
-	return nt_value_is_oom(internal);
-}
-
 bool Value::isType(Value::Type types) const {
 	return nt_value_is_type(internal, (ntValueType) types);
 }

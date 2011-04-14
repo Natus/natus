@@ -146,7 +146,6 @@ public:
 
 	bool                  isGlobal() const;
 	bool                  isException() const;
-	bool                  isOOM() const;
 	bool                  isType(Value::Type types) const;
 	bool                  isArray() const;
 	bool                  isBool() const;
