@@ -48,7 +48,7 @@ class SocketClass : public Class {
 		return Class::FlagGet;
 	}
 
-	virtual Value get(Value& obj, string key) {
+	virtual Value get(Value& obj, Value& key) {
 		sockaddr_storage addr;
 		socklen_t len = sizeof(sockaddr_storage);
 		char name[1024], port[21];
@@ -56,9 +56,9 @@ class SocketClass : public Class {
 
 		int fd = obj.getPrivate<long>("posix.fd");
 
-		if (key == "remoteAddress" || key == "remotePort")
+		if (key.to<UTF8>() == "remoteAddress" || key.to<UTF8>() == "remotePort")
 			status = getpeername(fd, (sockaddr*) &addr, &len);
-		else if (key == "localAddress" || key == "localPort")
+		else if (key.to<UTF8>() == "localAddress" || key.to<UTF8>() == "localPort")
 			status = getsockname(fd, (sockaddr*) &addr, &len);
 		else
 			return obj.newUndefined().toException(); // Don't intercept on other properties
@@ -69,7 +69,7 @@ class SocketClass : public Class {
 		if (status < 0)
 			return throwexc_eai(obj, status);
 
-		if (key.find("Address") != string::npos)
+		if (key.to<UTF8>().find("Address") != string::npos)
 			return obj.newString(name);
 		return obj.newNumber(atoi(port));
 	}
