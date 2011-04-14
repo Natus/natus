@@ -526,7 +526,7 @@ static void do_hooks(const char *hookname, reqHook *hook, ntHookData *misc) {
 		ntValue *whitelist = nt_value_get_utf8(misc->req->config, CFG_WHITELIST);
 		if (!nt_value_is_array(whitelist)) { // Don't export URI in the sandbox
 			ntValue *uri = nt_value_new_string_utf8(misc->module, name);
-			nt_value_set_recursive_utf8(misc->module, "module.uri", uri, ntPropAttrConstant, true);
+			nt_value_decref(nt_value_set_recursive_utf8(misc->module, "module.uri", uri, ntPropAttrConstant, true));
 			nt_value_decref(uri);
 		}
 		nt_value_decref(whitelist);
