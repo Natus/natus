@@ -100,9 +100,9 @@ ntValue *nt_throw_exception_varg(const ntValue *ctx, const char *type, const cha
 	ntValue *vmsg  = nt_value_new_string_utf8(ctx, msg);
 	ntValue *vfunc = nt_value_new_function(ctx, exception_toString);
 
-	nt_value_set_utf8(exc, "type",     vtype, ntPropAttrConstant);
-	nt_value_set_utf8(exc, "msg",      vmsg,  ntPropAttrConstant);
-	nt_value_set_utf8(exc, "toString", vfunc, ntPropAttrConstant);
+	nt_value_decref(nt_value_set_utf8(exc, "type",     vtype, ntPropAttrConstant));
+	nt_value_decref(nt_value_set_utf8(exc, "msg",      vmsg,  ntPropAttrConstant));
+	nt_value_decref(nt_value_set_utf8(exc, "toString", vfunc, ntPropAttrConstant));
 	nt_value_to_exception(exc);
 
 	free(msg);
