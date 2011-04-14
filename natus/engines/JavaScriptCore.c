@@ -155,7 +155,7 @@ static inline void property_handler(JSContextRef ct, JSObjectRef object, JSStrin
 
 	// Analyze the results
 	if (nt_value_is_exception(rslt)) {
-		*exc = rslt ? VAL(rslt) : NULL;
+		*exc = !nt_value_is_undefined(rslt) ? VAL(rslt) : NULL;
 		if (retv) *retv = NULL;
 		if (retb) *retb = false;
 		nt_value_decref(rslt);
@@ -235,10 +235,10 @@ static JSValueRef obj_call(JSContextRef ctx, JSObjectRef object, JSObjectRef thi
 	nt_value_decref(ths);
 	nt_value_decref(fnc);
 
-	JSValueRef r = VAL(res);
+	JSValueRef r = res ? VAL(res) : NULL;
 	if (nt_value_is_exception(res)) {
 		nt_value_decref(res);
-		*exc = r;
+		*exc = r ? r : JSValueMakeUndefined(ctx);
 		return NULL;
 	}
 	nt_value_decref(res);
