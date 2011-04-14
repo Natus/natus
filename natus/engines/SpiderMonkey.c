@@ -123,10 +123,12 @@ static inline JSBool property_handler(JSContext *ctx, JSObject *object, jsid id,
 	nt_value_decref(val);
 
 	if (nt_value_is_exception(res)) {
-		if (res)
-			JS_SetPendingException(ctx, VAL(res));
-		else
-			JS_ReportOutOfMemory(ctx);
+		if (nt_value_is_undefined(res)) {
+			nt_value_decref(res);
+			return JS_TRUE;
+		}
+
+		JS_SetPendingException(ctx, VAL(res));
 		nt_value_decref(res);
 		return JS_FALSE;
 	}
@@ -157,7 +159,7 @@ static inline JSBool call_handler(JSContext *ctx, uintN argc, jsval *vp, bool co
 
 	// Handle results
 	if (nt_value_is_exception(res)) {
-		JS_SetPendingException(ctx, VAL(res));
+		JS_SetPendingException(ctx, res ? VAL(res) : JSVAL_VOID);
 		nt_value_decref(res);
 		return JS_FALSE;
 	}
@@ -479,19 +481,11 @@ static ntValue         *sm_value_del        (ntValue *obj, const ntValue *idx) {
 	jsid vid;
 	JS_ValueToId(CTX(idx), VAL(idx), &vid);
 
-	JSClass* jsc = NULL;
-	if (!(jsc = JS_GetClass(CTX(obj), OBJ(obj)))
-			|| !jsc->delProperty
-			||  jsc->delProperty == JS_PropertyStub
-			|| !jsc->delProperty(CTX(obj), OBJ(obj), vid, NULL)) {
-		if (nt_value_is_number(idx)
-				? !JS_DeleteElement(CTX(obj), OBJ(obj), nt_value_to_long(idx))
-				: !JS_DeletePropertyById(CTX(obj), OBJ(obj), vid)) {
-			jsval rval;
-			if (JS_IsExceptionPending(CTX(obj)) && JS_GetPendingException(CTX(obj), &rval))
-				return get_instance(obj, rval, true);
-			return sm_value_new_bool(obj, false);
-		}
+	if (!JS_DeletePropertyById(CTX(obj), OBJ(obj), vid)) {
+		jsval rval;
+		if (JS_IsExceptionPending(CTX(obj)) && JS_GetPendingException(CTX(obj), &rval))
+			return get_instance(obj, rval, true);
+		return nt_value_to_exception(nt_value_new_bool(obj, false));
 	}
 	return sm_value_new_bool(obj, true);
 }
@@ -502,16 +496,9 @@ static ntValue         *sm_value_get        (const ntValue *obj, const ntValue *
 
 	bool isexc = false;
 	jsval v = JSVAL_VOID;
-	JSClass* jsc = NULL;
-	if (!(jsc = JS_GetClass(CTX(obj), OBJ(obj)))
-			|| !jsc->getProperty
-			||  jsc->getProperty == JS_PropertyStub
-			|| !jsc->getProperty(CTX(obj), OBJ(obj), vid, &v))
-		if (nt_value_is_number(idx)
-				? !JS_GetElement(CTX(obj), OBJ(obj), nt_value_to_long(idx), &v)
-				: !JS_GetPropertyById(CTX(obj), OBJ(obj), vid, &v))
-			if ((isexc = JS_IsExceptionPending(CTX(obj))))
-				JS_GetPendingException(CTX(obj), &v);
+	if (!JS_GetPropertyById(CTX(obj), OBJ(obj), vid, &v))
+		if ((isexc = JS_IsExceptionPending(CTX(obj))))
+			JS_GetPendingException(CTX(obj), &v);
 	return get_instance(obj, v, isexc);
 }
 
@@ -524,41 +511,36 @@ static ntValue         *sm_value_set              (ntValue *obj, const ntValue *
 	JS_ValueToId(CTX(idx), VAL(idx), &vid);
 
 	jsval v = VAL(value);
-	JSClass* jsc = NULL;
-	if (!(jsc = JS_GetClass(CTX(obj), OBJ(obj)))
-			|| !jsc->setProperty
-			||  jsc->setProperty == JS_StrictPropertyStub
-			|| !jsc->setProperty(CTX(obj), OBJ(obj), vid, false, &v)) {
-		if (nt_value_is_number(idx)
-					? !JS_SetElement(CTX(obj), OBJ(obj), nt_value_to_long(idx), &v)
-					: !JS_SetPropertyById(CTX(obj), OBJ(obj), vid, &v)) {
-			if (JS_IsExceptionPending(CTX(obj)) && JS_GetPendingException(CTX(obj), &v))
-				return get_instance(obj, v, true);
-			return sm_value_new_bool(obj, false);
-		}
+	if (!JS_SetPropertyById(CTX(obj), OBJ(obj), vid, &v)) {
+		if (JS_IsExceptionPending(CTX(obj)) && JS_GetPendingException(CTX(obj), &v))
+			return get_instance(obj, v, true);
+		return nt_value_to_exception(nt_value_new_bool(obj, false));
 	}
+	if (JSID_IS_STRING(vid)) {
+		size_t len;
+		JSBool found;
+		JSString *str = JSID_TO_STRING(vid);
+		const jschar *chars = JS_GetStringCharsAndLength(CTX(obj), str, &len);
+		JS_SetUCPropertyAttributes(CTX(obj), OBJ(obj), chars, len, flags, &found);
+	}
+
 	return sm_value_new_bool(obj, true);
 }
 
 static ntValue         *sm_value_enumerate        (const ntValue *obj) {
 	jsint i;
 
-	ntValue *array = NULL;
-	ntValue *proto = nt_value_get_utf8(obj, "prototype");
-	if (!nt_value_is_undefined(proto))
-		array = nt_value_enumerate(proto);
-	nt_value_decref(proto);
-
 	JSIdArray* na = JS_Enumerate(CTX(obj), OBJ(obj));
-	if (!na) return array;
+	if (!na) return NULL;
 
-	if (!array) array = nt_value_new_array(obj, NULL);
+	ntValue *array = nt_value_new_array(obj, NULL);
 	for (i=0 ; i < na->length ; i++) {
 		jsval str;
 		if (!JS_IdToValue(CTX(obj), na->vector[i], &str)) break;
 		ntValue *v = get_instance(obj, str, false);
 		if (!v) break;
-		nt_value_new_array_builder(array, v);
+		nt_value_decref(nt_value_set_index(array, i, v));
+		nt_value_decref(v);
 	}
 
 	JS_DestroyIdArray(CTX(obj), na);
