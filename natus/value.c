@@ -84,15 +84,19 @@ ntValue *nt_value_new_array(const ntValue *ctx, const ntValue **array) {
 ntValue *nt_value_new_array_builder(ntValue *array, ntValue *item) {
 	if (!item) return NULL;
 
-	const ntValue *tmp[2] = {item, NULL};
-	ntValue *args = nt_value_new_array(array, tmp);
-	nt_value_decref(item);
-	if (!args) return NULL;
-
+	ntValue *newarray = NULL;
 	if (!nt_value_is_array(array))
-		array = nt_value_new_array(array, NULL);
+		array = newarray = nt_value_new_array(array, NULL);
 
-	nt_value_decref(nt_value_call_utf8(array, "push", args));
+	ntValue *len = nt_value_get_utf8(array, "length");
+	if (!nt_value_is_number(len)) {
+		nt_value_decref(newarray);
+		nt_value_decref(len);
+		return NULL;
+	}
+
+	nt_value_decref(nt_value_set(array, len, item, ntPropAttrNone));
+	nt_value_decref(len);
 	return array;
 }
 
@@ -334,7 +338,9 @@ ntValue *nt_value_del_recursive_utf8(ntValue *obj, const char *id) {
 	if (!base) return NULL;
 	base[next++ - id] = '\0';
 
-	ntValue *tmp = nt_value_del_recursive_utf8(nt_value_get_utf8(obj, base), next);
+	ntValue *basev = nt_value_get_utf8(obj, base);
+	ntValue *tmp = nt_value_del_recursive_utf8(basev, next);
+	nt_value_decref(basev);
 	free(base);
 	return tmp;
 }
@@ -371,7 +377,9 @@ ntValue *nt_value_get_recursive_utf8(ntValue *obj, const char *id) {
 	if (!base) return NULL;
 	base[next++ - id] = '\0';
 
-	ntValue *tmp = nt_value_get_recursive_utf8(nt_value_get_utf8(obj, base), next);
+	ntValue *basev = nt_value_get_utf8(obj, base);
+	ntValue *tmp   = nt_value_get_recursive_utf8(basev, next);
+	nt_value_decref(basev);
 	free(base);
 	return tmp;
 }
@@ -431,7 +439,7 @@ ntValue *nt_value_set_recursive_utf8(ntValue *obj, const char *id, const ntValue
 }
 
 ntValue *nt_value_enumerate(const ntValue *val) {
-	if (!nt_value_is_type(val, ntValueTypeComplex)) return false;
+	if (!nt_value_is_type(val, ntValueTypeComplex)) return NULL;
 	return val->eng->espec->value.enumerate(val);
 }
 
