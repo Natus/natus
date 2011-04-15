@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include <iostream>
+using namespace std;
+
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/natus.hpp>
 using namespace natus;
