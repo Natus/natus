@@ -184,7 +184,7 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 
 			nt_private_push(req->dll, dll, (ntFreeFunction) dlclose);
 
-			retval = nt_value_new_bool(module, true);
+			retval = nt_value_new_boolean(module, true);
 			goto out;
 		}
 

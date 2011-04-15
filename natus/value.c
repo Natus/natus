@@ -44,7 +44,7 @@ ntValue *nt_value_decref(ntValue *val) {
 	return val;
 }
 
-ntValue *nt_value_new_bool(const ntValue *ctx, bool b) {
+ntValue *nt_value_new_boolean(const ntValue *ctx, bool b) {
 	if (!ctx) return NULL;
 	return ctx->eng->espec->value.new_bool(ctx, b);
 }
@@ -159,7 +159,7 @@ const char *nt_value_get_type_name(const ntValue *ctx) {
 	switch (nt_value_get_type(ctx)) {
 		case ntValueTypeArray:
 			return "array";
-		case ntValueTypeBool:
+		case ntValueTypeBoolean:
 			return "boolean";
 		case ntValueTypeFunction:
 			return "function";
@@ -202,7 +202,7 @@ bool nt_value_is_array(const ntValue *val) {
 }
 
 bool nt_value_is_bool(const ntValue *val) {
-	return nt_value_is_type(val, ntValueTypeBool);
+	return nt_value_is_type(val, ntValueTypeBoolean);
 }
 
 bool nt_value_is_function(const ntValue *val) {

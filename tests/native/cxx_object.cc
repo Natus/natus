@@ -107,7 +107,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(global.evaluate("x['foo'] = 0;").isException());
 
 	//// Check for intercept
-	assert(x.setPrivate("retval", global.newBool(true)));
+	assert(x.setPrivate("retval", global.newBoolean(true)));
 	// Number, native
 	assert(x.setPrivate("type", (void*) Value::TypeNumber));
 	assert(!x.del(0).isException());

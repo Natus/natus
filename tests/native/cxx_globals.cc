@@ -9,7 +9,7 @@ int doTest(Engine& engine, Value& global) {
 
 	// Test shared globals
 	assert(!global.set("array",  global.newArray()).isException());
-	assert(!global.set("bool",   global.newBool(true)).isException());
+	assert(!global.set("bool",   global.newBoolean(true)).isException());
 	assert(!global.set("nill",   global.newNull()).isException());
 	assert(!global.set("number", global.newNumber(15)).isException());
 	assert(!global.set("object", global.newObject()).isException());

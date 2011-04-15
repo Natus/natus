@@ -277,7 +277,7 @@ static ntValueType      v8_value_get_type         (const ntValue *val) {
 	if (VAL(val)->IsArray())
 		return ntValueTypeArray;
 	else if (VAL(val)->IsBoolean())
-		return ntValueTypeBool;
+		return ntValueTypeBoolean;
 	else if (VAL(val)->IsFunction())
 		return ntValueTypeFunction;
 	else if (VAL(val)->IsNull())

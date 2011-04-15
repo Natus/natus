@@ -553,7 +553,7 @@ ntValue          *nt_ensure_arguments      (ntValue *arg, const char *fmt) {
 						strcat(types, "array, ");
 					break;
 				case 'b':
-					correct = nt_value_get_type(thsArg) == ntValueTypeBool;
+					correct = nt_value_get_type(thsArg) == ntValueTypeBoolean;
 					if (strlen(types) + strlen("boolean, ") < 4095)
 						strcat(types, "boolean, ");
 					break;

@@ -10,7 +10,7 @@ void hook_free(void* misc) {
 Value hook(Value& ctx, Require::HookStep step, char* name, void* misc) {
 	if (step == Require::HookStepLoad && !strcmp(name, "__internal__")) {
 		assert(!ctx.setRecursive("exports.misc", (long) misc).isException());
-		return ctx.newBool(true);
+		return ctx.newBoolean(true);
 	}
 
 	return NULL;

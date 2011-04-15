@@ -33,116 +33,116 @@ using namespace natus;
 #define doval(code, val) (code == 0 ? val : doexc())
 #define doerr(code) return doval(code, ths.newUndefined())
 
-static Value posix_WCOREDUMP(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WCOREDUMP(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
-	return ths.newBool(WCOREDUMP(status));
+	return ths.newBoolean(WCOREDUMP(status));
 }
 
-static Value posix_WEXITSTATUS(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WEXITSTATUS(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
 	return ths.newNumber(WEXITSTATUS(status));
 }
 
-static Value posix_WIFCONTINUED(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WIFCONTINUED(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
-	return ths.newBool(WIFCONTINUED(status));
+	return ths.newBoolean(WIFCONTINUED(status));
 }
 
-static Value posix_WIFEXITED(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WIFEXITED(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
-	return ths.newBool(WIFEXITED(status));
+	return ths.newBoolean(WIFEXITED(status));
 }
 
-static Value posix_WIFSIGNALED(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WIFSIGNALED(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
-	return ths.newBool(WIFSIGNALED(status));
+	return ths.newBoolean(WIFSIGNALED(status));
 }
 
-static Value posix_WIFSTOPPED(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WIFSTOPPED(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
-	return ths.newBool(WIFSTOPPED(status));
+	return ths.newBoolean(WIFSTOPPED(status));
 }
 
-static Value posix_WSTOPSIG(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WSTOPSIG(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
 	return ths.newNumber(WSTOPSIG(status));
 }
 
-static Value posix_WTERMSIG(Value& ths, Value& fnc, Value& arg) {
+static Value posix_WTERMSIG(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int status = arg[0].to<int>();
 	return ths.newNumber(WTERMSIG(status));
 }
 
-static Value posix_abort(Value& ths, Value& fnc, Value& arg) {
+static Value posix_abort(Value& fnc, Value& ths, Value& arg) {
 	abort();
 	return ths.newUndefined();
 }
 
-static Value posix_access(Value& ths, Value& fnc, Value& arg) {
+static Value posix_access(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	int res = access(arg[0].to<UTF8>().c_str(), arg[1].to<int>());
-	if (res == 0)        return ths.newBool(true);
-	if (errno == EACCES) return ths.newBool(false);
+	if (res == 0)        return ths.newBoolean(true);
+	if (errno == EACCES) return ths.newBoolean(false);
 	return ths.newString(strerror(errno)).toException();
 }
 
-static Value posix_chdir(Value& ths, Value& fnc, Value& arg) {
+static Value posix_chdir(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	doerr(chdir(arg[0].to<UTF8>().c_str()));
 }
 
-static Value posix_chmod(Value& ths, Value& fnc, Value& arg) {
+static Value posix_chmod(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	doerr(chmod(arg[0].to<UTF8>().c_str(), arg[1].to<int>()));
 }
 
-static Value posix_chown(Value& ths, Value& fnc, Value& arg) {
+static Value posix_chown(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "snn");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	doerr(chown(arg[0].to<UTF8>().c_str(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
-static Value posix_chroot(Value& ths, Value& fnc, Value& arg) {
+static Value posix_chroot(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	doerr(chroot(arg[0].to<UTF8>().c_str()));
 }
 
-static Value posix_close(Value& ths, Value& fnc, Value& arg) {
+static Value posix_close(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(close(arg[0].to<int>()));
 }
 
-static Value posix_ctermid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_ctermid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newString(ctermid(NULL));
 }
 
-static Value posix_dup(Value& ths, Value& fnc, Value& arg) {
+static Value posix_dup(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	int fd = dup(arg[0].to<int>());
@@ -150,7 +150,7 @@ static Value posix_dup(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(fd);
 }
 
-static Value posix_dup2(Value& ths, Value& fnc, Value& arg) {
+static Value posix_dup2(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	int fd = dup2(arg[0].to<int>(), arg[1].to<int>());
@@ -158,7 +158,7 @@ static Value posix_dup2(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(fd);
 }
 
-static Value posix_execv(Value& ths, Value& fnc, Value& arg) {
+static Value posix_execv(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sa");
 
 	const char** argv = new const char*[arg[1].get("length").to<int>()+1];
@@ -173,7 +173,7 @@ static Value posix_execv(Value& ths, Value& fnc, Value& arg) {
 	return doexc();
 }
 
-static Value posix_execve(Value& ths, Value& fnc, Value& arg) {
+static Value posix_execve(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sao");
 
 	const char** argv = new const char*[arg[1].get("length").to<int>()+1];
@@ -197,39 +197,39 @@ static Value posix_execve(Value& ths, Value& fnc, Value& arg) {
 	return doexc();
 }
 
-static Value posix_fchdir(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fchdir(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(fchdir(arg[0].to<int>()));
 }
 
-static Value posix_fchmod(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fchmod(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(fchmod(arg[0].to<int>(), arg[1].to<int>()));
 }
 
-static Value posix_fchown(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fchown(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
 	doerr(fchown(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
 #ifdef __linux__
-static Value posix_fdatasync(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fdatasync(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(fdatasync(arg[0].to<int>()));
 }
 #endif
 
-static Value posix_fork(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fork(Value& fnc, Value& ths, Value& arg) {
 	pid_t pid = fork();
 	if (pid == -1) return doexc();
 	return ths.newNumber(pid);
 }
 
-static Value posix_forkpty(Value& ths, Value& fnc, Value& arg) {
+static Value posix_forkpty(Value& fnc, Value& ths, Value& arg) {
 	int amaster=0;
 	pid_t pid = forkpty(&amaster, NULL, NULL, NULL);
 	if (pid < 0) return doexc();
@@ -237,7 +237,7 @@ static Value posix_forkpty(Value& ths, Value& fnc, Value& arg) {
 	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) amaster);
 }
 
-static Value posix_fpathconf(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fpathconf(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	errno = 0;
@@ -246,7 +246,7 @@ static Value posix_fpathconf(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(res);
 }
 
-static Value posix_fstat(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fstat(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	struct stat st;
@@ -270,7 +270,7 @@ static Value posix_fstat(Value& ths, Value& fnc, Value& arg) {
 	return stt;
 }
 
-static Value posix_fstatvfs(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fstatvfs(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	struct statvfs st;
@@ -292,19 +292,19 @@ static Value posix_fstatvfs(Value& ths, Value& fnc, Value& arg) {
 	return stt;
 }
 
-static Value posix_fsync(Value& ths, Value& fnc, Value& arg) {
+static Value posix_fsync(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(fsync(arg[0].to<int>()));
 }
 
-static Value posix_ftruncate(Value& ths, Value& fnc, Value& arg) {
+static Value posix_ftruncate(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(ftruncate(arg[0].to<int>(), arg[1].to<int>()));
 }
 
-static Value posix_getcwd(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getcwd(Value& fnc, Value& ths, Value& arg) {
 	char *cwd = getcwd(NULL, 0);
 	if (!cwd) return doexc();
 	string scwd = cwd;
@@ -312,19 +312,19 @@ static Value posix_getcwd(Value& ths, Value& fnc, Value& arg) {
 	return ths.newString(scwd);
 }
 
-static Value posix_getegid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getegid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(getegid());
 }
 
-static Value posix_geteuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_geteuid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(geteuid());
 }
 
-static Value posix_getgid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getgid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(getgid());
 }
 
-static Value posix_getgroups(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getgroups(Value& fnc, Value& ths, Value& arg) {
 	gid_t size = getgroups(0, NULL);
 
 	gid_t* gids = new gid_t[size];
@@ -338,7 +338,7 @@ static Value posix_getgroups(Value& ths, Value& fnc, Value& arg) {
 	return ret;
 }
 
-static Value posix_getloadavg(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getloadavg(Value& fnc, Value& ths, Value& arg) {
 	double ldavg[3];
 	if (getloadavg(ldavg, 3) < 0)
 		return ths.newString("Unknown error!").toException();
@@ -346,13 +346,13 @@ static Value posix_getloadavg(Value& ths, Value& fnc, Value& arg) {
 	return ths.newArrayBuilder(ldavg[0]).newArrayBuilder(ldavg[1]).newArrayBuilder(ldavg[2]);
 }
 
-static Value posix_getlogin(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getlogin(Value& fnc, Value& ths, Value& arg) {
 	const char* name = getlogin();
 	if (!name) return doexc();
 	return ths.newString(name);
 }
 
-static Value posix_getpgid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getpgid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	pid_t pgid = getpgid(arg[0].to<int>());
@@ -360,20 +360,20 @@ static Value posix_getpgid(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(pgid);
 }
 
-static Value posix_getpgrp(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getpgrp(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(getpgrp());
 }
 
-static Value posix_getpid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getpid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(getpid());
 }
 
-static Value posix_getppid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getppid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(getppid());
 }
 
 #ifdef __linux__
-static Value posix_getresgid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getresgid(Value& fnc, Value& ths, Value& arg) {
 	gid_t rgid, egid, sgid;
 	if (getresgid(&rgid, &egid, &sgid) < 0)
 		return doexc();
@@ -381,7 +381,7 @@ static Value posix_getresgid(Value& ths, Value& fnc, Value& arg) {
 	return ths.newArrayBuilder((long) rgid).newArrayBuilder((long) egid).newArrayBuilder((long) sgid);
 }
 
-static Value posix_getresuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getresuid(Value& fnc, Value& ths, Value& arg) {
 	uid_t ruid, euid, suid;
 	if (getresgid(&ruid, &euid, &suid) < 0)
 		return doexc();
@@ -390,7 +390,7 @@ static Value posix_getresuid(Value& ths, Value& fnc, Value& arg) {
 }
 #endif
 
-static Value posix_getsid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getsid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	pid_t sid = getsid(arg[0].to<int>());
@@ -398,47 +398,47 @@ static Value posix_getsid(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(sid);
 }
 
-static Value posix_getuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_getuid(Value& fnc, Value& ths, Value& arg) {
 	return ths.newNumber(getuid());
 }
 
-static Value posix_initgroups(Value& ths, Value& fnc, Value& arg) {
+static Value posix_initgroups(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
 
 	doerr(initgroups(arg[0].to<UTF8>().c_str(), arg[1].to<int>()));
 }
 
-static Value posix_isatty(Value& ths, Value& fnc, Value& arg) {
+static Value posix_isatty(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
-	return ths.newBool(isatty(arg[0].to<int>()));
+	return ths.newBoolean(isatty(arg[0].to<int>()));
 }
 
-static Value posix_kill(Value& ths, Value& fnc, Value& arg) {
+static Value posix_kill(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(kill(arg[0].to<int>(), arg[0].to<int>()));
 }
 
-static Value posix_killpg(Value& ths, Value& fnc, Value& arg) {
+static Value posix_killpg(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(kill(arg[0].to<int>(), arg[0].to<int>()));
 }
 
-static Value posix_lchown(Value& ths, Value& fnc, Value& arg) {
+static Value posix_lchown(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "snn");
 
 	doerr(lchown(arg[0].to<UTF8>().c_str(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
-static Value posix_link(Value& ths, Value& fnc, Value& arg) {
+static Value posix_link(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ss");
 
 	doerr(link(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str()));
 }
 
-static Value posix_lseek(Value& ths, Value& fnc, Value& arg) {
+static Value posix_lseek(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
 	off_t offset = lseek(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>());
@@ -446,7 +446,7 @@ static Value posix_lseek(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(offset);
 }
 
-static Value posix_lstat(Value& ths, Value& fnc, Value& arg) {
+static Value posix_lstat(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 
 	struct stat st;
@@ -470,25 +470,25 @@ static Value posix_lstat(Value& ths, Value& fnc, Value& arg) {
 	return stt;
 }
 
-static Value posix_major(Value& ths, Value& fnc, Value& arg) {
+static Value posix_major(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	return ths.newNumber(major(arg[0].to<int>()));
 }
 
-static Value posix_makedev(Value& ths, Value& fnc, Value& arg) {
+static Value posix_makedev(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	return ths.newNumber(makedev(arg[0].to<int>(), arg[0].to<int>()));
 }
 
-static Value posix_minor(Value& ths, Value& fnc, Value& arg) {
+static Value posix_minor(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	return ths.newNumber(minor(arg[0].to<int>()));
 }
 
-static Value posix_mkdir(Value& ths, Value& fnc, Value& arg) {
+static Value posix_mkdir(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -501,7 +501,7 @@ static Value posix_mkdir(Value& ths, Value& fnc, Value& arg) {
 	doerr(mkdir(arg[0].to<UTF8>().c_str(), mode));
 }
 
-static Value posix_mkfifo(Value& ths, Value& fnc, Value& arg) {
+static Value posix_mkfifo(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -514,7 +514,7 @@ static Value posix_mkfifo(Value& ths, Value& fnc, Value& arg) {
 	doerr(mkfifo(arg[0].to<UTF8>().c_str(), mode));
 }
 
-static Value posix_mknod(Value& ths, Value& fnc, Value& arg) {
+static Value posix_mknod(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -533,7 +533,7 @@ static Value posix_mknod(Value& ths, Value& fnc, Value& arg) {
 	doerr(mknod(arg[0].to<UTF8>().c_str(), mode, dev));
 }
 
-static Value posix_nice(Value& ths, Value& fnc, Value& arg) {
+static Value posix_nice(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	errno = 0;
@@ -542,7 +542,7 @@ static Value posix_nice(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(prio);
 }
 
-static Value posix_open(Value& ths, Value& fnc, Value& arg) {
+static Value posix_open(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s|nn");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -563,7 +563,7 @@ static Value posix_open(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(fd);
 }
 
-static Value posix_openpty(Value& ths, Value& fnc, Value& arg) {
+static Value posix_openpty(Value& fnc, Value& ths, Value& arg) {
 	int amaster, aslave;
 	if (openpty(&amaster, &aslave, NULL, NULL, NULL) < 0)
 		return doexc();
@@ -571,7 +571,7 @@ static Value posix_openpty(Value& ths, Value& fnc, Value& arg) {
 	return ths.newArrayBuilder((long) amaster).newArrayBuilder((long) aslave);
 }
 
-static Value posix_pathconf(Value& ths, Value& fnc, Value& arg) {
+static Value posix_pathconf(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "sn");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -581,14 +581,14 @@ static Value posix_pathconf(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(res);
 }
 
-static Value posix_pipe(Value& ths, Value& fnc, Value& arg) {
+static Value posix_pipe(Value& fnc, Value& ths, Value& arg) {
 	int fds[2];
 	if (pipe(fds) < 0) return doexc();
 
 	return ths.newArrayBuilder((long) fds[0]).newArrayBuilder((long) fds[1]);
 }
 
-static Value posix_read(Value& ths, Value& fnc, Value& arg) {
+static Value posix_read(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	char* buffer = new char[arg[1].to<int>()];
@@ -599,7 +599,7 @@ static Value posix_read(Value& ths, Value& fnc, Value& arg) {
 	return ths.newString(str);
 }
 
-static Value posix_readlink(Value& ths, Value& fnc, Value& arg) {
+static Value posix_readlink(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -610,7 +610,7 @@ static Value posix_readlink(Value& ths, Value& fnc, Value& arg) {
 	return ths.newString(string(buffer, rd));
 }
 
-static Value posix_rename(Value& ths, Value& fnc, Value& arg) {
+static Value posix_rename(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ss");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[1].to<UTF8>()).c_str());
@@ -618,32 +618,32 @@ static Value posix_rename(Value& ths, Value& fnc, Value& arg) {
 	doerr(rename(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str()));
 }
 
-static Value posix_rmdir(Value& ths, Value& fnc, Value& arg) {
+static Value posix_rmdir(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	doerr(rmdir(arg[0].to<UTF8>().c_str()));
 }
 
-static Value posix_setegid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setegid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(setegid(arg[0].to<int>()));
 }
 
-static Value posix_seteuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_seteuid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(seteuid(arg[0].to<int>()));
 }
 
-static Value posix_setgid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setgid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(setgid(arg[0].to<int>()));
 }
 
-static Value posix_setgroups(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setgroups(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "a");
 
 	long    len = arg[0].get("length").to<int>();
@@ -658,55 +658,55 @@ static Value posix_setgroups(Value& ths, Value& fnc, Value& arg) {
 	return ths.newUndefined();
 }
 
-static Value posix_setpgid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setpgid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(setpgid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
-static Value posix_setpgrp(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setpgrp(Value& fnc, Value& ths, Value& arg) {
 	doerr(setpgrp());
 }
 
-static Value posix_setregid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setregid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(setregid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
 #ifdef __linux__
-static Value posix_setresgid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setresgid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
 	doerr(setresgid(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 
-static Value posix_setresuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setresuid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nnn");
 
 	doerr(setresuid(arg[0].to<int>(), arg[1].to<int>(), arg[2].to<int>()));
 }
 #endif
 
-static Value posix_setreuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setreuid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(setreuid(arg[0].to<int>(), arg[1].to<int>()));
 }
 
-static Value posix_setsid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setsid(Value& fnc, Value& ths, Value& arg) {
 	pid_t sid = setsid();
 	if (sid < 0) doexc();
 	return ths.newNumber(sid);
 }
 
-static Value posix_setuid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_setuid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	doerr(setuid(arg[0].to<int>()));
 }
 
-static Value posix_stat(Value& ths, Value& fnc, Value& arg) {
+static Value posix_stat(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -731,7 +731,7 @@ static Value posix_stat(Value& ths, Value& fnc, Value& arg) {
 	return stt;
 }
 
-static Value posix_statvfs(Value& ths, Value& fnc, Value& arg) {
+static Value posix_statvfs(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -754,13 +754,13 @@ static Value posix_statvfs(Value& ths, Value& fnc, Value& arg) {
 	return stt;
 }
 
-static Value posix_strerror(Value& ths, Value& fnc, Value& arg) {
+static Value posix_strerror(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	return ths.newString(strerror(arg[0].to<int>()));
 }
 
-static Value posix_symlink(Value& ths, Value& fnc, Value& arg) {
+static Value posix_symlink(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ss");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[1].to<UTF8>()).c_str());
@@ -768,7 +768,7 @@ static Value posix_symlink(Value& ths, Value& fnc, Value& arg) {
 	doerr(symlink(arg[0].to<UTF8>().c_str(), arg[1].to<UTF8>().c_str()));
 }
 
-static Value posix_sysconf(Value& ths, Value& fnc, Value& arg) {
+static Value posix_sysconf(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	long res = sysconf(arg[0].to<int>());
@@ -776,7 +776,7 @@ static Value posix_sysconf(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(res);
 }
 
-static Value posix_system(Value& ths, Value& fnc, Value& arg) {
+static Value posix_system(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "(sn)");
 	NATUS_CHECK_ORIGIN(ths, "file:///");
 
@@ -789,7 +789,7 @@ static Value posix_system(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(res);
 }
 
-static Value posix_tcgetpgrp(Value& ths, Value& fnc, Value& arg) {
+static Value posix_tcgetpgrp(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	pid_t res = tcgetpgrp(arg[0].to<int>());
@@ -797,13 +797,13 @@ static Value posix_tcgetpgrp(Value& ths, Value& fnc, Value& arg) {
 	return ths.newNumber(res);
 }
 
-static Value posix_tcsetpgrp(Value& ths, Value& fnc, Value& arg) {
+static Value posix_tcsetpgrp(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	doerr(tcsetpgrp(arg[0].to<int>(), arg[1].to<int>()));
 }
 
-static Value posix_tempnam(Value& ths, Value& fnc, Value& arg) {
+static Value posix_tempnam(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s|ss");
 
 	string dir = "";
@@ -820,7 +820,7 @@ static Value posix_tempnam(Value& ths, Value& fnc, Value& arg) {
 	return ths.newString(nm);
 }
 
-static Value posix_times(Value& ths, Value& fnc, Value& arg) {
+static Value posix_times(Value& fnc, Value& ths, Value& arg) {
 	struct tms t;
 	clock_t c = times(&t);
 	if (c == ((clock_t) -1)) return doexc();
@@ -834,13 +834,13 @@ static Value posix_times(Value& ths, Value& fnc, Value& arg) {
 	return res;
 }
 
-static Value posix_tmpnam(Value& ths, Value& fnc, Value& arg) {
+static Value posix_tmpnam(Value& fnc, Value& ths, Value& arg) {
 	const char* name = tmpnam(NULL);
 	if (!name) return ths.newNull();
 	return ths.newString(name);
 }
 
-static Value posix_ttyname(Value& ths, Value& fnc, Value& arg) {
+static Value posix_ttyname(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	const char* name = ttyname(arg[0].to<int>());
@@ -848,13 +848,13 @@ static Value posix_ttyname(Value& ths, Value& fnc, Value& arg) {
 	return ths.newString(name);
 }
 
-static Value posix_umask(Value& ths, Value& fnc, Value& arg) {
+static Value posix_umask(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "n");
 
 	return ths.newNumber(umask(arg[0].to<int>()));
 }
 
-static Value posix_uname(Value& ths, Value& fnc, Value& arg) {
+static Value posix_uname(Value& fnc, Value& ths, Value& arg) {
 	struct utsname n;
 	if (uname(&n) < 0) return doexc();
 
@@ -867,14 +867,14 @@ static Value posix_uname(Value& ths, Value& fnc, Value& arg) {
 	return res;
 }
 
-static Value posix_unlink(Value& ths, Value& fnc, Value& arg) {
+static Value posix_unlink(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
 	doerr(unlink(arg[0].to<UTF8>().c_str()));
 }
 
-static Value posix_utime(Value& ths, Value& fnc, Value& arg) {
+static Value posix_utime(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "s(nN)|n");
 	NATUS_CHECK_ORIGIN(ths, ("file://" + arg[0].to<UTF8>()).c_str());
 
@@ -891,14 +891,14 @@ static Value posix_utime(Value& ths, Value& fnc, Value& arg) {
 	doerr(utime(arg[0].to<UTF8>().c_str(), &buf));
 }
 
-static Value posix_wait(Value& ths, Value& fnc, Value& arg) {
+static Value posix_wait(Value& fnc, Value& ths, Value& arg) {
 	int status;
 	pid_t pid = wait(&status);
 	if (pid < 0) return doexc();
 	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) status);
 }
 
-static Value posix_waitpid(Value& ths, Value& fnc, Value& arg) {
+static Value posix_waitpid(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "nn");
 
 	int status;
@@ -908,7 +908,7 @@ static Value posix_waitpid(Value& ths, Value& fnc, Value& arg) {
 	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) status);
 }
 
-static Value posix_write(Value& ths, Value& fnc, Value& arg) {
+static Value posix_write(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "ns");
 
 	string str = arg[1].to<UTF8>();

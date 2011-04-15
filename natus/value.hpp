@@ -122,7 +122,7 @@ public:
 	Value                 operator[](UTF8 string);
 	Value                 operator[](UTF16 string);
 
-	Value                 newBool(bool b) const;
+	Value                 newBoolean(bool b) const;
 	Value                 newNumber(double n) const;
 	Value                 newString(UTF8 string) const;
 	Value                 newString(UTF16 string) const;

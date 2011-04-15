@@ -13,7 +13,7 @@ static void foreach(const char *name, void *priv, bool *up) {
 }
 
 static Value doNothing(Value& fnc, Value& ths, Value& arg) {
-	return fnc.newBool(true);
+	return fnc.newBoolean(true);
 }
 
 static void testInternal(Value& global, const char* js, Value::Type type) {
@@ -47,7 +47,7 @@ int doTest(Engine& engine, Value& global) {
 
 	// Test private on an externally defined types
 	testExternal(global, global.newArray(),             Value::TypeArray);
-	testExternal(global, global.newBool(true),          Value::TypeBool);
+	testExternal(global, global.newBoolean(true),       Value::TypeBool);
 	testExternal(global, global.newFunction(doNothing), Value::TypeFunction, true);
 	testExternal(global, global.newNull(),              Value::TypeNull);
 	testExternal(global, global.newNumber(1234),        Value::TypeNumber);

@@ -164,8 +164,8 @@ Value Value::operator[](UTF16 name) {
 	return get(name);
 }
 
-Value Value::newBool(bool b) const {
-	return nt_value_new_bool(internal, b);
+Value Value::newBoolean(bool b) const {
+	return nt_value_new_boolean(internal, b);
 }
 
 Value Value::newNumber(double n) const {
@@ -205,7 +205,7 @@ Value Value::newArrayBuilder(Value item) {
 }
 
 Value Value::newArrayBuilder(bool item) {
-	return newArrayBuilder(newBool(item));
+	return newArrayBuilder(newBoolean(item));
 }
 
 Value Value::newArrayBuilder(int item) {
@@ -415,7 +415,7 @@ Value Value::set(Value idx, Value value, Value::PropAttr attrs) {
 }
 
 Value Value::set(Value idx, bool value, Value::PropAttr attrs) {
-	Value v = newBool(value);
+	Value v = newBoolean(value);
 	return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
@@ -466,7 +466,7 @@ Value Value::set(UTF8 idx, Value value, Value::PropAttr attrs) {
 
 Value Value::set(UTF8 idx, bool value, Value::PropAttr attrs) {
 	Value n = newString(idx);
-	Value v = newBool(value);
+	Value v = newBoolean(value);
 	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
@@ -525,7 +525,7 @@ Value Value::set(UTF16 idx, Value value, Value::PropAttr attrs) {
 
 Value Value::set(UTF16 idx, bool value, Value::PropAttr attrs) {
 	Value n = newString(idx);
-	Value v = newBool(value);
+	Value v = newBoolean(value);
 	return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
 }
 
@@ -582,7 +582,7 @@ Value Value::set(size_t idx, Value value) {
 }
 
 Value Value::set(size_t idx, bool value) {
-	Value v = newBool(value);
+	Value v = newBoolean(value);
 	return nt_value_set_index(internal, idx, v.internal);
 }
 
@@ -631,7 +631,7 @@ Value Value::setRecursive(UTF8 path, Value val, Value::PropAttr attrs, bool mkpa
 }
 
 Value Value::setRecursive(UTF8 path, bool val, Value::PropAttr attrs, bool mkpath) {
-	return setRecursive(path, newBool(val), attrs, mkpath);
+	return setRecursive(path, newBoolean(val), attrs, mkpath);
 }
 
 Value Value::setRecursive(UTF8 path, int val, Value::PropAttr attrs, bool mkpath) {

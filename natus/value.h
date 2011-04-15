@@ -42,14 +42,14 @@ typedef ntValue *(*ntNativeFunction)(ntValue *fnc, ntValue *ths, ntValue *arg);
 typedef enum {
 	ntValueTypeUnknown   = 0 << 0,
 	ntValueTypeArray     = 1 << 0,
-	ntValueTypeBool      = 1 << 1,
+	ntValueTypeBoolean   = 1 << 1,
 	ntValueTypeFunction  = 1 << 2,
 	ntValueTypeNull      = 1 << 3,
 	ntValueTypeNumber    = 1 << 4,
 	ntValueTypeObject    = 1 << 5,
 	ntValueTypeString    = 1 << 6,
 	ntValueTypeUndefined = 1 << 7,
-	ntValueTypeSimple    = ntValueTypeBool | ntValueTypeNull | ntValueTypeNumber | ntValueTypeString | ntValueTypeUndefined,
+	ntValueTypeSimple    = ntValueTypeBoolean | ntValueTypeNull | ntValueTypeNumber | ntValueTypeString | ntValueTypeUndefined,
 	ntValueTypeComplex   = ntValueTypeArray | ntValueTypeFunction | ntValueTypeObject,
 } ntValueType;
 
@@ -79,7 +79,7 @@ extern "C" {
 ntValue          *nt_value_incref                 (ntValue *val);
 ntValue          *nt_value_decref                 (ntValue *val);
 
-ntValue          *nt_value_new_bool               (const ntValue *ctx, bool b);
+ntValue          *nt_value_new_boolean            (const ntValue *ctx, bool b);
 ntValue          *nt_value_new_number             (const ntValue *ctx, double n);
 ntValue          *nt_value_new_string_utf8        (const ntValue *ctx, const   char *string);
 ntValue          *nt_value_new_string_utf8_length (const ntValue *ctx, const   char *string, size_t len);

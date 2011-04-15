@@ -309,7 +309,7 @@ static ntValue*         sm_value_get_global       (const ntValue *val) {
 
 static ntValueType      sm_value_get_type         (const ntValue *val) {
 	if (JSVAL_IS_BOOLEAN(VAL(val)))
-		return ntValueTypeBool;
+		return ntValueTypeBoolean;
 	else if(JSVAL_IS_NULL(VAL(val)))
 		return ntValueTypeNull;
 	else if(JSVAL_IS_NUMBER(VAL(val)))
@@ -485,7 +485,7 @@ static ntValue         *sm_value_del        (ntValue *obj, const ntValue *idx) {
 		jsval rval;
 		if (JS_IsExceptionPending(CTX(obj)) && JS_GetPendingException(CTX(obj), &rval))
 			return get_instance(obj, rval, true);
-		return nt_value_to_exception(nt_value_new_bool(obj, false));
+		return nt_value_to_exception(nt_value_new_boolean(obj, false));
 	}
 	return sm_value_new_bool(obj, true);
 }
@@ -514,7 +514,7 @@ static ntValue         *sm_value_set              (ntValue *obj, const ntValue *
 	if (!JS_SetPropertyById(CTX(obj), OBJ(obj), vid, &v)) {
 		if (JS_IsExceptionPending(CTX(obj)) && JS_GetPendingException(CTX(obj), &v))
 			return get_instance(obj, v, true);
-		return nt_value_to_exception(nt_value_new_bool(obj, false));
+		return nt_value_to_exception(nt_value_new_boolean(obj, false));
 	}
 	if (JSID_IS_STRING(vid)) {
 		size_t len;

@@ -50,7 +50,7 @@ public:
 		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
 
 		unsetenv(idx.to<UTF8>().c_str());
-		return obj.newBool(true);
+		return obj.newUndefined();
 	}
 
 	virtual Value get(Value& obj, Value& idx) {
@@ -64,7 +64,7 @@ public:
 		if (!idx.isString()) return throwException(obj, "PropertyError", "Not found!");
 
 		setenv(idx.to<UTF8>().c_str(), value.to<UTF8>().c_str(), true);
-		return obj.newBool(true);
+		return obj.newBoolean(true);
 	}
 
 	virtual Value enumerate(Value& obj) {
@@ -82,7 +82,7 @@ public:
 
 extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	Value base(module, false);
-	bool ok = !base.set("exports.args", base.newArray()).isException();
-	     ok = !base.set("exports.env", base.newObject(new EnvClass())).isException() || ok;
+	bool ok = !base.setRecursive("exports.args", base.newArray()).isException();
+	     ok = !base.setRecursive("exports.env", base.newObject(new EnvClass())).isException() || ok;
 	return ok;
 }

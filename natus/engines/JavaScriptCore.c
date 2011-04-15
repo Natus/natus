@@ -284,7 +284,7 @@ static ntValueType      jsc_value_get_type        (const ntValue *val) {
 	JSType type = JSValueGetType(CTX(val), VAL(val));
 	switch (type) {
 		case kJSTypeBoolean:
-			return ntValueTypeBool;
+			return ntValueTypeBoolean;
 		case kJSTypeNull:
 			return ntValueTypeNull;
 		case kJSTypeNumber:

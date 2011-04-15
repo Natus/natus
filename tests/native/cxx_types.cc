@@ -1,12 +1,12 @@
 #include "test.hpp"
 
 static Value function(Value& fnc, Value& ths, Value& arg) {
-	return fnc.newBool(true);
+	return fnc.newBoolean(true);
 }
 
 int doTest(Engine& engine, Value& global) {
 	Value array     = global.newArray();
-	Value boolean   = global.newBool(true);
+	Value boolean   = global.newBoolean(true);
 	Value func      = global.newFunction(function);
 	Value null      = global.newNull();
 	Value number    = global.newNumber(17);
