@@ -329,7 +329,7 @@ bool Value::isUndefined() const {
 }
 
 Value Value::toException() {
-	return nt_value_incref(nt_value_to_exception(internal));
+	return Value(nt_value_to_exception(internal), false);
 }
 
 template <> bool   Value::to<bool>()   const {
