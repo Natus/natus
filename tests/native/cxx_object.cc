@@ -133,12 +133,12 @@ int doTest(Engine& engine, Value& global) {
 
 	//// Check for successful calls
 	// Call from C++
-	Value y = global.call("x", global.newArrayBuilder(123));
+	Value y = global.call("x", arrayBuilder(global, 123));
 	assert(!y.isException());
 	assert(y.isNumber());
 	assert(y.to<int>() == 123);
 	// New from C++
-	y = global.callNew("x", global.newArrayBuilder(global.newObject()));
+	y = global.callNew("x", arrayBuilder(global, global.newObject()));
 	assert(!y.isException());
 	assert(y.isObject());
 	// Call from JS
@@ -190,7 +190,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isException());
 
 	// Enumerate
-	assert(x.setPrivate("retval", x.newArrayBuilder(x.newNumber(5)).newArrayBuilder(x.newNumber(10))));
+	assert(x.setPrivate("retval", arrayBuilder(arrayBuilder(x, 5), 10)));
 	y = x.enumerate();
 	assert(y.isArray());
 	assert(y.get("length").to<int>() == 2);

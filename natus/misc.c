@@ -620,10 +620,30 @@ ntValue          *nt_ensure_arguments      (ntValue *arg, const char *fmt) {
 	return nt_value_new_undefined(arg);
 }
 
+
+ntValue *nt_array_builder(ntValue *array, ntValue *item) {
+	if (!item) return NULL;
+
+	ntValue *newarray = NULL;
+	if (!nt_value_is_array(array))
+		array = newarray = nt_value_new_array(array, NULL);
+
+	ntValue *len = nt_value_get_utf8(array, "length");
+	if (!nt_value_is_number(len)) {
+		nt_value_decref(newarray);
+		nt_value_decref(len);
+		return NULL;
+	}
+
+	nt_value_decref(nt_value_set(array, len, item, ntPropAttrNone));
+	nt_value_decref(len);
+	return array;
+}
+
 ntValue          *nt_from_json            (const ntValue *json) {
 	ntValue *glbl = nt_value_get_global(json);
 	ntValue *JSON = nt_value_get_utf8(glbl, "JSON");
-	ntValue *args = nt_value_new_array_builder(glbl, nt_value_incref((ntValue*) json));
+	ntValue *args = nt_array_builder(glbl, nt_value_incref((ntValue*) json));
 	ntValue *rslt = nt_value_call_utf8(JSON, "parse", args);
 
 	nt_value_decref(args);
@@ -649,7 +669,7 @@ ntValue          *nt_from_json_utf16      (const ntValue *ctx, const  ntChar *js
 ntValue          *nt_to_json              (const ntValue *val) {
 	ntValue *glbl = nt_value_get_global(val);
 	ntValue *JSON = nt_value_get_utf8(glbl, "JSON");
-	ntValue *args = nt_value_new_array_builder(glbl, nt_value_incref((ntValue*) val));
+	ntValue *args = nt_array_builder(glbl, nt_value_incref((ntValue*) val));
 	ntValue *rslt = nt_value_call_utf8(JSON, "stringify", args);
 
 	nt_value_decref(args);

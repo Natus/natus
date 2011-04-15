@@ -127,16 +127,6 @@ public:
 	Value                 newString(UTF8 string) const;
 	Value                 newString(UTF16 string) const;
 	Value                 newArray(const Value* const* array=NULL) const;
-	Value                 newArrayBuilder(Value          item);
-	Value                 newArrayBuilder(bool           item);
-	Value                 newArrayBuilder(int            item);
-	Value                 newArrayBuilder(long           item);
-	Value                 newArrayBuilder(double         item);
-	Value                 newArrayBuilder(const char*    item);
-	Value                 newArrayBuilder(const Char*    item);
-	Value                 newArrayBuilder(UTF8           item);
-	Value                 newArrayBuilder(UTF16          item);
-	Value                 newArrayBuilder(NativeFunction item);
 	Value                 newFunction(NativeFunction func) const;
 	Value                 newObject(Class* cls=NULL) const;
 	Value                 newNull() const;

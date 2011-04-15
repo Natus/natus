@@ -58,6 +58,48 @@ Value ensureArguments(Value args, const char* fmt) {
 	return nt_ensure_arguments(args.borrowCValue(), fmt);
 }
 
+Value arrayBuilder(Value array, Value item) {
+	ntValue *tmp = nt_array_builder(array.borrowCValue(), item.borrowCValue());
+	if (!array.isArray()) return tmp;
+	return Value(tmp, false);
+}
+
+Value arrayBuilder(Value array, bool item) {
+	return arrayBuilder(array, array.newBoolean(item));
+}
+
+Value arrayBuilder(Value array, int item) {
+	return arrayBuilder(array, array.newNumber(item));
+}
+
+Value arrayBuilder(Value array, long item) {
+	return arrayBuilder(array, array.newNumber(item));
+}
+
+Value arrayBuilder(Value array, double item) {
+	return arrayBuilder(array, array.newNumber(item));
+}
+
+Value arrayBuilder(Value array, const char* item) {
+	return arrayBuilder(array, array.newString(item));
+}
+
+Value arrayBuilder(Value array, const Char* item) {
+	return arrayBuilder(array, array.newString(item));
+}
+
+Value arrayBuilder(Value array, UTF8 item) {
+	return arrayBuilder(array, array.newString(item));
+}
+
+Value arrayBuilder(Value array, UTF16 item) {
+	return arrayBuilder(array, array.newString(item));
+}
+
+Value arrayBuilder(Value array, NativeFunction item) {
+	return arrayBuilder(array, array.newFunction(item));
+}
+
 Value fromJSON(Value json) {
 	return nt_from_json(json.borrowCValue());
 }

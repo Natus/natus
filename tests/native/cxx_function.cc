@@ -28,18 +28,18 @@ int doTest(Engine& engine, Value& global) {
 	assert(glbl.get("x").isFunction());
 
 	// Call from C++
-	rslt = global.call("x", global.newArrayBuilder(global.newNumber(123)));
+	rslt = global.call("x", arrayBuilder(global, 123));
 	assert(!rslt.isException());
 	assert(123 == rslt.to<int>());
-	rslt = glbl.call("x", glbl.newArrayBuilder(glbl.newNumber(123)));
+	rslt = glbl.call("x", arrayBuilder(glbl, 123));
 	assert(!rslt.isException());
 	assert(123 == rslt.to<int>());
 
 	// New from C++
-	rslt = global.callNew("x", global.newArrayBuilder(global.newObject()));
+	rslt = global.callNew("x", arrayBuilder(global, global.newObject()));
 	assert(!rslt.isException());
 	assert(rslt.isObject());
-	rslt = glbl.callNew("x", glbl.newArrayBuilder(glbl.newObject()));
+	rslt = glbl.callNew("x", arrayBuilder(glbl, glbl.newObject()));
 	assert(!rslt.isException());
 	assert(rslt.isObject());
 
@@ -68,15 +68,15 @@ int doTest(Engine& engine, Value& global) {
 
 
 	// Exception Call from C++
-	rslt = global.call("x", global.newArrayBuilder(global.newNumber(123)));
+	rslt = global.call("x", arrayBuilder(global, 123));
 	assert(rslt.isException());
-	rslt = glbl.call("x", glbl.newArrayBuilder(glbl.newNumber(123)));
+	rslt = glbl.call("x", arrayBuilder(glbl, 123));
 	assert(rslt.isException());
 
 	// Exception New from C++
-	rslt = global.callNew("x", global.newArrayBuilder(global.newObject()));
+	rslt = global.callNew("x", arrayBuilder(global, global.newObject()));
 	assert(rslt.isException());
-	rslt = glbl.callNew("x", glbl.newArrayBuilder(glbl.newObject()));
+	rslt = glbl.callNew("x", arrayBuilder(glbl, glbl.newObject()));
 	assert(rslt.isException());
 
 	// Exception Call from JS

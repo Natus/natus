@@ -168,7 +168,7 @@ static Value set_path(Value& ctx, Require::HookStep step, char* name, void* misc
 
 		const char** argv = (const char **) misc;
 		for (int i=0 ; argv[i] ; i++)
-			args.newArrayBuilder(argv[i]);
+			arrayBuilder(args, argv[0]);
 	}
 
 	return NULL;

@@ -198,48 +198,6 @@ Value Value::newArray(const Value* const* array) const {
 	return v;
 }
 
-Value Value::newArrayBuilder(Value item) {
-	ntValue *tmp = nt_value_new_array_builder(internal, item.internal);
-	if (!isArray()) return tmp;
-	return Value(tmp, false);
-}
-
-Value Value::newArrayBuilder(bool item) {
-	return newArrayBuilder(newBoolean(item));
-}
-
-Value Value::newArrayBuilder(int item) {
-	return newArrayBuilder(newNumber(item));
-}
-
-Value Value::newArrayBuilder(long item) {
-	return newArrayBuilder(newNumber(item));
-}
-
-Value Value::newArrayBuilder(double item) {
-	return newArrayBuilder(newNumber(item));
-}
-
-Value Value::newArrayBuilder(const char* item) {
-	return newArrayBuilder(newString(item));
-}
-
-Value Value::newArrayBuilder(const Char* item) {
-	return newArrayBuilder(newString(item));
-}
-
-Value Value::newArrayBuilder(UTF8 item) {
-	return newArrayBuilder(newString(item));
-}
-
-Value Value::newArrayBuilder(UTF16 item) {
-	return newArrayBuilder(newString(item));
-}
-
-Value Value::newArrayBuilder(NativeFunction item) {
-	return newArrayBuilder(newFunction(item));
-}
-
 Value Value::newFunction(NativeFunction func) const {
 	Value f = nt_value_new_function(internal, txFunction);
 	f.setPrivate("natus::Function++", (void*) func);

@@ -234,7 +234,7 @@ static Value posix_forkpty(Value& fnc, Value& ths, Value& arg) {
 	pid_t pid = forkpty(&amaster, NULL, NULL, NULL);
 	if (pid < 0) return doexc();
 
-	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) amaster);
+	return arrayBuilder(arrayBuilder(ths, (long) pid), (long) amaster);
 }
 
 static Value posix_fpathconf(Value& fnc, Value& ths, Value& arg) {
@@ -333,7 +333,7 @@ static Value posix_getgroups(Value& fnc, Value& ths, Value& arg) {
 
 	Value ret = ths.newArray();
 	for (gid_t i=0 ; i < size ; i++)
-		ret.newArrayBuilder((long) i);
+		arrayBuilder(ret, (long) i);
 	delete[] gids;
 	return ret;
 }
@@ -343,7 +343,7 @@ static Value posix_getloadavg(Value& fnc, Value& ths, Value& arg) {
 	if (getloadavg(ldavg, 3) < 0)
 		return ths.newString("Unknown error!").toException();
 
-	return ths.newArrayBuilder(ldavg[0]).newArrayBuilder(ldavg[1]).newArrayBuilder(ldavg[2]);
+	return arrayBuilder(arrayBuilder(arrayBuilder(ths, ldavg[0]), ldavg[1]), ldavg[2]);
 }
 
 static Value posix_getlogin(Value& fnc, Value& ths, Value& arg) {
@@ -378,7 +378,7 @@ static Value posix_getresgid(Value& fnc, Value& ths, Value& arg) {
 	if (getresgid(&rgid, &egid, &sgid) < 0)
 		return doexc();
 
-	return ths.newArrayBuilder((long) rgid).newArrayBuilder((long) egid).newArrayBuilder((long) sgid);
+	return arrayBuilder(arrayBuilder(arrayBuilder(ths, (long) rgid), (long) egid), (long) sgid);
 }
 
 static Value posix_getresuid(Value& fnc, Value& ths, Value& arg) {
@@ -386,7 +386,7 @@ static Value posix_getresuid(Value& fnc, Value& ths, Value& arg) {
 	if (getresgid(&ruid, &euid, &suid) < 0)
 		return doexc();
 
-	return ths.newArrayBuilder((long) ruid).newArrayBuilder((long) euid).newArrayBuilder((long) suid);
+	return arrayBuilder(arrayBuilder(arrayBuilder(ths, (long) ruid), (long) euid), (long) suid);
 }
 #endif
 
@@ -568,7 +568,7 @@ static Value posix_openpty(Value& fnc, Value& ths, Value& arg) {
 	if (openpty(&amaster, &aslave, NULL, NULL, NULL) < 0)
 		return doexc();
 
-	return ths.newArrayBuilder((long) amaster).newArrayBuilder((long) aslave);
+	return arrayBuilder(arrayBuilder(ths, (long) amaster), (long) aslave);
 }
 
 static Value posix_pathconf(Value& fnc, Value& ths, Value& arg) {
@@ -585,7 +585,7 @@ static Value posix_pipe(Value& fnc, Value& ths, Value& arg) {
 	int fds[2];
 	if (pipe(fds) < 0) return doexc();
 
-	return ths.newArrayBuilder((long) fds[0]).newArrayBuilder((long) fds[1]);
+	return arrayBuilder(arrayBuilder(ths, (long) fds[0]), (long) fds[1]);
 }
 
 static Value posix_read(Value& fnc, Value& ths, Value& arg) {
@@ -895,7 +895,7 @@ static Value posix_wait(Value& fnc, Value& ths, Value& arg) {
 	int status;
 	pid_t pid = wait(&status);
 	if (pid < 0) return doexc();
-	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) status);
+	return arrayBuilder(arrayBuilder(ths, (long) pid), (long) status);
 }
 
 static Value posix_waitpid(Value& fnc, Value& ths, Value& arg) {
@@ -905,7 +905,7 @@ static Value posix_waitpid(Value& fnc, Value& ths, Value& arg) {
 	pid_t pid = waitpid(arg[0].to<int>(), &status, arg[1].to<int>());
 	if (pid < 0) return doexc();
 
-	return ths.newArrayBuilder((long) pid).newArrayBuilder((long) status);
+	return arrayBuilder(arrayBuilder(ths, (long) pid), (long) status);
 }
 
 static Value posix_write(Value& fnc, Value& ths, Value& arg) {

@@ -74,7 +74,7 @@ public:
 		for (int i=0 ; environ[i] ; i++) {
 			UTF8 key = environ[i];
 			if (key.find_first_of('=') == UTF8::npos) continue;
-			properties.newArrayBuilder(key.substr(0, key.find_first_of('=')));
+			arrayBuilder(properties, key.substr(0, key.find_first_of('=')));
 		}
 		return properties;
 	}

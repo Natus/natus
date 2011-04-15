@@ -37,7 +37,19 @@ Value throwException(Value ctx, const char* type, const char* format, ...);
 Value throwException(Value ctx, const char* type, int code, const char* format, va_list ap);
 Value throwException(Value ctx, const char* type, int code, const char* format, ...);
 Value throwException(Value ctx, int errorno);
+
 Value ensureArguments(Value args, const char* fmt);
+
+Value arrayBuilder(Value array, Value item);
+Value arrayBuilder(Value array, bool item);
+Value arrayBuilder(Value array, int item);
+Value arrayBuilder(Value array, long item);
+Value arrayBuilder(Value array, double item);
+Value arrayBuilder(Value array, const char* item);
+Value arrayBuilder(Value array, const Char* item);
+Value arrayBuilder(Value array, UTF8 item);
+Value arrayBuilder(Value array, UTF16 item);
+Value arrayBuilder(NativeFunction item);
 
 Value fromJSON(Value json);
 Value fromJSON(Value ctx, UTF8 json);

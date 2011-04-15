@@ -1,7 +1,7 @@
 #include "test.hpp"
 
 int doTest(Engine& engine, Value& global) {
-	Value array = global.newArrayBuilder(global.newNumber(123)).newArrayBuilder(global.newNumber(456));
+	Value array = arrayBuilder(arrayBuilder(global, 123), 456);
 	assert(array.isArray());
 	assert(array.get("length").to<int>() == 2);
 	assert(!global.set("x", array).isException());
@@ -9,7 +9,7 @@ int doTest(Engine& engine, Value& global) {
 	array = global.get("x");
 	assert(array.isArray());
 	assert(2 == array.get("length").to<int>());
-	assert(3 == array.call("push", global.newArray().newArrayBuilder(global.newString("foo"))).to<int>());
+	assert(3 == array.call("push", arrayBuilder(global, "foo")).to<int>());
 
 	assert(123   == array.get(0).to<int>());
 	assert(456   == array.get(1).to<int>());

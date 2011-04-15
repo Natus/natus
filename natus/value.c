@@ -81,25 +81,6 @@ ntValue *nt_value_new_array(const ntValue *ctx, const ntValue **array) {
 	return ctx->eng->espec->value.new_array(ctx, array);
 }
 
-ntValue *nt_value_new_array_builder(ntValue *array, ntValue *item) {
-	if (!item) return NULL;
-
-	ntValue *newarray = NULL;
-	if (!nt_value_is_array(array))
-		array = newarray = nt_value_new_array(array, NULL);
-
-	ntValue *len = nt_value_get_utf8(array, "length");
-	if (!nt_value_is_number(len)) {
-		nt_value_decref(newarray);
-		nt_value_decref(len);
-		return NULL;
-	}
-
-	nt_value_decref(nt_value_set(array, len, item, ntPropAttrNone));
-	nt_value_decref(len);
-	return array;
-}
-
 ntValue *nt_value_new_function(const ntValue *ctx, ntNativeFunction func) {
 	if (!ctx || !func) return NULL;
 
@@ -534,15 +515,8 @@ ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValu
 	ntValue *reqr = nt_value_get_utf8(glbl, "require");
 	ntValue *stck = nt_value_private_get_value(reqr, "natus.reqStack");
 	nt_value_decref(glbl);
-	if (nt_value_is_array(stck)) {
-		ntValue *args = nt_value_new_array_builder(nt_value_new_array(ths, NULL), nt_value_incref((ntValue*) filename));
-		ntValue *oldlen = nt_value_get_utf8(stck, "length");
-		ntValue *newlen = nt_value_call_utf8(stck, "push", args);
-		pushed = nt_value_to_long(oldlen) < nt_value_to_long(newlen);
-		nt_value_decref(newlen);
-		nt_value_decref(oldlen);
-		nt_value_decref(args);
-	}
+	if (nt_value_is_array(stck))
+		nt_value_decref(nt_value_set_index(stck, nt_value_as_long(nt_value_get_utf8(stck, "length")), filename));
 
 	ntValue *rslt = ths->eng->espec->value.evaluate(ths, jscript ? jscript : javascript, filename, lineno);
 	nt_value_decref(jscript);

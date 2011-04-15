@@ -146,7 +146,8 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 		nt_value_decref(stack);
 		if (!prfx) return NULL;
 
-		path = nt_value_new_array_builder(module, prfx);
+		const ntValue *items[2] = { prfx, NULL };
+		path = nt_value_new_array(module, items);
 		nt_value_decref(prfx);
 
 	// Otherwise use the normal path
