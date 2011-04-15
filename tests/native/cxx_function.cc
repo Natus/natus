@@ -2,6 +2,10 @@
 #include <string.h>
 
 static Value firstarg_function(Value& fnc, Value& ths, Value& arg) {
+	assert(fnc.borrowCValue());
+	assert(ths.borrowCValue());
+	assert(arg.borrowCValue());
+
 	assert(ths.isGlobal() || ths.isUndefined());
 	assert(fnc.isFunction());
 	assert(arg.isArray());
