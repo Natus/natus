@@ -37,32 +37,18 @@ using namespace v8;
 #define OBJ(v) (JSValueToObject(CTX(v), VAL(v), NULL))
 #define ENG(v) ((v8Engine*) v->eng->engine)
 #define V8_PRIV_STRING String::New("__private__")
-#define V8_PRIV_SLOT 1
+#define V8_PRIV_SLOT 0
 
-static inline Handle<Object> private_make(ntPrivate *priv) {
-	HandleScope hs;
-
-	struct v8Private {
-		static void private_free(Persistent<Value> object, void* priv) {
-			object.Dispose();
-			object.Clear();
-			nt_private_free(((v8Private*) priv)->priv);
-			delete (v8Private*) priv;
-		}
-		Persistent<Object> hndl;
-		ntPrivate*         priv;
-	};
-
-	Handle<ObjectTemplate> prvt = ObjectTemplate::New();
-	prvt->SetInternalFieldCount(V8_PRIV_SLOT+1);
-	Handle<Object> prv = prvt->NewInstance();
-	prv->SetPointerInInternalField(V8_PRIV_SLOT, priv);
-
-	//v8Private* tmp = new v8Private;
-	//tmp->hndl = *prv;
-	//tmp->hndl.MakeWeak(tmp, v8Private::private_free);
-	return prv;
-}
+struct v8Private {
+	static void private_free(Persistent<Value> object, void* priv) {
+		object.Dispose();
+		object.Clear();
+		nt_private_free(((v8Private*) priv)->priv);
+		delete (v8Private*) priv;
+	}
+	Persistent<Object> hndl;
+	ntPrivate*         priv;
+};
 
 static inline ntPrivate* private_get(Handle<Value> val) {
 	HandleScope hs;
@@ -81,10 +67,18 @@ struct v8Value : public ntValue {
 		HandleScope hs;
 		Context::Scope cs(ctx);
 
-		v8Value *self = new v8Value(ctx, ctx->Global());
+		// Make the object which holds our private pointer
+		Handle<ObjectTemplate> prvt = ObjectTemplate::New();
+		prvt->SetInternalFieldCount(V8_PRIV_SLOT+1);
+		Handle<Object> prv = prvt->NewInstance();
+		prv->SetPointerInInternalField(V8_PRIV_SLOT, priv);
+		v8Private* tmp = new v8Private;
+		tmp->hndl = *prv;
+		tmp->hndl.MakeWeak(tmp, v8Private::private_free);
 
-		Handle<Object> prv = private_make(priv);
-		self->ctx->Global()->SetHiddenValue(V8_PRIV_STRING, prv);
+		// Create the v8Value and store the private
+		v8Value *self = new v8Value(ctx, ctx->Global());
+		VAL(self)->ToObject()->SetHiddenValue(V8_PRIV_STRING, prv);
 
 		V8::AdjustAmountOfExternalAllocatedMemory(sizeof(v8Value));
 		return self;
@@ -98,7 +92,7 @@ struct v8Value : public ntValue {
 		self->ref = 1;
 		self->exc = exc;
 		self->eng = nt_engine_incref(ctx->eng);
-		self->typ = _ntValueTypeUnknown;
+		self->typ = ntValueTypeUnknown;
 		V8::AdjustAmountOfExternalAllocatedMemory(sizeof(v8Value));
 		return self;
 	}
@@ -116,7 +110,7 @@ struct v8Value : public ntValue {
 	}
 };
 
-static inline Handle<Value> property_handler(uint32_t index, Local<String> property, Local<Value> value, const AccessorInfo& info, bool del=false) {
+static inline Handle<Value> property_handler(uint32_t index, Handle<String> property, Handle<Value> value, const AccessorInfo& info, bool del=false) {
 	HandleScope hs;
 
 	ntPrivate* prv = (ntPrivate*) info.Data()->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
@@ -145,11 +139,16 @@ static inline Handle<Value> property_handler(uint32_t index, Local<String> prope
 	nt_value_decref(idx);
 	nt_value_decref(val);
 
+	if (nt_value_is_undefined(res)) {
+		nt_value_decref(res);
+		return Handle<Value>();
+	}
+
 	if (nt_value_is_exception(res))
 		return ThrowException(VAL(res));
 
 	if (value.IsEmpty() && !del) {
-		Local<Value> r = *VAL(res);
+		Handle<Value> r = VAL(res);
 		nt_value_decref(res);
 		return r;
 	}
@@ -158,25 +157,27 @@ static inline Handle<Value> property_handler(uint32_t index, Local<String> prope
 }
 
 static Handle<Value> obj_item_get(uint32_t index, const AccessorInfo& info) {
-	return property_handler(index, Local<String>(), Local<Value>(), info);
+	return property_handler(index, Handle<String>(), Handle<Value>(), info);
 }
 
 static Handle<Value> obj_property_get(Local<String> property, const AccessorInfo& info) {
-	return property_handler(0, property, Local<Value>(), info);
+	return property_handler(0, property, Handle<Value>(), info);
 }
 
 static Handle<Boolean> obj_item_del(uint32_t index, const AccessorInfo& info) {
-	Handle<Value> v = property_handler(index, Local<String>(), Local<Value>(), info, true);
+	Handle<Value> v = property_handler(index, Handle<String>(), Handle<Value>(), info, true);
+	if (v.IsEmpty()) return Handle<Boolean>();
 	return v->ToBoolean();
 }
 
 static Handle<Boolean> obj_property_del(Local<String> property, const AccessorInfo& info) {
-	Handle<Value> v = property_handler(0, property, Local<Value>(), info, true);
+	Handle<Value> v = property_handler(0, property, Handle<Value>(), info, true);
+	if (v.IsEmpty()) return Handle<Boolean>();
 	return v->ToBoolean();
 }
 
 static Handle<Value> obj_item_set(uint32_t index, Local<Value> value, const AccessorInfo& info) {
-	return property_handler(index, Local<String>(), value, info);
+	return property_handler(index, Handle<String>(), value, info);
 }
 
 static Handle<Value> obj_property_set(Local<String> property, Local<Value> value, const AccessorInfo& info) {
@@ -199,15 +200,15 @@ static Handle<Array> obj_enumerate(const AccessorInfo& info) {
 	return Handle<Array>(Array::Cast(*VAL(val)));
 }
 
-static inline Handle<Value> int_call(const Arguments& args, ntValue* glbl, ntNativeFunction func, ntClass* clss) {
+static Handle<Value> int_call(const Arguments& args, ntValue* glbl, ntNativeFunction func, ntClass* clss) {
 	HandleScope hs;
 	Context::Scope cs(CTX(glbl));
 
 	// Convert the arguments
-	Local<Array> array = Array::New(args.Length());
+	Handle<Array> array = Array::New(args.Length());
 	for (int i=0 ; i < args.Length() ; i++)
 		array->Set(i, args[i]);
-	Local<Value> function;
+	Handle<Value> function;
 
 	// For objects, the object is stored in Holder
 	if (func) function = args.Callee();
@@ -218,18 +219,20 @@ static inline Handle<Value> int_call(const Arguments& args, ntValue* glbl, ntNat
 	ntValue* arg = v8Value::getInstance(glbl, array);
 	ntValue *res = NULL;
 
-	if (!args.IsConstructCall()) {
-		// Note: when called as an object,
-		// This() is *not* this. Upstream bug.
+	// Note: when called as an object,
+	// This() is *not* this. Upstream bug.
+	if (!args.IsConstructCall())
 		ths = v8Value::getInstance(glbl, args.This());
-	}
+	else
+		ths = v8Value::getInstance(glbl, Undefined());
 
 	if (func)
 		res = func(fnc, ths, arg);
 	else
 		res = clss->call(clss, fnc, ths, arg);
 
-	Local<Value> r = *VAL(res);
+	Handle<Value> r = Undefined();
+	if (res) r = VAL(res);
 	bool exc = !res || res->exc;
 	nt_value_decref(fnc);
 	nt_value_decref(ths);
@@ -288,7 +291,7 @@ static ntValueType      v8_value_get_type         (const ntValue *val) {
 	else if (VAL(val)->IsUndefined())
 		return ntValueTypeUndefined;
 	else
-		return _ntValueTypeUnknown;
+		return ntValueTypeUnknown;
 }
 
 static void             v8_value_free             (ntValue *val) {
@@ -323,11 +326,8 @@ static ntValue*         v8_value_new_array        (const ntValue *ctx, const ntV
 	HandleScope hs;
 	Context::Scope cs(CTX(ctx));
 
-	if (!array)
-		return v8Value::getInstance(ctx, Array::New(0));
-
 	int len = 0;
-	while (array[len++]);
+	for( ; array[len] ; len++);
 
 	Handle<Array> valv = Array::New(len);
 	for (unsigned int i=0 ; array[i] ; i++)
@@ -339,14 +339,18 @@ static ntValue*         v8_value_new_function     (const ntValue *ctx, ntPrivate
 	HandleScope hs;
 	Context::Scope cs(CTX(ctx));
 
-	Handle<Object>          prv = private_make(priv);
-	assert(prv->GetPointerFromInternalField(V8_PRIV_SLOT));
+	// Make the object which holds our private pointer
+	Handle<ObjectTemplate> prvt = ObjectTemplate::New();
+	prvt->SetInternalFieldCount(V8_PRIV_SLOT+1);
+	Handle<Object> prv = prvt->NewInstance();
+	prv->SetPointerInInternalField(V8_PRIV_SLOT, priv);
+	v8Private* tmp = new v8Private;
+	tmp->hndl = *prv;
+	tmp->hndl.MakeWeak(tmp, v8Private::private_free);
+
 	Handle<FunctionTemplate> ft = FunctionTemplate::New(fnc_call, prv);
-	assert(prv->GetPointerFromInternalField(V8_PRIV_SLOT));
 	Handle<Function>        fnc = ft->GetFunction();
-	assert(prv->GetPointerFromInternalField(V8_PRIV_SLOT));
 	fnc->SetHiddenValue(V8_PRIV_STRING, prv);
-	assert(prv->GetPointerFromInternalField(V8_PRIV_SLOT));
 	return v8Value::getInstance(ctx, fnc);
 }
 
@@ -354,7 +358,15 @@ static ntValue*         v8_value_new_object       (const ntValue *ctx, ntClass *
 	HandleScope hs;
 	Context::Scope cs(CTX(ctx));
 
-	Handle<Object>        prv = private_make(priv);
+	// Make the object which holds our private pointer
+	Handle<ObjectTemplate> prvt = ObjectTemplate::New();
+	prvt->SetInternalFieldCount(V8_PRIV_SLOT+1);
+	Handle<Object> prv = prvt->NewInstance();
+	prv->SetPointerInInternalField(V8_PRIV_SLOT, priv);
+	v8Private* tmp = new v8Private;
+	tmp->hndl = *prv;
+	tmp->hndl.MakeWeak(tmp, v8Private::private_free);
+
 	Handle<ObjectTemplate> ot = ObjectTemplate::New();
 	if (cls) {
 		if (cls->get || cls->set || cls->del || cls->enumerate) {
@@ -398,19 +410,35 @@ static double           v8_value_to_double        (const ntValue *val) {
 	return VAL(val)->NumberValue();
 }
 
+static Handle<String> _val_to_string(Handle<Context> ctx, Handle<Value> val) {
+	HandleScope hs;
+	Context::Scope cs(ctx);
+	TryCatch tc;
+
+	Handle<Object> oval = val->ToObject();
+	if (!tc.HasCaught()) {
+		Handle<Value> toString = oval->Get(String::New("toString"));
+		if (!toString.IsEmpty() && toString->IsFunction()) {
+			Handle<Value> rslt = Function::Cast(*toString)->Call(val->ToObject(), 0, NULL);
+			if (rslt->IsString()) return rslt->ToString();
+		}
+	}
+	tc.Reset();
+
+	Handle<String> str = val->ToString();
+	if (tc.HasCaught()) {
+		assert(val->IsObject());
+		str = String::New("[object NativeObject]");
+	}
+
+	return str;
+}
+
 static char            *v8_value_to_string_utf8   (const ntValue *val, size_t *len) {
 	HandleScope hs;
 	Context::Scope cs(CTX(val));
 
-	if (!nt_value_is_string(val))
-		return nt_value_as_string_utf8(nt_value_call_utf8((ntValue*) val, "toString", NULL), len);
-
-	TryCatch tc;
-	Handle<String> str = VAL(val)->ToString();
-	if (tc.HasCaught()) {
-		assert(VAL(val)->IsObject());
-		str = String::New("[object NativeObject]");
-	}
+	Handle<String> str = _val_to_string(CTX(val), VAL(val));
 
 	*len = str->Utf8Length();
 
@@ -418,7 +446,7 @@ static char            *v8_value_to_string_utf8   (const ntValue *val, size_t *l
 	if (!buff) return NULL;
 	memset(buff, 0, sizeof(char) * (*len + 1));
 
-	str->WriteUtf8(buff, *len);
+	str->WriteUtf8(buff);
 	return buff;
 }
 
@@ -426,15 +454,7 @@ static ntChar          *v8_value_to_string_utf16  (const ntValue *val, size_t *l
 	HandleScope hs;
 	Context::Scope cs(CTX(val));
 
-	if (!nt_value_is_string(val))
-		return nt_value_as_string_utf16(nt_value_call_utf8((ntValue*) val, "toString", NULL), len);
-
-	TryCatch tc;
-	Handle<String> str = VAL(val)->ToString();
-	if (tc.HasCaught()) {
-		assert(VAL(val)->IsObject());
-		str = String::New("[object NativeObject]");
-	}
+	Handle<String> str = _val_to_string(CTX(val), VAL(val));
 
 	*len = str->Length();
 
@@ -442,7 +462,7 @@ static ntChar          *v8_value_to_string_utf16  (const ntValue *val, size_t *l
 	if (!buff) return NULL;
 	memset(buff, 0, sizeof(ntChar) * (*len + 1));
 
-	str->Write(buff, *len);
+	str->Write(buff);
 	return buff;
 }
 
@@ -452,6 +472,7 @@ static ntValue         *v8_value_del              (ntValue *obj, const ntValue *
 
 	TryCatch tc;
 	bool rslt;
+
 	if (nt_value_is_number(id))
 		rslt = VAL(obj)->ToObject()->Delete(VAL(id)->ToInteger()->Int32Value());
 	else
@@ -467,7 +488,7 @@ static ntValue         *v8_value_get              (const ntValue *obj, const ntV
 	Context::Scope cs(CTX(obj));
 
 	TryCatch tc;
-	Local<Value> rslt = VAL(obj)->ToObject()->Get(VAL(id));
+	Handle<Value> rslt = VAL(obj)->ToObject()->Get(VAL(id));
 	if (tc.HasCaught())
 		return v8Value::getInstance(obj, tc.Exception(), true);
 	return v8Value::getInstance(obj, rslt, false);
