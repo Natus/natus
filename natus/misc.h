@@ -39,7 +39,7 @@ ntValue *nt_throw_exception_varg     (const ntValue *ctx, const char *type, cons
 ntValue *nt_throw_exception_code     (const ntValue *ctx, const char *type, int code, const char *format, ...);
 ntValue *nt_throw_exception_code_varg(const ntValue *ctx, const char *type, int code, const char *format, va_list ap);
 ntValue *nt_throw_exception_errno    (const ntValue *ctx, int errorno);
-ntValue *nt_ensure_arguments         (const ntValue *arg, const char *fmt);
+ntValue *nt_ensure_arguments         (ntValue *arg, const char *fmt);
 
 ntValue *nt_from_json                (const ntValue *json);
 ntValue *nt_from_json_utf8           (const ntValue *ctx, const    char *json, size_t len);

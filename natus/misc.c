@@ -531,7 +531,7 @@ ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno) {
 	return nt_throw_exception_code(ctx, type, errorno, strerror(errorno));
 }
 
-ntValue          *nt_ensure_arguments      (const ntValue *arg, const char *fmt) {
+ntValue          *nt_ensure_arguments      (ntValue *arg, const char *fmt) {
 	char types[4096];
 	unsigned int len = nt_value_as_long(nt_value_get_utf8(arg, "length"));
 	unsigned int minimum = 0;

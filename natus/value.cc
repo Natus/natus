@@ -67,33 +67,33 @@ struct txClass {
 	Class  *cls;
 
 	static ntValue *del(ntClass *cls, ntValue *obj, const ntValue *prop) {
-		Value o = nt_value_incref(obj);
-		Value n = (ntValue*) nt_value_incref((ntValue*) prop);
+		Value o(obj, false);
+		Value n((ntValue*) prop, false);
 		return nt_value_incref(((txClass *) cls)->cls->del(o, n).borrowCValue());
 	}
 
 	static ntValue *get(ntClass *cls, ntValue *obj, const ntValue *prop) {
-		Value o = nt_value_incref(obj);
-		Value n = (ntValue*) nt_value_incref((ntValue*) prop);
+		Value o(obj, false);
+		Value n((ntValue*) prop, false);
 		return nt_value_incref(((txClass *) cls)->cls->get(o, n).borrowCValue());
 	}
 
-	static ntValue *set(ntClass *cls, ntValue *obj, const ntValue *prop, ntValue *value) {
-		Value o = nt_value_incref(obj);
-		Value n = (ntValue*) nt_value_incref((ntValue*) prop);
-		Value v = nt_value_incref(value);
+	static ntValue *set(ntClass *cls, ntValue *obj, const ntValue *prop, const ntValue *value) {
+		Value o(obj, false);
+		Value n((ntValue*) prop, false);
+		Value v((ntValue*) value, false);
 		return nt_value_incref(((txClass *) cls)->cls->set(o, n, v).borrowCValue());
 	}
 
 	static ntValue *enumerate   (ntClass *cls, ntValue *obj) {
-		Value o = nt_value_incref(obj);
+		Value o(obj, false);
 		return nt_value_incref(((txClass *) cls)->cls->enumerate(o).borrowCValue());
 	}
 
 	static ntValue *call        (ntClass *cls, ntValue *obj, ntValue *ths, ntValue* args) {
-		Value o = nt_value_incref(obj);
-		Value t = nt_value_incref(ths);
-		Value a = nt_value_incref(args);
+		Value o(obj, false);
+		Value t(ths, false);
+		Value a(args, false);
 
 		Value rslt = ((txClass *) cls)->cls->call(o, t, a);
 

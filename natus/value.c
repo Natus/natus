@@ -308,6 +308,17 @@ ntChar           *nt_value_as_string_utf16        (ntValue *val, size_t *len) {
 ntValue *nt_value_del(ntValue *val, const ntValue *id) {
 	if (!nt_value_is_type(val, ntValueTypeComplex)) return NULL;
 	if (!nt_value_is_type(id, ntValueTypeNumber | ntValueTypeString)) return NULL;
+
+	// If the object is native, skip argument conversion and js overhead;
+	//    call directly for increased speed
+	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	if (cls && cls->del) {
+		ntValue *rslt = cls->del(cls, val, id);
+		if (!nt_value_is_undefined(rslt))
+			return rslt;
+		nt_value_decref(rslt);
+	}
+
 	return val->eng->espec->value.del(val, id);
 }
 
@@ -345,13 +356,24 @@ ntValue *nt_value_del_recursive_utf8(ntValue *obj, const char *id) {
 	return tmp;
 }
 
-ntValue *nt_value_get(const ntValue *val, const ntValue *id) {
+ntValue *nt_value_get(ntValue *val, const ntValue *id) {
 	if (!nt_value_is_type(val, ntValueTypeComplex)) return NULL;
 	if (!nt_value_is_type(id, ntValueTypeNumber | ntValueTypeString)) return NULL;
+
+	// If the object is native, skip argument conversion and js overhead;
+	//    call directly for increased speed
+	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	if (cls && cls->get) {
+		ntValue *rslt = cls->get(cls, val, id);
+		if (!nt_value_is_undefined(rslt))
+			return rslt;
+		nt_value_decref(rslt);
+	}
+
 	return val->eng->espec->value.get(val, id);
 }
 
-ntValue *nt_value_get_utf8(const ntValue *val, const char *id) {
+ntValue *nt_value_get_utf8(ntValue *val, const char *id) {
 	ntValue *vid = nt_value_new_string_utf8(val, id);
 	if (!vid) return NULL;
 	ntValue *ret = nt_value_get(val, vid);
@@ -359,7 +381,7 @@ ntValue *nt_value_get_utf8(const ntValue *val, const char *id) {
 	return ret;
 }
 
-ntValue *nt_value_get_index(const ntValue *val, size_t id) {
+ntValue *nt_value_get_index(ntValue *val, size_t id) {
 	ntValue *vid = nt_value_new_number(val, id);
 	if (!vid) return NULL;
 	ntValue *ret = nt_value_get(val, vid);
@@ -388,6 +410,17 @@ ntValue *nt_value_set(ntValue *val, const ntValue *id, const ntValue *value, ntP
 	if (!nt_value_is_type(val, ntValueTypeComplex)) return NULL;
 	if (!nt_value_is_type(id, ntValueTypeNumber | ntValueTypeString)) return NULL;
 	if (!value) return NULL;
+
+	// If the object is native, skip argument conversion and js overhead;
+	//    call directly for increased speed
+	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	if (cls && cls->set) {
+		ntValue *rslt = cls->set(cls, val, id, value);
+		if (!nt_value_is_undefined(rslt))
+			return rslt;
+		nt_value_decref(rslt);
+	}
+
 	return val->eng->espec->value.set(val, id, value, attrs);
 }
 
@@ -438,8 +471,15 @@ ntValue *nt_value_set_recursive_utf8(ntValue *obj, const char *id, const ntValue
 	return tmp;
 }
 
-ntValue *nt_value_enumerate(const ntValue *val) {
+ntValue *nt_value_enumerate(ntValue *val) {
 	if (!nt_value_is_type(val, ntValueTypeComplex)) return NULL;
+
+	// If the object is native, skip argument conversion and js overhead;
+	//    call directly for increased speed
+	ntClass *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	if (cls && cls->enumerate)
+		return cls->enumerate(cls, val);
+
 	return val->eng->espec->value.enumerate(val);
 }
 
