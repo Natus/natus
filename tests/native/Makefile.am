@@ -1,7 +1,8 @@
 AM_DEFAULT_SOURCE_EXT = .cc
 AUTOMAKE_OPTIONS = parallel-tests color-tests
 LDADD       = $(abs_top_srcdir)/natus/libnatus.la
-AM_CXXFLAGS = -Wall -DMODSUFFIX='".so"' -DENGINEDIR='"$(abs_top_srcdir)/natus/engines/.libs"' -I$(abs_top_srcdir)
+AM_LDFLAGS  = -rpath $(abs_top_builddir)/natus/.libs
+AM_CXXFLAGS = -Wall -DMODSUFFIX='".so"' -DENGINEDIR='"$(abs_top_builddir)/natus/engines/.libs"' -I$(abs_top_srcdir)
 
 TESTS = cxx_globals \
         cxx_array \
