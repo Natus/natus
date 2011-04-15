@@ -7,32 +7,44 @@ public:
 	}
 
 	virtual Value del(Value& obj, Value& name) {
+		assert(obj.borrowCValue());
+		assert(name.borrowCValue());
 		assert(obj.isObject());
 		assert(name.getType() == obj.getPrivate<size_t>("type"));
 		return obj.getPrivate<Value>("retval");
 	}
 
 	virtual Value get(Value& obj, Value& name) {
+		assert(obj.borrowCValue());
+		assert(name.borrowCValue());
 		assert(obj.isObject());
 		assert(name.getType() == obj.getPrivate<size_t>("type"));
 		return obj.getPrivate<Value>("retval");
 	}
 
 	virtual Value set(Value& obj, Value& name, Value& value) {
+		assert(obj.borrowCValue());
+		assert(name.borrowCValue());
+		assert(value.borrowCValue());
 		assert(obj.isObject());
 		assert(name.getType() == obj.getPrivate<size_t>("type"));
 		return obj.getPrivate<Value>("retval");
 	}
 
 	virtual Value enumerate(Value& obj) {
+		assert(obj.borrowCValue());
 		assert(obj.isObject());
 		return obj.getPrivate<Value>("retval");
 	}
 
 	virtual Value call(Value& obj, Value& ths, Value& args) {
+		assert(obj.borrowCValue());
+		assert(ths.borrowCValue());
+		assert(args.borrowCValue());
 		assert(obj.isObject());
 		assert(args.isArray());
-		assert(ths.isGlobal() || ths.isUndefined());
+		if (strcmp(obj.getEngine().getName(), "v8")) // Work around a bug in v8
+			assert(ths.isGlobal() || ths.isUndefined());
 		if (args.get("length").to<int>() == 0)
 			return obj.getPrivate<Value>("retval");
 		return args[0];
