@@ -295,7 +295,7 @@ ntValue *nt_value_del(ntValue *val, const ntValue *id) {
 	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
 	if (cls && cls->del) {
 		ntValue *rslt = cls->del(cls, val, id);
-		if (!nt_value_is_undefined(rslt))
+		if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
 			return rslt;
 		nt_value_decref(rslt);
 	}
@@ -346,7 +346,7 @@ ntValue *nt_value_get(ntValue *val, const ntValue *id) {
 	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
 	if (cls && cls->get) {
 		ntValue *rslt = cls->get(cls, val, id);
-		if (!nt_value_is_undefined(rslt))
+		if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
 			return rslt;
 		nt_value_decref(rslt);
 	}
@@ -397,7 +397,7 @@ ntValue *nt_value_set(ntValue *val, const ntValue *id, const ntValue *value, ntP
 	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
 	if (cls && cls->set) {
 		ntValue *rslt = cls->set(cls, val, id, value);
-		if (!nt_value_is_undefined(rslt))
+		if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
 			return rslt;
 		nt_value_decref(rslt);
 	}

@@ -139,13 +139,16 @@ static inline Handle<Value> property_handler(uint32_t index, Handle<String> prop
 	nt_value_decref(idx);
 	nt_value_decref(val);
 
-	if (nt_value_is_undefined(res)) {
+
+	if (nt_value_is_exception(res)) {
+		if (!nt_value_is_undefined(res)) {
+			Handle<Value> r = ThrowException(VAL(res));
+			nt_value_decref(res);
+			return r;
+		}
 		nt_value_decref(res);
 		return Handle<Value>();
 	}
-
-	if (nt_value_is_exception(res))
-		return ThrowException(VAL(res));
 
 	if (value.IsEmpty() && !del) {
 		Handle<Value> r = VAL(res);
