@@ -92,7 +92,7 @@ public:
 class Value {
 public:
 	typedef enum {
-		_TypeUnknown  = 0, // Internal use only
+		TypeUnknown   = 0, // Internal use only
 		TypeArray     = 1 << 0,
 		TypeBool      = 1 << 1,
 		TypeFunction  = 1 << 2,
