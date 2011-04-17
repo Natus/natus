@@ -11,6 +11,7 @@ int onEngine(const char *engine, int argc, const char **argv) {
 	if (argc > 1)
 		strncat(cmd, argv[1], PATH_MAX - strlen(cmd));
 
+	putenv("NATUS_PATH=" MODULEDIR);
 	int es = system(cmd);
 	return WEXITSTATUS(es);
 }
