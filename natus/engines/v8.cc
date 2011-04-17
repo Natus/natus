@@ -90,9 +90,9 @@ struct v8Value : public ntValue {
 
 		v8Value* self = new v8Value(CTX(ctx), val);
 		self->ref = 1;
-		self->exc = exc;
 		self->eng = nt_engine_incref(ctx->eng);
 		self->typ = ntValueTypeUnknown;
+		if (exc) self->typ = (ntValueType) (self->typ | ntValueTypeException);
 		V8::AdjustAmountOfExternalAllocatedMemory(sizeof(v8Value));
 		return self;
 	}
@@ -236,7 +236,7 @@ static Handle<Value> int_call(const Arguments& args, ntValue* glbl, ntNativeFunc
 
 	Handle<Value> r = Undefined();
 	if (res) r = VAL(res);
-	bool exc = !res || res->exc;
+	bool exc = nt_value_is_exception(res);
 	nt_value_decref(fnc);
 	nt_value_decref(ths);
 	nt_value_decref(arg);

@@ -258,8 +258,8 @@ bool Value::isArray() const {
 	return nt_value_is_array(internal);
 }
 
-bool Value::isBool() const {
-	return nt_value_is_bool(internal);
+bool Value::isBoolean() const {
+	return nt_value_is_boolean(internal);
 }
 
 bool Value::isFunction() const {

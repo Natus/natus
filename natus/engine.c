@@ -159,7 +159,6 @@ ntValue *nt_engine_new_global(ntEngine *engine, ntValue *global) {
 	ntValue *glb = engine->espec->engine.newg(engine->engine, global);
 	if (glb) {
 		glb->eng = nt_engine_incref(engine);
-		glb->exc = false;
 		glb->ref = 1;
 		glb->typ = ntValueTypeObject;
 		nt_value_private_set(glb, NATUS_PRIV_GLOBAL, glb, NULL);

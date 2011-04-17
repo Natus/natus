@@ -70,16 +70,22 @@ static ntValue* get_instance(const ntValue* ctx, JSValueRef val, bool exc)  {
 	memset(self, 0, sizeof(JavaScriptCoreValue));
 
 	CTX(self) = CTX(ctx);
-	VAL(self) = val ? val : JSValueMakeUndefined(CTX(ctx));
-	self->typ = ntValueTypeUnknown;
+
+	if (!val) {
+		VAL(self) = JSValueMakeUndefined(CTX(ctx));
+		self->typ = ntValueTypeUndefined;
+	} else {
+		VAL(self) = val;
+		self->typ = ntValueTypeUnknown;
+	}
 	if (!VAL(self)) {
 		free(self);
 		return NULL;
 	}
 	JSValueProtect(CTX(self), VAL(self));
 
+	if (exc) self->typ |= ntValueTypeException;
 	self->eng = nt_engine_incref(ctx->eng);
-	self->exc = exc;
 	self->ref = 1;
 	return self;
 }

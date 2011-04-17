@@ -41,14 +41,15 @@ typedef ntValue *(*ntNativeFunction)(ntValue *fnc, ntValue *ths, ntValue *arg);
 
 typedef enum {
 	ntValueTypeUnknown   = 0 << 0,
-	ntValueTypeArray     = 1 << 0,
-	ntValueTypeBoolean   = 1 << 1,
-	ntValueTypeFunction  = 1 << 2,
-	ntValueTypeNull      = 1 << 3,
-	ntValueTypeNumber    = 1 << 4,
-	ntValueTypeObject    = 1 << 5,
-	ntValueTypeString    = 1 << 6,
-	ntValueTypeUndefined = 1 << 7,
+	ntValueTypeException = 1 << 0, // Internal use only
+	ntValueTypeArray     = 1 << 1,
+	ntValueTypeBoolean   = 1 << 2,
+	ntValueTypeFunction  = 1 << 3,
+	ntValueTypeNull      = 1 << 4,
+	ntValueTypeNumber    = 1 << 5,
+	ntValueTypeObject    = 1 << 6,
+	ntValueTypeString    = 1 << 7,
+	ntValueTypeUndefined = 1 << 8,
 	ntValueTypeSimple    = ntValueTypeBoolean | ntValueTypeNull | ntValueTypeNumber | ntValueTypeString | ntValueTypeUndefined,
 	ntValueTypeComplex   = ntValueTypeArray | ntValueTypeFunction | ntValueTypeObject,
 } ntValueType;
@@ -100,7 +101,7 @@ bool              nt_value_is_global              (const ntValue *val);
 bool              nt_value_is_exception           (const ntValue *val);
 bool              nt_value_is_type                (const ntValue *val, ntValueType types);
 bool              nt_value_is_array               (const ntValue *val);
-bool              nt_value_is_bool                (const ntValue *val);
+bool              nt_value_is_boolean             (const ntValue *val);
 bool              nt_value_is_function            (const ntValue *val);
 bool              nt_value_is_null                (const ntValue *val);
 bool              nt_value_is_number              (const ntValue *val);

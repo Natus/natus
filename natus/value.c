@@ -130,9 +130,9 @@ ntEngine *nt_value_get_engine(const ntValue *ctx) {
 }
 
 ntValueType nt_value_get_type(const ntValue *ctx) {
-	if (!ctx) return ntValueTypeUnknown;
-	if (ctx->typ == ntValueTypeUnknown)
-		((ntValue*) ctx)->typ = ctx->eng->espec->value.get_type(ctx);
+	if (!ctx) return ntValueTypeUndefined | ntValueTypeException;
+	if ((ctx->typ & ~ntValueTypeException) == ntValueTypeUnknown)
+		((ntValue*) ctx)->typ = ctx->eng->espec->value.get_type(ctx) | (ctx->typ & ntValueTypeException);
 	return ctx->typ;
 }
 
@@ -171,18 +171,20 @@ bool nt_value_is_global(const ntValue *val) {
 }
 
 bool nt_value_is_exception(const ntValue *val) {
-	return !val || val->exc;
+	return !val || (val->typ & ntValueTypeException);
 }
 
 bool nt_value_is_type(const ntValue *val, ntValueType types) {
-	return nt_value_get_type(val) & types;
+	if ((types & ntValueTypeException) && !(val->typ & ntValueTypeException))
+		return false;
+	return (nt_value_get_type(val) & ~ntValueTypeException) & (types & ~ntValueTypeException);
 }
 
 bool nt_value_is_array(const ntValue *val) {
 	return nt_value_is_type(val, ntValueTypeArray);
 }
 
-bool nt_value_is_bool(const ntValue *val) {
+bool nt_value_is_boolean(const ntValue *val) {
 	return nt_value_is_type(val, ntValueTypeBoolean);
 }
 
@@ -212,7 +214,8 @@ bool nt_value_is_undefined(const ntValue *val) {
 
 bool nt_value_to_bool(const ntValue *val) {
 	if (!val) return false;
-	return val->exc ? false : val->eng->espec->value.to_bool(val);
+	if (nt_value_is_exception(val)) return false;
+	return val->eng->espec->value.to_bool(val);
 }
 
 double nt_value_to_double(const ntValue *val) {
@@ -222,7 +225,7 @@ double nt_value_to_double(const ntValue *val) {
 
 ntValue *nt_value_to_exception(ntValue *val) {
 	if (!val) return NULL;
-	val->exc = true;
+	val->typ |= ntValueTypeException;
 	return val;
 }
 

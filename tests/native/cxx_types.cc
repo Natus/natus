@@ -16,7 +16,7 @@ int doTest(Engine& engine, Value& global) {
 	Value nullv     = NULL;
 
 	assert( array.isArray());
-	assert(!array.isBool());
+	assert(!array.isBoolean());
 	assert(!array.isFunction());
 	assert(!array.isNull());
 	assert(!array.isNumber());
@@ -28,7 +28,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( array.toException().isException());
 
 	assert(!boolean.isArray());
-	assert( boolean.isBool());
+	assert( boolean.isBoolean());
 	assert(!boolean.isFunction());
 	assert(!boolean.isNull());
 	assert(!boolean.isNumber());
@@ -40,7 +40,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( boolean.toException().isException());
 
 	assert(!func.isArray());
-	assert(!func.isBool());
+	assert(!func.isBoolean());
 	assert( func.isFunction());
 	assert(!func.isNull());
 	assert(!func.isNumber());
@@ -52,7 +52,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( func.toException().isException());
 
 	assert(!null.isArray());
-	assert(!null.isBool());
+	assert(!null.isBoolean());
 	assert(!null.isFunction());
 	assert( null.isNull());
 	assert(!null.isNumber());
@@ -64,7 +64,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( null.toException().isException());
 
 	assert(!number.isArray());
-	assert(!number.isBool());
+	assert(!number.isBoolean());
 	assert(!number.isFunction());
 	assert(!number.isNull());
 	assert( number.isNumber());
@@ -76,7 +76,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( number.toException().isException());
 
 	assert(!object.isArray());
-	assert(!object.isBool());
+	assert(!object.isBoolean());
 	assert(!object.isFunction());
 	assert(!object.isNull());
 	assert(!object.isNumber());
@@ -88,7 +88,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( object.toException().isException());
 
 	assert(!string.isArray());
-	assert(!string.isBool());
+	assert(!string.isBoolean());
 	assert(!string.isFunction());
 	assert(!string.isNull());
 	assert(!string.isNumber());
@@ -100,7 +100,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( string.toException().isException());
 
 	assert(!undefined.isArray());
-	assert(!undefined.isBool());
+	assert(!undefined.isBoolean());
 	assert(!undefined.isFunction());
 	assert(!undefined.isNull());
 	assert(!undefined.isNumber());
@@ -112,7 +112,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( undefined.toException().isException());
 
 	assert(!nullv.isArray());
-	assert(!nullv.isBool());
+	assert(!nullv.isBoolean());
 	assert(!nullv.isFunction());
 	assert(!nullv.isNull());
 	assert(!nullv.isNumber());

@@ -92,15 +92,16 @@ public:
 class Value {
 public:
 	typedef enum {
-		TypeUnknown   = 0, // Internal use only
-		TypeArray     = 1 << 0,
-		TypeBool      = 1 << 1,
-		TypeFunction  = 1 << 2,
-		TypeNull      = 1 << 3,
-		TypeNumber    = 1 << 4,
-		TypeObject    = 1 << 5,
-		TypeString    = 1 << 6,
-		TypeUndefined = 1 << 7,
+		TypeUnknown   = 0,
+		TypeException = 1 << 0, // Internal use only
+		TypeArray     = 1 << 1,
+		TypeBool      = 1 << 2,
+		TypeFunction  = 1 << 3,
+		TypeNull      = 1 << 4,
+		TypeNumber    = 1 << 5,
+		TypeObject    = 1 << 6,
+		TypeString    = 1 << 7,
+		TypeUndefined = 1 << 8,
 	} Type;
 
 	typedef enum {
@@ -142,7 +143,7 @@ public:
 	bool                  isException() const;
 	bool                  isType(Value::Type types) const;
 	bool                  isArray() const;
-	bool                  isBool() const;
+	bool                  isBoolean() const;
 	bool                  isFunction() const;
 	bool                  isNull() const;
 	bool                  isNumber() const;

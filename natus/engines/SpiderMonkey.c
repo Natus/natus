@@ -82,8 +82,8 @@ static ntValue* get_instance(const ntValue* ctx, jsval val, bool exc)  {
 	self->typ = ntValueTypeUnknown;
 	JSVAL_LOCK(CTX(ctx), val);
 
+	if (exc) self->typ |= ntValueTypeException;
 	self->eng = nt_engine_incref(ctx->eng);
-	self->exc = exc;
 	self->ref = 1;
 	return self;
 }

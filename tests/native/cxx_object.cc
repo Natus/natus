@@ -111,23 +111,23 @@ int doTest(Engine& engine, Value& global) {
 	// Number, native
 	assert(x.setPrivate("type", (void*) Value::TypeNumber));
 	assert(!x.del(0).isException());
-	assert(x.get(0).isBool());
+	assert(x.get(0).isBoolean());
 	assert(x.get(0).to<bool>());
 	assert(!x.set(0, 0).isException());
 	// Number, eval
 	assert(!global.evaluate("delete x[0];").isException());
-	assert(global.evaluate("x[0];").isBool());
+	assert(global.evaluate("x[0];").isBoolean());
 	assert(global.evaluate("x[0];").to<bool>());
 	assert(!global.evaluate("x[0] = 0;").isException());
 	// String, native
 	assert(x.setPrivate("type", (void*) Value::TypeString));
 	assert(!x.del("foo").isException());
-	assert(x.get("foo").isBool());
+	assert(x.get("foo").isBoolean());
 	assert(x.get("foo").to<bool>());
 	assert(!x.set("foo", 0).isException());
 	// String, eval
 	assert(!global.evaluate("delete x['foo'];").isException());
-	assert(global.evaluate("x['foo'];").isBool());
+	assert(global.evaluate("x['foo'];").isBoolean());
 	assert(global.evaluate("x['foo'];").to<bool>());
 	assert(!global.evaluate("x['foo'] = 0;").isException());
 

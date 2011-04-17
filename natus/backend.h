@@ -128,7 +128,6 @@ struct _ntEngine {
 
 struct _ntValue {
 	size_t         ref;
-	bool           exc;
 	ntEngine      *eng;
 	ntValueType    typ;
 };
