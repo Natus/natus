@@ -11,9 +11,7 @@
 #endif
 using namespace std;
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/natus.hpp>
-using namespace natus;
+#include "iocommon.hpp"
 
 #define PRIV_POSIX_FD "posix::fd"
 
@@ -137,37 +135,6 @@ static Value socket_listen(Value& fnc, Value& ths, Value& arg) {
 	return ths.newUndefined();
 }
 
-static Value fd_read(Value& fnc, Value& ths, Value& arg) {
-	NATUS_CHECK_ARGUMENTS(arg, "|n");
-
-	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
-
-	int bs = arg.get("length").to<int>() > 0 ? arg[0].to<int>() : 1024;
-	char *buff = new char[bs];
-	ssize_t rcvd = read(fd, buff, bs);
-	if (rcvd < 0) {
-		delete[] buff;
-		return throwException(ths, errno);
-	}
-	string ret = string(buff, rcvd);
-	delete[] buff;
-	return ths.newString(ret);
-}
-
-static string _readline(int fd) {
-	char c = '\0';
-
-	if (read(fd, &c, 1) == 0 || c == '\n')
-		return "";
-
-	return string(&c, 1) + _readline(fd);
-}
-
-static Value fd_readline(Value& fnc, Value& ths, Value& arg) {
-	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
-	return ths.newString(_readline(fd));
-}
-
 static Value socket_receive(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|n");
 
@@ -205,23 +172,6 @@ static Value socket_shutdown(Value& fnc, Value& ths, Value& arg) {
 	return ths.newUndefined();
 }
 
-static Value fd_write(Value& fnc, Value& ths, Value& arg) {
-	NATUS_CHECK_ARGUMENTS(arg, "s");
-
-	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
-	string buff = arg[0].to<UTF8>();
-	ssize_t snt = write(fd, buff.c_str(), buff.length());
-	if (snt < 0) return throwException(ths, errno);
-	return ths.newNumber(snt);
-}
-
-static Value fd_close(Value& fnc, Value& ths, Value& arg) {
-	int fd = ths.getPrivate<long>(PRIV_POSIX_FD);
-	if (close(fd) < 0)
-		return throwException(ths, errno);
-	return ths.newUndefined();
-}
-
 static Value socket_ctor(Value& fnc, Value& ths, Value& arg) {
 	NATUS_CHECK_ARGUMENTS(arg, "|nnn");
 
@@ -242,19 +192,17 @@ static Value socket_ctor(Value& fnc, Value& ths, Value& arg) {
 
 static Value socket_from_sock(Value& ctx, int sock, int domain, int type, int protocol) {
 	Value obj = ctx.newObject(new SocketClass);
-	obj.setPrivate(PRIV_POSIX_FD, (void*) (size_t) sock);
+	if (obj.isException()) return obj;
+	stream_from_fd(obj, sock);
+
 	obj.set("accept",        socket_accept);
 	obj.set("bind",          socket_bind);
 	obj.set("connect",       socket_connect);
-	obj.set("close",         fd_close);
 	obj.set("listen",        socket_listen);
-	obj.set("read",          fd_read);
-	obj.set("readLine",      fd_readline);
 	obj.set("receive",       socket_receive);
 	obj.set("recv",          socket_receive);
 	obj.set("send",          socket_send);
 	obj.set("shutdown",      socket_shutdown);
-	obj.set("write",         fd_write);
 	obj.set("isConnected",   false);
 	obj.set("isReadable",    false);
 	obj.set("isWritable",    false);

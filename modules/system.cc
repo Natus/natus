@@ -22,10 +22,7 @@
  */
 
 #include <stdlib.h>
-
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/natus.hpp>
-using namespace natus;
+#include "iocommon.hpp"
 
 #ifdef __linux__
 static inline const char** __getenviron() {
@@ -82,7 +79,18 @@ public:
 
 extern "C" bool NATUS_MODULE_INIT(ntValue* module) {
 	Value base(module, false);
+
+	Value ostdin  = base.newObject();
+	Value ostdout = base.newObject();
+	Value ostderr = base.newObject();
+	stream_from_fd(ostdin,  STDIN_FILENO);
+	stream_from_fd(ostdout, STDOUT_FILENO);
+	stream_from_fd(ostderr, STDERR_FILENO);
+
 	bool ok = !base.setRecursive("exports.args", base.newArray()).isException();
 	     ok = !base.setRecursive("exports.env", base.newObject(new EnvClass())).isException() || ok;
+	     ok = !base.setRecursive("exports.stdin",  ostdin).isException() || ok;
+	     ok = !base.setRecursive("exports.stdout", ostdout).isException() || ok;
+	     ok = !base.setRecursive("exports.stderr", ostderr).isException() || ok;
 	return ok;
 }
