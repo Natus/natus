@@ -88,38 +88,6 @@ if test x$with_v8 = xyes; then
 fi
 AM_CONDITIONAL([WITH_V8], [test x$with_v8 = xyes])
 
-AM_PATH_PYTHON()
-PKG_CHECK_MODULES(python, python-${PYTHON_VERSION}, have_python=yes,
-        [PKG_CHECK_MODULES(python, python, have_python=yes, have_python=no)])
-# Try to work around missing pkgconfig files...
-if test x$have_python != xyes && test x$PYTHON != x:; then
-    CFLAGSBAK=${CFLAGS}
-    CPPFLAGSBAK=${CPPFLAGS}
-    CFLAGS=-I`$PYTHON -c 'import sys; print sys.prefix'`/include/python${PYTHON_VERSION}
-    CPPFLAGS=${CFLAGS}
-    AC_CHECK_HEADER(Python.h, have_python=yes, have_python=no)
-    if test x$have_python = xyes; then
-        python_CFLAGS=${CFLAGS}
-        python_LIBS=-lpython${PYTHON_VERSION}
-    fi
-    CFLAGS=${CFLAGSBAK}
-    CPPFLAGS=${CPPFLAGSBAK}
-fi
-AC_ARG_WITH([python],
-            [AS_HELP_STRING([--without-python],
-              [disable the Python module @<:@automatic@:>@])],
-            [with_python=no],
-            [test x$have_python = xyes && with_python=yes])
-if test x$with_python = xyes; then
-    AC_SUBST(python_CFLAGS)
-    AC_SUBST(python_LIBS)
-    if test x$have_python = xno; then
-        echo "Python module requires: python!"
-        exit 1
-    fi
-fi
-AM_CONDITIONAL([WITH_PYTHON], [test x$with_python = xyes])
-
 echo
 echo
 echo "Building Engines:"
@@ -133,14 +101,8 @@ printf "\tposix\t\t\tyes\n"
 printf "\tsocket\t\t\tyes\n"
 printf "\tsystem\t\t\tyes\n"
 
-echo
-echo "Building Bindings:"
-printf "\tpython\t\t\t${with_python:-no}\n"
-echo
-echo
-
 MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
-AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile tests/Makefile tests/native/Makefile modules/Makefile bindings/Makefile bindings/python/Makefile)
+AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile tests/Makefile tests/native/Makefile modules/Makefile)
 AC_OUTPUT
 
