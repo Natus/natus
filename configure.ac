@@ -94,6 +94,8 @@ echo "Building Engines:"
 printf "\tJavaScriptCore\t\t${with_javascriptcore:-no}\n"
 printf "\tSpiderMonkey\t\t${with_spidermonkey:-no}\n"
 printf "\tV8\t\t\t${with_v8:-no}\n"
+echo
+echo
 
 MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
