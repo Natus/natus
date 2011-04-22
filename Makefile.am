@@ -1,5 +1,5 @@
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = natus.pc
 
-SUBDIRS=natus modules tests
+SUBDIRS=natus tests
 ACLOCAL_AMFLAGS=-I m4
