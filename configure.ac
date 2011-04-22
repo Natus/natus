@@ -95,12 +95,6 @@ printf "\tJavaScriptCore\t\t${with_javascriptcore:-no}\n"
 printf "\tSpiderMonkey\t\t${with_spidermonkey:-no}\n"
 printf "\tV8\t\t\t${with_v8:-no}\n"
 
-echo 
-echo "Building Modules:"
-printf "\tposix\t\t\tyes\n"
-printf "\tsocket\t\t\tyes\n"
-printf "\tsystem\t\t\tyes\n"
-
 MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
 AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile tests/Makefile tests/native/Makefile)
