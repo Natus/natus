@@ -26,10 +26,10 @@
 #include "types.h"
 #include <stdarg.h>
 
-#define NT_CHECK_ARGUMENTS(arg, fmt) \
+#define NT_CHECK_ARGUMENTS(arg, fmt) { \
 	ntValue *_exc = nt_ensure_arguments(arg, fmt); \
 	if (nt_value_is_exception(_exc)) return _exc; \
-	nt_value_decref(_exc);
+	nt_value_decref(_exc); }
 
 #ifdef __cplusplus
 extern "C" {
