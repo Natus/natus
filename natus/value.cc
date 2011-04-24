@@ -22,7 +22,7 @@
  */
 
 #include <cstdlib> // For free()
-#include <cstdio>
+#include <cassert>
 
 #include "engine.hpp"
 #include "value.hpp"
@@ -69,25 +69,33 @@ struct txClass {
 	static ntValue *del(ntClass *cls, ntValue *obj, const ntValue *prop) {
 		Value o(obj, false);
 		Value n((ntValue*) prop, false);
-		return nt_value_incref(((txClass *) cls)->cls->del(o, n).borrowCValue());
+
+		Class *txcls = ((txClass *) cls)->cls;
+		return nt_value_incref(txcls->del(txcls, o, n).borrowCValue());
 	}
 
 	static ntValue *get(ntClass *cls, ntValue *obj, const ntValue *prop) {
 		Value o(obj, false);
 		Value n((ntValue*) prop, false);
-		return nt_value_incref(((txClass *) cls)->cls->get(o, n).borrowCValue());
+
+		Class *txcls = ((txClass *) cls)->cls;
+		return nt_value_incref(txcls->get(txcls, o, n).borrowCValue());
 	}
 
 	static ntValue *set(ntClass *cls, ntValue *obj, const ntValue *prop, const ntValue *value) {
 		Value o(obj, false);
 		Value n((ntValue*) prop, false);
 		Value v((ntValue*) value, false);
-		return nt_value_incref(((txClass *) cls)->cls->set(o, n, v).borrowCValue());
+
+		Class *txcls = ((txClass *) cls)->cls;
+		return nt_value_incref(txcls->set(txcls, o, n, v).borrowCValue());
 	}
 
 	static ntValue *enumerate   (ntClass *cls, ntValue *obj) {
 		Value o(obj, false);
-		return nt_value_incref(((txClass *) cls)->cls->enumerate(o).borrowCValue());
+
+		Class *txcls = ((txClass *) cls)->cls;
+		return nt_value_incref(txcls->enumerate(txcls, o).borrowCValue());
 	}
 
 	static ntValue *call        (ntClass *cls, ntValue *obj, ntValue *ths, ntValue* args) {
@@ -95,34 +103,31 @@ struct txClass {
 		Value t(ths, false);
 		Value a(args, false);
 
-		Value rslt = ((txClass *) cls)->cls->call(o, t, a);
+		Class *txcls = ((txClass *) cls)->cls;
+		Value rslt = txcls->call(txcls, o, t, a);
 
 		return nt_value_incref(rslt.borrowCValue());
 	}
 
 	static void     free        (ntClass *cls) {
-		delete ((txClass *) cls)->cls;
+		if (!cls) return;
+
+		Class *txcls = ((txClass *) cls)->cls;
+		if (txcls && txcls->free) txcls->free(txcls);
 		delete ((txClass *) cls);
 	}
 
 	txClass(Class* cls) {
-		this->hdr.del       = (cls->getFlags() & Class::FlagDelete)    ? txClass::del : NULL;
-		this->hdr.get       = (cls->getFlags() & Class::FlagGet)       ? txClass::get : NULL;
-		this->hdr.set       = (cls->getFlags() & Class::FlagSet)       ? txClass::set : NULL;
-		this->hdr.enumerate = (cls->getFlags() & Class::FlagEnumerate) ? txClass::enumerate    : NULL;
-		this->hdr.call      = (cls->getFlags() & Class::FlagCall)      ? txClass::call         : NULL;
+		assert(cls);
+		this->hdr.del       = cls->del       ? txClass::del       : NULL;
+		this->hdr.get       = cls->get       ? txClass::get       : NULL;
+		this->hdr.set       = cls->set       ? txClass::set       : NULL;
+		this->hdr.enumerate = cls->enumerate ? txClass::enumerate : NULL;
+		this->hdr.call      = cls->call      ? txClass::call      : NULL;
 		this->hdr.free      = txClass::free;
 		this->cls = cls;
 	}
 };
-
-Class::Flags Class::getFlags () { return Class::FlagNone; }
-Value        Class::del      (Value& obj, Value& name)               { return obj.newUndefined().toException(); }
-Value        Class::get      (Value& obj, Value& name)               { return obj.newUndefined().toException(); }
-Value        Class::set      (Value& obj, Value& name, Value& value) { return obj.newUndefined().toException(); }
-Value        Class::enumerate(Value& obj)                            { return obj.newUndefined().toException(); }
-Value        Class::call     (Value& obj, Value& ths,  Value& args)  { return obj.newUndefined().toException(); }
-Class::~Class() {}
 
 Value::Value() {
 	internal = NULL;

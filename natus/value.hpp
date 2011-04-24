@@ -49,8 +49,14 @@ typedef Value (*NativeFunction)(Value& fnc, Value& ths, Value& arg);
 typedef std::basic_string<char> UTF8;
 typedef std::basic_string<Char> UTF16;
 
-class Class {
-public:
+struct Class {
+	Value (*del)      (Class* cls, Value& obj, Value& idx);
+	Value (*get)      (Class* cls, Value& obj, Value& idx);
+	Value (*set)      (Class* cls, Value& obj, Value& idx, Value& val);
+	Value (*enumerate)(Class* cls, Value& obj);
+	Value (*call)     (Class* cls, Value& obj, Value& ths, Value& arg);
+	void  (*free)     (Class* cls);
+
 	typedef enum {
 		FlagNone      = 0,
 		FlagDelete    = 1 << 1,
@@ -61,32 +67,6 @@ public:
 		FlagObject    = FlagDelete | FlagGet | FlagSet | FlagEnumerate,
 		FlagFunction  = FlagObject | FlagCall,
 	} Flags;
-
-	virtual Class::Flags getFlags ();
-
-	/*
-	 * * Undefined Exception: don't intercept
-	 * * Other Exception: throw exception
-	 * * Otherwise: success
-	 */
-	virtual Value        del      (Value& obj, Value& name);
-
-	/*
-	 * * Undefined Exception: don't intercept
-	 * * Other Exception: throw exception
-	 * * Otherwise: returns value
-	 */
-	virtual Value        get      (Value& obj, Value& name);
-
-	/*
-	 * * Undefined Exception: don't intercept
-	 * * Other Exception: throw exception
-	 * * Otherwise: success
-	 */
-	virtual Value        set      (Value& obj, Value& name, Value& value);
-	virtual Value        enumerate(Value& obj);
-	virtual Value        call     (Value& obj, Value& ths,  Value& args);
-	virtual ~Class();
 };
 
 class Value {

@@ -1,12 +1,8 @@
 #include "test.hpp"
 
 class TestClass : public Class {
-public:
-	Class::Flags getFlags() {
-		return Class::FlagFunction;
-	}
-
-	virtual Value del(Value& obj, Value& name) {
+private:
+	static Value del_(Class* cls, Value& obj, Value& name) {
 		assert(obj.borrowCValue());
 		assert(name.borrowCValue());
 		assert(obj.isObject());
@@ -14,7 +10,7 @@ public:
 		return obj.getPrivate<Value>("retval");
 	}
 
-	virtual Value get(Value& obj, Value& name) {
+	static Value get_(Class* cls, Value& obj, Value& name) {
 		assert(obj.borrowCValue());
 		assert(name.borrowCValue());
 		assert(obj.isObject());
@@ -22,7 +18,7 @@ public:
 		return obj.getPrivate<Value>("retval");
 	}
 
-	virtual Value set(Value& obj, Value& name, Value& value) {
+	static Value set_(Class* cls, Value& obj, Value& name, Value& value) {
 		assert(obj.borrowCValue());
 		assert(name.borrowCValue());
 		assert(value.borrowCValue());
@@ -31,13 +27,13 @@ public:
 		return obj.getPrivate<Value>("retval");
 	}
 
-	virtual Value enumerate(Value& obj) {
+	static Value enumerate_(Class* cls, Value& obj) {
 		assert(obj.borrowCValue());
 		assert(obj.isObject());
 		return obj.getPrivate<Value>("retval");
 	}
 
-	virtual Value call(Value& obj, Value& ths, Value& args) {
+	static Value call_(Class* cls, Value& obj, Value& ths, Value& args) {
 		assert(obj.borrowCValue());
 		assert(ths.borrowCValue());
 		assert(args.borrowCValue());
@@ -48,6 +44,20 @@ public:
 		if (args.get("length").to<int>() == 0)
 			return obj.getPrivate<Value>("retval");
 		return args[0];
+	}
+
+	static void free_(Class* cls) {
+		delete static_cast<TestClass*>(cls);
+	}
+
+public:
+	TestClass() {
+		this->del       = TestClass::del_;
+		this->get       = TestClass::get_;
+		this->set       = TestClass::set_;
+		this->enumerate = TestClass::enumerate_;
+		this->call      = TestClass::call_;
+		this->free      = TestClass::free_;
 	}
 };
 
