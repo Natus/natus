@@ -1,3 +1,18 @@
+Sat Apr 23 22:10:46 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
+    * == Released 0.2.0 ===
+    * Major rewrite for dramatically reduced memory usage (~75% reduction)
+    * Major new api, should be much easier to use
+    * Full test suite governing the common behavior of all the engines
+    * Modules moved to a separate package (ie no longer included)
+    * Mac OS X build support (JavaScriptCore only; patches welcome)
+    * TONS of bugs fixed
+Sat Feb 07 01:52:00 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
+    * == Released 0.1.5 ===
+    *   [core] Fix crasher when no engines are found
+    *   [core] Fix linking in engines and modules
+    *     [V8] Fix argument duplication during Value.call()
+    *     [SM] Fix argument duplication during Value.call()
+    * [socket] Build fix for systems missing SO_BSDCOMPAT
 Sat Feb 07 01:52:00 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
 	* == Released 0.1.5 ===
 	*   [core] Fix crasher when no engines are found
