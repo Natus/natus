@@ -19,4 +19,4 @@ TESTS = cxx_globals \
         cxx_exception \
         cxx_types
 noinst_PROGRAMS  = $(TESTS)
-EXTRA_DIST       = test.hpp
+EXTRA_DIST       = test.hpp scriptmod.js
