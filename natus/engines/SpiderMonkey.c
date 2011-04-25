@@ -443,7 +443,8 @@ static inline JSString *_val_to_string(JSContext *ctx, jsval val) {
 		JS_ConvertValue(ctx, val, JSTYPE_STRING, &v);
 
 	if (JSVAL_IS_OBJECT(v))
-		return JS_NewStringCopyN(ctx, "[object Object]", strlen("[object Object]"));
+		if (!obj_convert(ctx, JSVAL_TO_OBJECT(v), JSTYPE_STRING, &v))
+			return JS_NewStringCopyN(ctx, "[object Object]", strlen("[object Object]"));
 	return JS_ValueToString(ctx, v);
 }
 
