@@ -130,6 +130,20 @@ static vector<string> pathparser(string path) {
 	return paths;
 }
 
+static Value recursive_enumerate(Value obj) {
+	Value names = obj.enumerate();
+	if (obj.get("prototype").isUndefined()) return names;
+
+	Value proto = recursive_enumerate(obj.get("prototype"));
+
+	long olen = names.get("length").to<long>();
+	long plen = proto.get("length").to<long>();
+	for (long i=0 ; i < plen ; i++)
+		names.set(olen++, proto[i]);
+
+	return names;
+}
+
 static char* completion_generator(const char* text, int state) {
 	static set<string> names;
 	static set<string>::iterator it;
@@ -148,7 +162,7 @@ static char* completion_generator(const char* text, int state) {
 			if (obj.isUndefined()) return NULL;
 		}
 
-		Value nm = obj.enumerate();
+		Value nm = recursive_enumerate(obj);
 		for (long i=0 ; i < nm.get("length").to<long>() ; i++)
 			names.insert(nm[i].to<UTF8>().c_str());
 		it = names.begin();
