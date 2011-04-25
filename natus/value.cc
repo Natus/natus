@@ -153,6 +153,10 @@ Value& Value::operator=(const Value& value) {
 	return *this;
 }
 
+bool Value::operator==(const Value& value) {
+	return equals(value);
+}
+
 Value Value::operator[](long index) {
 	return get(index);
 }
@@ -691,4 +695,12 @@ Value Value::callNew(UTF8  name, Value args) {
 Value Value::callNew(UTF16 name, Value args) {
 	Value fnc = get(name);
 	return nt_value_call_new(fnc.internal, args.internal);
+}
+
+bool Value::equals(Value val) {
+	return nt_value_equals(internal, val.internal);
+}
+
+bool Value::equalsStrict(Value val) {
+	return nt_value_equals_strict(internal, val.internal);
 }

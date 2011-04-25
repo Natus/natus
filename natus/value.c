@@ -608,3 +608,19 @@ ntValue *nt_value_call_new_utf8(ntValue *obj, const char *name, ntValue *args) {
 	nt_value_decref(fnc);
 	return ret;
 }
+
+bool              nt_value_equals                 (ntValue *val1, ntValue *val2) {
+	if (!val1 && !val2) return true;
+	if (!val1 && nt_value_is_undefined(val2)) return true;
+	if (!val2 && nt_value_is_undefined(val1)) return true;
+	if (!val1 || !val2) return false;
+	return val1->eng->espec->value.equal(val1, val2, false);
+}
+
+bool              nt_value_equals_strict          (ntValue *val1, ntValue *val2) {
+	if (!val1 && !val2) return true;
+	if (!val1 && nt_value_is_undefined(val2)) return true;
+	if (!val2 && nt_value_is_undefined(val1)) return true;
+	if (!val1 || !val2) return false;
+	return val1->eng->espec->value.equal(val1, val2, true);
+}

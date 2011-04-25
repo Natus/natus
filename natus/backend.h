@@ -71,7 +71,8 @@ extern "C" {
 			prfx ## _value_set, \
 			prfx ## _value_enumerate, \
 			prfx ## _value_call, \
-			prfx ## _value_evaluate \
+			prfx ## _value_evaluate, \
+			prfx ## _value_equal \
 		} \
 	}
 #define NATUS_PRIV_CLASS     "natus::Class"
@@ -109,6 +110,7 @@ typedef struct {
 	ntValue         *(*enumerate)        (const ntValue *obj);
 	ntValue         *(*call)             (ntValue *func, ntValue *ths, ntValue *args);
 	ntValue         *(*evaluate)         (ntValue *ths, const ntValue *jscript, const ntValue *filename, unsigned int lineno);
+	bool             (*equal)            (ntValue *val1, ntValue *val2, bool strict);
 } ntValueTable;
 
 typedef struct {

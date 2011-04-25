@@ -606,6 +606,13 @@ static ntValue         *sm_value_evaluate         (ntValue *ths, const ntValue *
 	return get_instance(ths, val, false);
 }
 
+static bool sm_value_equal(ntValue *val1, ntValue *val2, bool strict) {
+	JSBool eql = false;
+	if (!JS_StrictlyEqual(CTX(val1), VAL(val1), VAL(val2), &eql))
+		return false;
+	return eql;
+}
+
 static ntValue* sm_engine_newg(void *engine, ntValue *global) {
 	ntValue *self = malloc(sizeof(smValue));
 	if (!self) return NULL;

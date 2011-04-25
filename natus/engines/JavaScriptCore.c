@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/backend.h>
@@ -599,6 +600,11 @@ static ntValue         *jsc_value_evaluate(ntValue *ths, const ntValue *jscript,
 	JSStringRelease(strfilename);
 
 	return get_instance(ths, exc == NULL ? rval : exc, exc != NULL);
+}
+
+static bool jsc_value_equal(ntValue *val1, ntValue *val2, bool strict) {
+	if (strict) return JSValueIsStrictEqual(CTX(val1), VAL(val1), VAL(val2));
+	return JSValueIsEqual(CTX(val1), VAL(val1), VAL(val2), NULL);
 }
 
 static ntValue* jsc_engine_newg(void *engine, ntValue *global) {

@@ -569,6 +569,11 @@ static ntValue         *v8_value_evaluate         (ntValue *ths, const ntValue *
 	return v8Value::getInstance(ths, res, tc.HasCaught());
 }
 
+static bool v8_value_equal(ntValue *val1, ntValue *val2, bool strict) {
+	if (strict) return VAL(val1)->StrictEquals(VAL(val2));
+	return VAL(val1)->Equals(VAL(val2));
+}
+
 static void v8_engine_free(void *engine) {
 
 }

@@ -98,6 +98,7 @@ public:
 	Value(const Value& value);
 	~Value();
 	Value&                operator=(const Value& value);
+	bool                  operator==(const Value& value);
 	Value                 operator[](long index);
 	Value                 operator[](Value& index);
 	Value                 operator[](UTF8 string);
@@ -210,6 +211,9 @@ public:
 	Value                 callNew(Value args=NULL);
 	Value                 callNew(UTF8  name, Value args=NULL);
 	Value                 callNew(UTF16 name, Value args=NULL);
+
+	bool                  equals(Value val);
+	bool                  equalsStrict(Value val);
 private:
 	ntValue *internal;
 };

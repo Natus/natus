@@ -150,6 +150,9 @@ ntValue          *nt_value_call_utf8              (ntValue *ths, const char *nam
 ntValue          *nt_value_call_new               (ntValue *func, ntValue *args);
 ntValue          *nt_value_call_new_utf8          (ntValue *obj, const char *name, ntValue *args);
 
+bool              nt_value_equals                 (ntValue *val1, ntValue *val2);
+bool              nt_value_equals_strict          (ntValue *val1, ntValue *val2);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
