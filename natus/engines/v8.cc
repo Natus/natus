@@ -34,7 +34,6 @@ using namespace v8;
 
 #define CTX(v) (((v8Value*) v)->ctx)
 #define VAL(v) (((v8Value*) v)->val)
-#define OBJ(v) (JSValueToObject(CTX(v), VAL(v), NULL))
 #define ENG(v) ((v8Engine*) v->eng->engine)
 #define V8_PRIV_STRING String::New("__private__")
 #define V8_PRIV_SLOT 0
@@ -406,10 +405,16 @@ static ntValue*         v8_value_new_undefined    (const ntValue *ctx) {
 }
 
 static bool             v8_value_to_bool          (const ntValue *val) {
+	HandleScope hs;
+	Context::Scope cs(CTX(val));
+
 	return VAL(val)->BooleanValue();
 }
 
 static double           v8_value_to_double        (const ntValue *val) {
+	HandleScope hs;
+	Context::Scope cs(CTX(val));
+
 	return VAL(val)->NumberValue();
 }
 
@@ -521,15 +526,16 @@ static ntValue         *v8_value_call             (ntValue *func, ntValue *ths, 
 
 	// Convert arguments
 	size_t len = nt_value_as_long(nt_value_get_utf8(args, "length"));
-	Handle<Value>* argv = new Handle<Value>[len];
+	ntValue      *vals[len];
+	Handle<Value> argv[len];
 	for (unsigned int i=0 ; i < len ; i++) {
-		ntValue* item = nt_value_get_index(args, i);
-		if (!item) {
+		vals[i] = nt_value_get_index(args, i);
+		if (!vals[i]) {
 			len = i;
 			break;
 		}
-		argv[i] = VAL(item);
-		nt_value_decref(item);
+
+		argv[i] = VAL(vals[i]);
 	}
 
 	assert(VAL(func)->IsFunction());
@@ -541,7 +547,10 @@ static ntValue         *v8_value_call             (ntValue *func, ntValue *ths, 
 		res = Function::Cast(*VAL(func))->NewInstance(len, argv);
 	else
 		res = Function::Cast(*VAL(func))->Call(VAL(ths)->ToObject(), len, argv);
-	delete[] argv;
+
+	// Free our input values
+	for (unsigned int i=0 ; i < len ; i++)
+		nt_value_decref(vals[i]);
 
 	return v8Value::getInstance(func, tc.HasCaught() ? tc.Exception() : res, tc.HasCaught());
 }
