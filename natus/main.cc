@@ -136,6 +136,8 @@ static char* completion_generator(const char* text, int state) {
 	char* last = (char*) strrchr(text, '.');
 
 	if (state == 0) {
+		names.clear();
+
 		Value obj = *glbl;
 		if (last) {
 			char* base = new char[last-text+1];
