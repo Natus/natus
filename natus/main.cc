@@ -141,7 +141,7 @@ static char* completion_generator(const char* text, int state) {
 			char* base = new char[last-text+1];
 			memset(base, 0, sizeof(char) * (last-text+1));
 			strncpy(base, text, last-text);
-			obj = obj.get(base);
+			obj = obj.getRecursive(base);
 			delete[] base;
 			if (obj.isUndefined()) return NULL;
 		}
