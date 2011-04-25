@@ -75,7 +75,7 @@ static Value dir(Value& ths, Value& fnc, Value& args) {
 
 static bool inblock(const char *str) {
 	char strstart = '\0';
-	int cnt = 0;
+	int bracedepth = 0, parendepth = 0;
 	for (char prv='\0' ; *str ; prv=*str++) {
 		if (strstart) {
 			if (strstart == '"' && *str == '"' && prv != '\\')
@@ -97,15 +97,23 @@ static bool inblock(const char *str) {
 				break;
 			case '{':
 				// We're starting a new block
-				cnt++;
+				bracedepth++;
 				break;
 			case '}':
 				// We're ending an existing block
-				cnt--;
+				bracedepth--;
+				break;
+			case '(':
+				// We're starting a new block
+				parendepth++;
+				break;
+			case ')':
+				// We're ending an existing block
+				parendepth--;
 				break;
 		}
 	}
-	return cnt > 0;
+	return bracedepth > 0 || parendepth > 0;
 }
 
 static vector<string> pathparser(string path) {
