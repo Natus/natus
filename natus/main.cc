@@ -55,14 +55,14 @@ using namespace natus;
 
 Value* glbl;
 
-static Value alert(Value& ths, Value& fnc, Value& args) {
+static Value alert(Value& fnc, Value& ths, Value& args) {
 	NATUS_CHECK_ARGUMENTS(fnc, "s");
 
 	fprintf(stderr, "%s\n", args[0].to<UTF8>().c_str());
 	return ths.newUndefined();
 }
 
-static Value dir(Value& ths, Value& fnc, Value& args) {
+static Value dir(Value& fnc, Value& ths, Value& args) {
 	Value obj = ths.getGlobal();
 	if (args.get("length").to<long>() > 0)
 		obj = args[0];
