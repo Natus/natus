@@ -15,7 +15,7 @@ struct HookMisc {
 		if (!misc) return NULL;
 		HookMisc* hm = (HookMisc*) misc;
 
-		Value ctxt = nt_value_incref(ctx);
+		Value ctxt(ctx, false);
 		Value rslt = hm->func(ctxt, (Require::HookStep) step, name, hm->misc);
 		return nt_value_incref(rslt.borrowCValue());
 	}

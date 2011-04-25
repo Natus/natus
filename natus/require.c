@@ -56,6 +56,9 @@
 #define  _str(s) # s
 #define __str(s) _str(s)
 
+#define JS_REQUIRE_PREFIX "(function(exports, require, module) {\n"
+#define JS_REQUIRE_SUFFIX "\n})"
+
 typedef struct {
 	ntValue   *config;
 	ntPrivate *hooks;
@@ -124,35 +127,31 @@ static char *check_path(struct stat *st, const char *fmt, ...) {
 	return NULL;
 }
 
-static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *name, void *misc) {
-	ntRequire *req = nt_value_private_get(module, NATUS_REQUIRE);
+static ntValue* internal_require(ntValue *ctx, ntRequireHookStep step, char *name, void *misc) {
+	if (step == ntRequireHookStepProcess) return NULL;
+
+	ntRequire *req = nt_value_private_get(ctx, NATUS_REQUIRE);
 	if (!req) return NULL;
 
 	ntValue *path = NULL;
 
 	// If the path is a relative path, use the top of the evaluation stack
 	if (name && name[0] == '.') {
-		ntValue *global = nt_value_get_global(module);
-		ntValue *stack  = nt_value_private_get_value(global, NATUS_REQUIRE_STACK);
-		nt_value_decref(global);
-
+		ntValue *stack = nt_value_private_get_value(ctx, NATUS_REQUIRE_STACK);
 		long len = nt_value_as_long(nt_value_get_utf8(stack, "length"));
-		if (len <= 0) {
-			nt_value_decref(stack);
-			return NULL;
-		}
 
-		ntValue *prfx = nt_value_get_index(stack, len  - 1);
+		ntValue *prfx = nt_value_get_index(stack, len > 0 ? len - 1 : 0);
 		nt_value_decref(stack);
-		if (!prfx) return NULL;
+		if (nt_value_is_undefined(prfx))
+			prfx = nt_value_new_string_utf8(ctx, ".");
 
 		const ntValue *items[2] = { prfx, NULL };
-		path = nt_value_new_array(module, items);
+		path = nt_value_new_array(ctx, items);
 		nt_value_decref(prfx);
 
 	// Otherwise use the normal path
 	} else {
-		ntValue *config = nt_require_get_config(module);
+		ntValue *config = nt_require_get_config(ctx);
 		if (!config) return NULL;
 
 		path = nt_value_get_recursive_utf8(config, CFG_PATH);
@@ -172,20 +171,20 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 
 			void *dll = dlopen(file, RTLD_NOW | RTLD_GLOBAL);
 			if (!dll) {
-				retval = nt_throw_exception(module, "ImportError", dlerror());
+				retval = nt_throw_exception(ctx, "ImportError", dlerror());
 				goto out;
 			}
 
+			retval = nt_value_new_object(ctx, NULL);
 			ntRequireModuleInit load = (ntRequireModuleInit) dlsym(dll, __str(NATUS_MODULE_INIT));
-			if (!load || !load(module)) {
+			if (!retval || !load || !load(retval)) {
+				nt_value_decref(retval);
 				dlclose(dll);
-				retval = nt_throw_exception(module, "ImportError", "Module initialization failed!");
+				retval = nt_throw_exception(ctx, "ImportError", "Module initialization failed!");
 				goto out;
 			}
 
 			nt_private_push(req->dll, dll, (ntFreeFunction) dlclose);
-
-			retval = nt_value_new_boolean(module, true);
 			goto out;
 		}
 
@@ -197,20 +196,61 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 
 			// If we have a javascript text module
 			FILE *modfile = fopen(file, "r");
-			if (!modfile) return NULL;
+			if (!modfile) goto out;
 
-			char *jscript = calloc(st.st_size + 1, sizeof(char));
-			memset(jscript, 0, st.st_size + 1);
-			if (fread(jscript, 1, st.st_size, modfile) != st.st_size) {
+			// Read the file in, but wrapped in a function
+			size_t len = strlen(JS_REQUIRE_PREFIX) + strlen(JS_REQUIRE_SUFFIX) + st.st_size + 1;
+			char *jscript = calloc(len, sizeof(char));
+			memset(jscript, 0, len);
+			strcpy(jscript, JS_REQUIRE_PREFIX);
+			if (fread(jscript + strlen(JS_REQUIRE_PREFIX), 1, st.st_size, modfile) != st.st_size) {
 				fclose(modfile);
 				free(jscript);
-				retval = nt_throw_exception(module, "ImportError", "Error reading file!");
+				retval = nt_throw_exception(ctx, "ImportError", "Error reading file!");
 				goto out;
 			}
 			fclose(modfile);
+			strcat(jscript, JS_REQUIRE_SUFFIX);
 
-			retval = nt_value_evaluate_utf8(module, jscript, file, 0);
+			// Evaluate the file
+			ntValue *func = nt_value_evaluate_utf8(ctx, jscript, file, 0);
 			free(jscript);
+			if (nt_value_is_exception(func)) {
+				retval = func;
+				goto out;
+			}
+
+			// Create our arguments (exports, require, module)
+			ntValue *module  = nt_value_new_object(ctx, NULL);
+			ntValue *exports = nt_value_new_object(ctx, NULL);
+			ntValue *require = nt_value_get_utf8(ctx, "require");
+			ntValue *modid   = nt_value_new_string_utf8(ctx, name);
+			strncpy(name, "file://", PATH_MAX);
+			strncat(name, file, PATH_MAX - strlen("file://"));
+			ntValue *moduri  = nt_value_new_string_utf8(ctx, name);
+			nt_value_decref(nt_value_set_utf8(module, "id", modid, ntPropAttrConstant));
+			nt_value_decref(nt_value_set_utf8(module, "uri", moduri, ntPropAttrConstant));
+			nt_value_decref(modid);
+			nt_value_decref(moduri);
+
+			// Convert arguments to an array
+			const ntValue *argv[] = {exports, require, module, NULL};
+			ntValue *args = nt_value_new_array(ctx, argv);
+			nt_value_decref(require);
+			nt_value_decref(module);
+
+			// Call the function
+			ntValue *res = nt_value_call(func, exports, args);
+			nt_value_decref(args);
+			if (nt_value_is_exception(res)) {
+				nt_value_decref(exports);
+				retval = res;
+				goto out;
+			}
+
+			// Function successfully executed, return the exports
+			nt_value_decref(res);
+			retval = exports;
 			goto out;
 		}
 
@@ -226,7 +266,7 @@ static ntValue* internal_require(ntValue *module, ntRequireHookStep step, char *
 			return retval;
 	}
 	nt_value_decref(path);
-	return nt_throw_exception(module, "ImportError", "Module '%s' not found!", name);
+	return NULL;
 }
 
 static ntValue *require_js(ntValue *require, ntValue *ths, ntValue *arg) {
@@ -462,47 +502,12 @@ bool nt_require_origin_permitted(ntValue *ctx, const char *uri) {
 	return ld.match;
 }
 
-static ntValue *prep_module_base(ntValue *global, const char *name) {
-	ntEngine *engine = nt_value_get_engine(global);
-    ntValue    *base = nt_engine_new_global(engine, global);
-	ntValue *require = nt_value_get_utf8(global, "require");
-	ntValue *exports = nt_value_new_object(global, NULL);
-	ntValue  *module = nt_value_new_object(global, NULL);
-	ntValue *modname = nt_value_new_string_utf8(global, name);
-	nt_engine_decref(engine);
-	if (nt_value_is_exception(base)
-			|| nt_value_is_exception(require)
-			|| nt_value_is_exception(exports)
-			|| nt_value_is_exception(module)
-			|| nt_value_is_exception(modname))
-		goto error;
-	if (!nt_value_private_set(base, NATUS_REQUIRE,       nt_value_private_get(global, NATUS_REQUIRE),       NULL)) goto error;
-	if (!nt_value_private_set(base, NATUS_REQUIRE_STACK, nt_value_private_get(global, NATUS_REQUIRE_STACK), NULL)) goto error;
-	if (!nt_value_as_bool(nt_value_set_utf8(base,   "exports", exports, ntPropAttrConstant))) goto error;
-	if (!nt_value_as_bool(nt_value_set_utf8(base,   "module",  module,  ntPropAttrConstant))) goto error;
-	if (!nt_value_as_bool(nt_value_set_utf8(module, "id",      modname, ntPropAttrConstant))) goto error;
-	if (!nt_value_as_bool(nt_value_set_utf8(base,   "require", require, ntPropAttrConstant))) goto error;
-	nt_value_decref(require);
-	nt_value_decref(exports);
-	nt_value_decref(module);
-	nt_value_decref(modname);
-	return base;
-
-	error:
-		nt_value_decref(base);
-		nt_value_decref(require);
-		nt_value_decref(exports);
-		nt_value_decref(module);
-		nt_value_decref(modname);
-		return NULL;
-}
-
 typedef struct {
-	const char           *name;
-	ntRequire            *req;
+	const char       *name;
+	ntRequire        *req;
 	ntRequireHookStep step;
-	ntValue              *module;
-	ntValue              *res;
+	ntValue          *ctx;
+	ntValue          *res;
 } ntHookData;
 
 static void do_hooks(const char *hookname, reqHook *hook, ntHookData *misc) {
@@ -511,9 +516,9 @@ static void do_hooks(const char *hookname, reqHook *hook, ntHookData *misc) {
 	strcpy(name, misc->name);
 
 	// Call the hook
-	misc->res = hook->func(misc->module, misc->step, name, hook->head.misc);
+	misc->res = hook->func(misc->ctx, misc->step, name, hook->head.misc);
 
-	// If module is NULL, we're just checking for cache names
+	// If the step is resolve, we're just checking for cache names
 	if (misc->step == ntRequireHookStepResolve) {
 		nt_value_decref(misc->res);
 
@@ -522,17 +527,35 @@ static void do_hooks(const char *hookname, reqHook *hook, ntHookData *misc) {
 		return;
 	}
 
+	// Return immediately on an exception
+	if (nt_value_is_exception(misc->res))
+		return;
+
 	// If a module was found, cache it according to the (possibly modified) name
-	if (misc->step == ntRequireHookStepLoad && !nt_value_is_exception(misc->res) && !nt_value_is_undefined(misc->res)) {
+	if (misc->step == ntRequireHookStepLoad) {
+		// Ignore hooks that return invalid values
+		if (!nt_value_is_object(misc->res)) {
+			nt_value_decref(misc->res);
+			misc->res = NULL;
+			return;
+		}
+
+		// Set the module id
+		ntValue *modname = nt_value_new_string_utf8(misc->ctx, misc->name);
+		nt_value_decref(nt_value_set_recursive_utf8(misc->res, "module.id", modname, ntPropAttrConstant, true));
+		nt_value_decref(modname);
+
+		// Set the module uri (if not sandboxed)
 		ntValue *whitelist = nt_value_get_utf8(misc->req->config, CFG_WHITELIST);
 		if (!nt_value_is_array(whitelist)) { // Don't export URI in the sandbox
-			ntValue *uri = nt_value_new_string_utf8(misc->module, name);
-			nt_value_decref(nt_value_set_recursive_utf8(misc->module, "module.uri", uri, ntPropAttrConstant, true));
+			ntValue *uri = nt_value_new_string_utf8(misc->res, name);
+			nt_value_decref(nt_value_set_recursive_utf8(misc->res, "module.uri", uri, ntPropAttrConstant, true));
 			nt_value_decref(uri);
 		}
 		nt_value_decref(whitelist);
 
-		assert(nt_private_set(misc->req->modules, name, misc->module, (ntFreeFunction) nt_value_decref));
+		// Store the module in the cache
+		assert(nt_private_set(misc->req->modules, name, nt_value_incref(misc->res), (ntFreeFunction) nt_value_decref));
 	}
 }
 
@@ -545,47 +568,36 @@ ntValue          *nt_require                   (ntValue *ctx, const char *name) 
 		return NULL;
 	}
 
-	// Check to see if we've already loaded the module
-	ntHookData hd = { name, req, ntRequireHookStepResolve, ctx, NULL };
+	// Check to see if we've already loaded the module (resolve step)
+	ntHookData hd = { name, req, ntRequireHookStepResolve, global, NULL };
 	nt_private_foreach(req->hooks, true, (ntPrivateForeach) do_hooks, &hd);
 	if (hd.res) {
 		nt_value_decref(global);
-		hd.module = nt_value_incref(hd.res);
-		goto modfound;
+		if (!nt_value_is_exception(hd.res))
+			goto modfound;
+		return hd.res;
 	}
 
-	// Setup our import environment
-	hd.module = prep_module_base(global, name);
-	nt_value_decref(global);
-	if (!hd.module) goto notfound;
-
-	// Execute the pre-hooks
+	// Load the module (load step)
 	hd.step = ntRequireHookStepLoad;
 	nt_private_foreach(req->hooks, true, (ntPrivateForeach) do_hooks, &hd);
-	if (hd.res && nt_value_is_exception(hd.res)) {
-		nt_value_decref(hd.module);
+	if (hd.res) {
+		nt_value_decref(global);
+		if (!nt_value_is_exception(hd.res))
+			goto modfound;
 		return hd.res;
-	} else if (!nt_value_is_undefined(hd.res)) {
-		nt_value_decref(hd.res);
-		goto modfound;
 	}
-	nt_value_decref(hd.module);
+	nt_value_decref(hd.res);
 
 	// Module not found
-	notfound:
-		return nt_throw_exception(ctx, "ImportError", "%s not found!", name);
+	return nt_throw_exception(ctx, "ImportError", "Module %s not found!", name);
 
 	// Module found
 	modfound:
-		hd.res    = nt_value_get_utf8(hd.module, "module");
-		hd.module = nt_value_get_utf8(hd.module, "exports");
-		nt_value_decref(nt_value_set_utf8(hd.module, "module", hd.res, ntPropAttrConstant));
-		nt_value_decref(hd.res);
-
-		// Loop through the module post hooks
 		hd.step = ntRequireHookStepProcess;
-		hd.res  = NULL;
+		hd.ctx = hd.res;
+		hd.res = NULL;
 		nt_private_foreach(req->hooks, true, (ntPrivateForeach) do_hooks, &hd);
 		nt_value_decref(hd.res);
-		return hd.module;
+		return hd.ctx;
 }

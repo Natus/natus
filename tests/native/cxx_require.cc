@@ -9,8 +9,9 @@ void hook_free(void* misc) {
 
 Value hook(Value& ctx, Require::HookStep step, char* name, void* misc) {
 	if (step == Require::HookStepLoad && !strcmp(name, "__internal__")) {
-		assert(!ctx.setRecursive("exports.misc", (long) misc).isException());
-		return ctx.newBoolean(true);
+		Value mod = ctx.newObject();
+		assert(!mod.set("misc", (long) misc).isException());
+		return mod;
 	}
 
 	return NULL;
@@ -42,8 +43,15 @@ int doTest(Engine& engine, Value& global) {
 	assert(!modulea.set("test", 17L).isException());
 	assert(moduleb.get("test").to<int>() == 17);
 
-	// Load a script file
+	// Load a script file via standard spec
 	Value scriptmod = req.require("scriptmod");
+	assert(!scriptmod.isException());
+	assert(scriptmod.isObject());
+	assert(scriptmod.get("number").to<int>() == 115);
+	assert(scriptmod.get("string").to<UTF8>() == "hello world");
+
+	// Load a script file via relative spec
+	scriptmod = req.require("./scriptmod");
 	assert(!scriptmod.isException());
 	assert(scriptmod.isObject());
 	assert(scriptmod.get("number").to<int>() == 115);
