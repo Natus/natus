@@ -27,7 +27,13 @@
 #include "value.hpp"
 #include "misc.hpp"
 
-#define NATUS_MODULE_INIT natus_module_init
+#define NATUS_MODULE(modname) \
+	bool natus_module_init_cxx(Value& modname); \
+	extern "C" bool natus_module_init(ntValue *module) { \
+		Value mod(module, false); \
+		return natus_module_init_cxx(mod); \
+	} \
+	bool natus_module_init_cxx(Value& modname)
 #define NATUS_CHECK_ORIGIN(ctx, uri) \
 	if (!Require(ctx).originPermitted(uri)) \
 		return throwException(ctx, "SecurityError", "Permission denied!");

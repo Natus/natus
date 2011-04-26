@@ -176,7 +176,7 @@ static ntValue* internal_require(ntValue *ctx, ntRequireHookStep step, char *nam
 			}
 
 			retval = nt_value_new_object(ctx, NULL);
-			ntRequireModuleInit load = (ntRequireModuleInit) dlsym(dll, __str(NATUS_MODULE_INIT));
+			ntRequireModuleInit load = (ntRequireModuleInit) dlsym(dll, "natus_module_init");
 			if (!retval || !load || !load(retval)) {
 				nt_value_decref(retval);
 				dlclose(dll);
