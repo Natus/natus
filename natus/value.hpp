@@ -56,17 +56,6 @@ struct Class {
 	Value (*enumerate)(Class* cls, Value& obj);
 	Value (*call)     (Class* cls, Value& obj, Value& ths, Value& arg);
 	void  (*free)     (Class* cls);
-
-	typedef enum {
-		FlagNone      = 0,
-		FlagDelete    = 1 << 1,
-		FlagGet       = 1 << 2,
-		FlagSet       = 1 << 3,
-		FlagEnumerate = 1 << 4,
-		FlagCall      = 1 << 5,
-		FlagObject    = FlagDelete | FlagGet | FlagSet | FlagEnumerate,
-		FlagFunction  = FlagObject | FlagCall,
-	} Flags;
 };
 
 class Value {
