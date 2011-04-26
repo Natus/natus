@@ -99,6 +99,7 @@ public:
 	~Value();
 	Value&                operator=(const Value& value);
 	bool                  operator==(const Value& value);
+	bool                  operator!=(const Value& value);
 	Value                 operator[](long index);
 	Value                 operator[](Value& index);
 	Value                 operator[](UTF8 string);

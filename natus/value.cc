@@ -157,6 +157,10 @@ bool Value::operator==(const Value& value) {
 	return equals(value);
 }
 
+bool Value::operator!=(const Value& value) {
+	return !equals(value);
+}
+
 Value Value::operator[](long index) {
 	return get(index);
 }
