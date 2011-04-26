@@ -33,6 +33,8 @@ using namespace std;
 #include <cstdlib>
 #include <cassert>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <regex.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -54,24 +56,6 @@ using namespace natus;
 }
 
 Value* glbl;
-
-static Value alert(Value& fnc, Value& ths, Value& args) {
-	NATUS_CHECK_ARGUMENTS(fnc, "s");
-
-	fprintf(stderr, "%s\n", args[0].to<UTF8>().c_str());
-	return ths.newUndefined();
-}
-
-static Value dir(Value& fnc, Value& ths, Value& args) {
-	Value obj = ths.getGlobal();
-	if (args.get("length").to<long>() > 0)
-		obj = args[0];
-
-	Value names = obj.enumerate();
-	for (long i=0 ; i < names.get("length").to<long>() ; i++)
-		fprintf(stderr, "\t%s\n", names[i].to<UTF8>().c_str());
-	return ths.newUndefined();
-}
 
 static bool inblock(const char *str) {
 	char strstart = '\0';
@@ -130,44 +114,90 @@ static vector<string> pathparser(string path) {
 	return paths;
 }
 
-static Value recursive_enumerate(Value obj) {
-	Value names = obj.enumerate();
-	if (obj.get("prototype").isUndefined()) return names;
+static Value recursive_enumerate(Value obj, bool doconstr=true, size_t depth=0) {
+	if (depth > 100) return obj.newArray(); // Guard against infinite loop
 
-	Value proto = recursive_enumerate(obj.get("prototype"));
+	// Get the object's properties
+	Value *argv[2] = { &obj, NULL };
+	Value args = obj.newArray(argv);
+	Value names = glbl->get("Object").call("getOwnPropertyNames", args);
 
-	long olen = names.get("length").to<long>();
-	long plen = proto.get("length").to<long>();
-	for (long i=0 ; i < plen ; i++)
-		names.set(olen++, proto[i]);
+	// Recurse through the prototypes
+	Value proto = obj.get("prototype");
+	if (doconstr && proto.isUndefined()) {
+		Value constr = obj.get("constructor");
+		proto    = constr.get("prototype");
+		doconstr = constr != proto.get("constructor"); // Check for infinite loop
+	}
+	if (!proto.isUndefined()) {
+		proto = recursive_enumerate(proto, doconstr, depth+1);
+		long olen = names.get("length").to<long>();
+		long plen = proto.get("length").to<long>();
+		for (long i=0 ; i < plen ; i++)
+			names.set(olen++, proto[i]);
+	}
 
-	return names;
+	// Filter out undefined names
+	Value validnames = obj.newArray();
+	long len = names.get("length").to<long>();
+	for (long i=0,cur=0 ; i < len ; i++)
+		if (!obj.get(names[i]).isUndefined())
+			validnames.set(cur++, names[i]);
+
+	return validnames;
 }
 
 static char* completion_generator(const char* text, int state) {
 	static set<string> names;
 	static set<string>::iterator it;
-	char* last = (char*) strrchr(text, '.');
 
+	// Find the last character for our eval
+	const char* last = NULL;
+	for (ssize_t i=strlen(text)-1 ; i >= 0 ; i--) {
+		if (text[i] == ']') last = text+i+1;
+		if (text[i] == '.' || text[i] == '[') last = text+i;
+		if (last) break;
+	}
+
+	// If this is the first call, build our names set
 	if (state == 0) {
-		names.clear();
+		names.clear(); // Clear the set
 
 		Value obj = *glbl;
 		if (last) {
 			char* base = new char[last-text+1];
 			memset(base, 0, sizeof(char) * (last-text+1));
 			strncpy(base, text, last-text);
-			obj = obj.getRecursive(base);
+			obj = obj.evaluate(base, "", 0);
 			delete[] base;
-			if (obj.isUndefined()) return NULL;
+			if (obj.isUndefined() || obj.isException())
+				return NULL;
 		}
 
 		Value nm = recursive_enumerate(obj);
-		for (long i=0 ; i < nm.get("length").to<long>() ; i++)
-			names.insert(nm[i].to<UTF8>().c_str());
+		for (long i=0 ; i < nm.get("length").to<long>() ; i++) {
+			string     sname = nm[i].to<UTF8>();
+			const char *name = sname.c_str();
+
+			// .property and GlobalObject properties (no '.')
+			regex_t preg;
+			if (!regcomp(&preg, "^[a-zA-Z_$][0-9a-zA-Z_$]*$", REG_EXTENDED)) {
+				if (!regexec(&preg, name, 0, NULL, 0))
+					names.insert((last ? string(".") : string("")) + sname);
+				regfree(&preg);
+			}
+
+			// [N] and ["property"]
+			if (last && !regcomp(&preg, "^[0-9]+$", REG_EXTENDED)) {
+				if (!regexec(&preg, name, 0, NULL, 0))
+					names.insert(string("[") + sname + "]");
+				else
+					names.insert(string("['") + sname + "']");
+				regfree(&preg);
+			}
+		}
 		it = names.begin();
 	}
-	if (last) last++;
 
 	for ( ; it != names.end() ; it++) {
 		if ((last && it->find(last) == 0) || (!last && it->find(text) == 0)) {
@@ -294,10 +324,6 @@ int main(int argc, char** argv) {
 	if (!req.initialize(cfg))
 		error(3, 0, "Unable to init module loader\n!");
 
-	// Export some basic functions
-	global.set("alert", global.newFunction(alert));
-	global.set("dir",   global.newFunction(dir));
-
 	// Do the evaluation
 	if (eval) {
 		Value res = global.evaluate(eval);
@@ -320,6 +346,7 @@ int main(int argc, char** argv) {
 			read_history((string(getenv("HOME")) + "/" + HISTORYFILE).c_str());
 		rl_readline_name = (char*) "natus";
 		rl_attempted_completion_function = completion;
+		rl_basic_word_break_characters = "`@><=;|&{(";
 		read_history(HISTORYFILE);
 
 		char* line;
