@@ -51,7 +51,7 @@ Value arrayBuilder(Value array, const char* item);
 Value arrayBuilder(Value array, const Char* item);
 Value arrayBuilder(Value array, UTF8 item);
 Value arrayBuilder(Value array, UTF16 item);
-Value arrayBuilder(NativeFunction item);
+Value arrayBuilder(Value array, NativeFunction item);
 
 Value fromJSON(Value json);
 Value fromJSON(Value ctx, UTF8 json);
