@@ -41,6 +41,8 @@ ntValue *nt_throw_exception_code_varg(const ntValue *ctx, const char *type, int 
 ntValue *nt_throw_exception_errno    (const ntValue *ctx, int errorno);
 
 ntValue *nt_ensure_arguments         (ntValue *arg, const char *fmt);
+ntValue *nt_convert_arguments        (ntValue *arg, const char *fmt, ...);
+ntValue *nt_convert_arguments_varg   (ntValue *arg, const char *fmt, va_list ap);
 
 ntValue *nt_array_builder            (ntValue *array, ntValue *item);
 

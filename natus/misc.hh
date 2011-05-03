@@ -39,6 +39,8 @@ Value throwException(Value ctx, const char* type, int code, const char* format, 
 Value throwException(Value ctx, int errorno);
 
 Value ensureArguments(Value args, const char* fmt);
+Value convertArguments(Value args, const char *fmt, va_list ap);
+Value convertArguments(Value args, const char *fmt, ...);
 
 Value arrayBuilder(Value array, Value item);
 Value arrayBuilder(Value array, bool item);

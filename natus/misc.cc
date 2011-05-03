@@ -58,6 +58,18 @@ Value ensureArguments(Value args, const char* fmt) {
 	return nt_ensure_arguments(args.borrowCValue(), fmt);
 }
 
+Value convertArguments(Value args, const char *fmt, va_list ap) {
+	return nt_convert_arguments_varg(args.borrowCValue(), fmt, ap);
+}
+
+Value convertArguments(Value args, const char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	Value ret = convertArguments(args, fmt, ap);
+	va_end(ap);
+	return ret;
+}
+
 Value arrayBuilder(Value array, Value item) {
 	ntValue *tmp = nt_array_builder(array.borrowCValue(), item.borrowCValue());
 	if (!array.isArray()) return tmp;

@@ -17,6 +17,7 @@ TESTS = cxx_globals \
         cxx_recursive \
         cxx_require \
         cxx_exception \
-        cxx_types
+        cxx_types \
+        cxx_convargs
 noinst_PROGRAMS  = $(TESTS)
 EXTRA_DIST       = test.hh scriptmod.js
