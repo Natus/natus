@@ -23,7 +23,7 @@
 
 #ifndef VALUE_HPP_
 #define VALUE_HPP_
-#include "types.hpp"
+#include "types.hh"
 #include <string>
 
 #ifndef _HAVE_NT_VALUE

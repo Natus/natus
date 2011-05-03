@@ -1,4 +1,4 @@
-#include "test.hpp"
+#include "test.hh"
 #include <natus/private.h>
 
 static int deleted = 0;

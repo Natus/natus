@@ -28,10 +28,10 @@
 #error Natus is not stable, go look elsewhere...
 #endif
 
-#include "engine.hpp"
-#include "value.hpp"
-#include "require.hpp"
-#include "misc.hpp"
+#include "engine.hh"
+#include "value.hh"
+#include "require.hh"
+#include "misc.hh"
 
 #endif /* NATUS_HPP_ */
 

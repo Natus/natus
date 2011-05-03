@@ -1,4 +1,4 @@
-#include "test.hpp"
+#include "test.hh"
 
 int doTest(Engine& engine, Value& global) {
 	assert(!global.set("x", global.newString("hello")).isException());

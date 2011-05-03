@@ -1,5 +1,5 @@
-#include "test.hpp"
-#include <natus/require.hpp>
+#include "test.hh"
+#include <natus/require.hh>
 
 static bool freecalled = false;
 void hook_free(void* misc) {

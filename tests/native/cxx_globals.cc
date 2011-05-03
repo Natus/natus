@@ -1,4 +1,4 @@
-#include "test.hpp"
+#include "test.hh"
 
 int doTest(Engine& engine, Value& global) {
 	Value json = global.get("JSON");

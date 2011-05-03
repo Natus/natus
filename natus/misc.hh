@@ -23,8 +23,8 @@
 
 #ifndef MISCXX_HPP_
 #define MISCXX_HPP_
-#include "types.hpp"
-#include "value.hpp"
+#include "types.hh"
+#include "value.hh"
 #include <cstdarg>
 
 #define NATUS_CHECK_ARGUMENTS(arg, fmt) { \

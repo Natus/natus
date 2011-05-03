@@ -1,5 +1,5 @@
 #include "require.h"
-#include "require.hpp"
+#include "require.hh"
 using namespace natus;
 
 struct HookMisc {

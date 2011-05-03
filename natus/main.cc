@@ -40,7 +40,7 @@ using namespace std;
 #include <readline/history.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/natus.hpp>
+#include <natus/natus.hh>
 using namespace natus;
 
 #define _str(s) # s

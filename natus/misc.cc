@@ -22,7 +22,7 @@
  */
 
 #include "misc.h"
-#include "value.hpp"
+#include "value.hh"
 using namespace natus;
 
 namespace natus {

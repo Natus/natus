@@ -24,8 +24,8 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include "engine.hpp"
-#include "value.hpp"
+#include "engine.hh"
+#include "value.hh"
 #include "engine.h"
 using namespace natus;
 

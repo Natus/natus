@@ -23,7 +23,7 @@
 
 #ifndef ENGINE_HPP_
 #define ENGINE_HPP_
-#include "types.hpp"
+#include "types.hh"
 
 namespace natus {
 class Engine {

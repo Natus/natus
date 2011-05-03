@@ -1,4 +1,4 @@
-#include "test.hpp"
+#include "test.hh"
 #include <string.h>
 
 static Value firstarg_function(Value& fnc, Value& ths, Value& arg) {

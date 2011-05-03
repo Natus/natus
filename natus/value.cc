@@ -24,8 +24,8 @@
 #include <cstdlib> // For free()
 #include <cassert>
 
-#include "engine.hpp"
-#include "value.hpp"
+#include "engine.hh"
+#include "value.hh"
 #include "value.h"
 using namespace natus;
 

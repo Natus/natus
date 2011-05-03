@@ -23,9 +23,9 @@
 
 #ifndef MODULE_HPP_
 #define MODULE_HPP_
-#include "types.hpp"
-#include "value.hpp"
-#include "misc.hpp"
+#include "types.hh"
+#include "value.hh"
+#include "misc.hh"
 
 #define NATUS_MODULE(modname) \
 	bool natus_module_init_cxx(Value& modname); \
