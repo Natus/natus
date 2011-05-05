@@ -21,8 +21,8 @@ static void testInternal(Value& global, const char* js, Value::Type type) {
 	global.evaluate(js);
 	Value x = global.get("x");
 	assert(x.isType(type));
-	assert(!x.setPrivate("test", (void *) 0x1234));
-	assert(NULL == x.getPrivate<void*>("test"));
+	assert(!x.setPrivateName("test", (void *) 0x1234));
+	assert(NULL == x.getPrivateName<void*>("test"));
 	assert(!global.del("x").isException());
 }
 
@@ -31,19 +31,19 @@ static void testExternal(Value& global, Value val, Value::Type type, bool works=
 	Value x = global.get("x");
 	assert(x.isType(type));
 	if (works) {
-		assert(x.setPrivate("test", (void *) 0x1234));
-		assert(0x1234 == x.getPrivate<long>("test"));
+		assert(x.setPrivateName("test", (void *) 0x1234));
+		assert(0x1234 == x.getPrivateName<long>("test"));
 	} else {
-		assert(!x.setPrivate("test", (void *) 0x1234));
-		assert(NULL == x.getPrivate<void*>("test"));
+		assert(!x.setPrivateName("test", (void *) 0x1234));
+		assert(NULL == x.getPrivateName<void*>("test"));
 	}
 	assert(!global.del("x").isException());
 }
 
 int doTest(Engine& engine, Value& global) {
 	// Ensure we can store private on the global
-	assert(global.setPrivate("test", (void *) 0x1234));
-	assert(0x1234 == global.getPrivate<long>("test"));
+	assert(global.setPrivateName("test", (void *) 0x1234));
+	assert(0x1234 == global.getPrivateName<long>("test"));
 
 	// Test private on an externally defined types
 	testExternal(global, global.newArray(),             Value::TypeArray);

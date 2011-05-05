@@ -6,16 +6,16 @@ private:
 		assert(obj.borrowCValue());
 		assert(name.borrowCValue());
 		assert(obj.isObject());
-		assert(name.getType() == obj.getPrivate<size_t>("type"));
-		return obj.getPrivate<Value>("retval");
+		assert(name.getType() == obj.getPrivateName<size_t>("type"));
+		return obj.getPrivateName<Value>("retval");
 	}
 
 	static Value get_(Class* cls, Value& obj, Value& name) {
 		assert(obj.borrowCValue());
 		assert(name.borrowCValue());
 		assert(obj.isObject());
-		assert(name.getType() == obj.getPrivate<size_t>("type"));
-		return obj.getPrivate<Value>("retval");
+		assert(name.getType() == obj.getPrivateName<size_t>("type"));
+		return obj.getPrivateName<Value>("retval");
 	}
 
 	static Value set_(Class* cls, Value& obj, Value& name, Value& value) {
@@ -23,14 +23,14 @@ private:
 		assert(name.borrowCValue());
 		assert(value.borrowCValue());
 		assert(obj.isObject());
-		assert(name.getType() == obj.getPrivate<size_t>("type"));
-		return obj.getPrivate<Value>("retval");
+		assert(name.getType() == obj.getPrivateName<size_t>("type"));
+		return obj.getPrivateName<Value>("retval");
 	}
 
 	static Value enumerate_(Class* cls, Value& obj) {
 		assert(obj.borrowCValue());
 		assert(obj.isObject());
-		return obj.getPrivate<Value>("retval");
+		return obj.getPrivateName<Value>("retval");
 	}
 
 	static Value call_(Class* cls, Value& obj, Value& ths, Value& args) {
@@ -42,7 +42,7 @@ private:
 		if (strcmp(obj.getEngine().getName(), "v8")) // Work around a bug in v8
 			assert(ths.isGlobal() || ths.isUndefined());
 		if (args.get("length").to<int>() == 0)
-			return obj.getPrivate<Value>("retval");
+			return obj.getPrivateName<Value>("retval");
 		return args[0];
 	}
 
@@ -69,7 +69,7 @@ int doTest(Engine& engine, Value& global) {
 	//// Check for bypass
 	x.setPrivate("retval", NULL); // Ensure NULL
 	// Number, native
-	assert(x.setPrivate("type", (void*) Value::TypeNumber));
+	assert(x.setPrivateName("type", (void*) Value::TypeNumber));
 	assert(!x.set(0, 17).isException());
 	assert(!x.get(0).isException());
 	assert( x.get(0).to<int>() == 17);
@@ -82,7 +82,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(!global.evaluate("delete x[0];").isException());
 	assert( global.evaluate("x[0];").isUndefined());
 	// String, native
-	assert(x.setPrivate("type", (void*) Value::TypeString));
+	assert(x.setPrivateName("type", (void*) Value::TypeString));
 	assert(!x.set("foo", 17).isException());
 	assert(!x.get("foo").isException());
 	assert( x.get("foo").to<int>() == 17);
@@ -96,9 +96,9 @@ int doTest(Engine& engine, Value& global) {
 	assert( global.evaluate("x['foo'];").isUndefined());
 
 	//// Check for exception
-	assert(x.setPrivate("retval", global.newString("error").toException()));
+	assert(x.setPrivateName("retval", global.newString("error").toException()));
 	// Number, native
-	assert(x.setPrivate("type", (void*) Value::TypeNumber));
+	assert(x.setPrivateName("type", (void*) Value::TypeNumber));
 	assert(x.del(0).isException());
 	assert(x.get(0).isException());
 	assert(x.set(0, 0).isException());
@@ -107,7 +107,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(global.evaluate("x[0];").isException());
 	assert(global.evaluate("x[0] = 0;").isException());
 	// String, native
-	assert(x.setPrivate("type", (void*) Value::TypeString));
+	assert(x.setPrivateName("type", (void*) Value::TypeString));
 	assert(x.del("foo").isException());
 	assert(x.get("foo").isException());
 	assert(x.set("foo", 0).isException());
@@ -117,9 +117,9 @@ int doTest(Engine& engine, Value& global) {
 	assert(global.evaluate("x['foo'] = 0;").isException());
 
 	//// Check for intercept
-	assert(x.setPrivate("retval", global.newBoolean(true)));
+	assert(x.setPrivateName("retval", global.newBoolean(true)));
 	// Number, native
-	assert(x.setPrivate("type", (void*) Value::TypeNumber));
+	assert(x.setPrivateName("type", (void*) Value::TypeNumber));
 	assert(!x.del(0).isException());
 	assert(x.get(0).isBoolean());
 	assert(x.get(0).to<bool>());
@@ -130,7 +130,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(global.evaluate("x[0];").to<bool>());
 	assert(!global.evaluate("x[0] = 0;").isException());
 	// String, native
-	assert(x.setPrivate("type", (void*) Value::TypeString));
+	assert(x.setPrivateName("type", (void*) Value::TypeString));
 	assert(!x.del("foo").isException());
 	assert(x.get("foo").isBoolean());
 	assert(x.get("foo").to<bool>());
@@ -162,7 +162,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isObject());
 
 	//// Check for exception calls
-	assert(x.setPrivate("retval", global.newString("error").toException()));
+	assert(x.setPrivateName("retval", global.newString("error").toException()));
 	// Call from C++
 	y = global.call("x");
 	assert(y.isString());
@@ -181,7 +181,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isException());
 
 	//// Check for NULL calls
-	assert(x.setPrivate("retval", NULL)); // Ensure NULL
+	assert(x.setPrivateName("retval", NULL)); // Ensure NULL
 	// Call from C++
 	y = global.call("x");
 	assert(y.isUndefined());
@@ -200,7 +200,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isException());
 
 	// Enumerate
-	assert(x.setPrivate("retval", arrayBuilder(arrayBuilder(x, 5), 10)));
+	assert(x.setPrivateName("retval", arrayBuilder(arrayBuilder(x, 5), 10)));
 	y = x.enumerate();
 	assert(y.isArray());
 	assert(y.get("length").to<int>() == 2);

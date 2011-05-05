@@ -25,6 +25,7 @@
 #define VALUE_HPP_
 #include "types.hh"
 #include <string>
+#include <typeinfo>
 
 #ifndef _HAVE_NT_VALUE
 #define _HAVE_NT_VALUE
@@ -187,9 +188,16 @@ public:
 	Value                 setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs=PropAttrNone, bool mkpath=false);
 	Value                 enumerate() const;
 
-	bool                  setPrivate(const char* key, void *priv, FreeFunction free=NULL);
-	bool                  setPrivate(const char* key, Value value);
-	template <class T> T  getPrivate(const char* key) const { return (T) getPrivate<void*>(key); }
+	bool                  setPrivateName(const char* key, void *priv, FreeFunction free=NULL);
+	bool                  setPrivateName(const char* key, Value value);
+	template <class T> T  getPrivateName(const char* key) const { return (T) getPrivateName<void*>(key); }
+
+	template <class T> bool setPrivate(T priv, FreeFunction free = NULL) {
+		return setPrivateName(typeid(T).name(), (void*) priv, free);
+	}
+	template <class T> T  getPrivate() {
+		return getPrivateName<T>(typeid(T).name());
+	}
 
 	Value                 evaluate(Value javascript, Value filename,    unsigned int lineno=0);
 	Value                 evaluate(UTF8  javascript, UTF8  filename="", unsigned int lineno=0);
@@ -213,8 +221,9 @@ template <> int    Value::to<int>()    const;
 template <> long   Value::to<long>()   const;
 template <> UTF8   Value::to<UTF8>()   const;
 template <> UTF16  Value::to<UTF16>()  const;
-template <> void* Value::getPrivate<void*>(const char* key) const;
-template <> Value Value::getPrivate<Value>(const char* key) const;
+template <> void*  Value::getPrivateName<void*>(const char* key) const;
+template <> Value  Value::getPrivateName<Value>(const char* key) const;
+template <> bool   Value::setPrivate<Value> (Value priv, FreeFunction free);
 
 }  // namespace natus
 #endif /* VALUE_HPP_ */

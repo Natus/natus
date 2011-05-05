@@ -7,7 +7,7 @@ int doTest(Engine& engine, Value& global) {
 	Value array = global.newArray();
 
 	Value obj = global.newObject();
-	obj.setPrivate("private", (void*) 0x1234);
+	obj.setPrivateName("private", (void*) 0x1234);
 	arrayBuilder(array, global.newNumber('x'));
 	arrayBuilder(array, global.newString("test"));
 	arrayBuilder(array, obj);
