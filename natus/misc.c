@@ -910,7 +910,7 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 					char *tmp = strdup(c);
 					if (!tmp) goto nomem;
 					*strchr(tmp, ']') = '\0';
-					*((void**) p) = nt_value_private_get(val, tmp);
+					*((void**) p) = nt_value_get_private_name(val, tmp);
 					free(tmp);
 				} else
 					*((void**) p) = d;

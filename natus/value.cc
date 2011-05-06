@@ -54,7 +54,7 @@ static ntValue *txFunction(ntValue *obj, ntValue *ths, ntValue *args) {
 	Value t = nt_value_incref(ths);
 	Value a = nt_value_incref(args);
 
-	NativeFunction f = o.getPrivate<NativeFunction>();
+	NativeFunction f = o.getPrivate(NativeFunction);
 	if (!f) return NULL;
 
 	Value rslt = f(o, t, a);
@@ -213,7 +213,7 @@ Value Value::newArray(const Value* const* array) const {
 
 Value Value::newFunction(NativeFunction func) const {
 	Value f = nt_value_new_function(internal, txFunction);
-	f.setPrivate<NativeFunction>(func);
+	f.setPrivate(NativeFunction, func);
 	return f;
 }
 
@@ -641,24 +641,20 @@ Value Value::enumerate() const {
 	return nt_value_enumerate(internal);
 }
 
-bool Value::setPrivateName(const char* key, void *priv, FreeFunction free) {
-	return nt_value_private_set(internal, key, priv, free);
-}
-
-bool Value::setPrivateName(const char* key, Value value) {
-	return nt_value_private_set_value(internal, key, value.internal);
-}
-
 template <> void* Value::getPrivateName<void*>(const char* key) const {
-	return nt_value_private_get(internal, key);
+	return nt_value_get_private_name(internal, key);
 }
 
 template <> Value Value::getPrivateName<Value>(const char* key) const {
-	return nt_value_private_get_value(internal, key);
+	return nt_value_get_private_name_value(internal, key);
 }
 
-template <> bool Value::setPrivate<Value> (Value priv, FreeFunction free) {
-	return setPrivateName(typeid(Value).name(), priv);
+template <> bool Value::setPrivateName<void*> (const char* key, void* priv, FreeFunction free) {
+	return nt_value_set_private_name(internal, key, priv, free);
+}
+
+template <> bool Value::setPrivateName<Value> (const char* key, Value priv, FreeFunction free) {
+	return nt_value_set_private_name_value(internal, key, priv.internal);
 }
 
 Value Value::evaluate(Value javascript, Value filename, unsigned int lineno) {

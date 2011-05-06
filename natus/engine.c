@@ -161,7 +161,7 @@ ntValue *nt_engine_new_global(ntEngine *engine, ntValue *global) {
 		glb->eng = nt_engine_incref(engine);
 		glb->ref = 1;
 		glb->typ = ntValueTypeObject;
-		nt_value_private_set(glb, NATUS_PRIV_GLOBAL, glb, NULL);
+		nt_value_set_private_name(glb, NATUS_PRIV_GLOBAL, glb, NULL);
 	}
 	return glb;
 }

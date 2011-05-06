@@ -67,7 +67,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(x.isObject());
 
 	//// Check for bypass
-	x.setPrivate("retval", NULL); // Ensure NULL
+	x.setPrivateName<Value>("retval", NULL); // Ensure NULL
 	// Number, native
 	assert(x.setPrivateName("type", (void*) Value::TypeNumber));
 	assert(!x.set(0, 17).isException());
@@ -96,7 +96,7 @@ int doTest(Engine& engine, Value& global) {
 	assert( global.evaluate("x['foo'];").isUndefined());
 
 	//// Check for exception
-	assert(x.setPrivateName("retval", global.newString("error").toException()));
+	assert(x.setPrivateName<Value>("retval", global.newString("error").toException()));
 	// Number, native
 	assert(x.setPrivateName("type", (void*) Value::TypeNumber));
 	assert(x.del(0).isException());
@@ -117,7 +117,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(global.evaluate("x['foo'] = 0;").isException());
 
 	//// Check for intercept
-	assert(x.setPrivateName("retval", global.newBoolean(true)));
+	assert(x.setPrivateName<Value>("retval", global.newBoolean(true)));
 	// Number, native
 	assert(x.setPrivateName("type", (void*) Value::TypeNumber));
 	assert(!x.del(0).isException());
@@ -162,7 +162,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isObject());
 
 	//// Check for exception calls
-	assert(x.setPrivateName("retval", global.newString("error").toException()));
+	assert(x.setPrivateName<Value>("retval", global.newString("error").toException()));
 	// Call from C++
 	y = global.call("x");
 	assert(y.isString());
@@ -181,7 +181,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isException());
 
 	//// Check for NULL calls
-	assert(x.setPrivateName("retval", NULL)); // Ensure NULL
+	assert(x.setPrivateName<Value>("retval", NULL)); // Ensure NULL
 	// Call from C++
 	y = global.call("x");
 	assert(y.isUndefined());
@@ -200,7 +200,7 @@ int doTest(Engine& engine, Value& global) {
 	assert(y.isException());
 
 	// Enumerate
-	assert(x.setPrivateName("retval", arrayBuilder(arrayBuilder(x, 5), 10)));
+	assert(x.setPrivateName<Value>("retval", arrayBuilder(arrayBuilder(x, 5), 10)));
 	y = x.enumerate();
 	assert(y.isArray());
 	assert(y.get("length").to<int>() == 2);

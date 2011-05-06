@@ -167,7 +167,7 @@ bool nt_value_borrow_context(const ntValue *ctx, void **context, void **value) {
 bool nt_value_is_global(const ntValue *val) {
 	if (!val) return false;
 	if (!nt_value_is_object(val)) return false;
-	return nt_value_private_get(val, NATUS_PRIV_GLOBAL) == val;
+	return nt_value_get_private_name(val, NATUS_PRIV_GLOBAL) == val;
 }
 
 bool nt_value_is_exception(const ntValue *val) {
@@ -295,7 +295,7 @@ ntValue *nt_value_del(ntValue *val, const ntValue *id) {
 
 	// If the object is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
-	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	ntClass         *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
 	if (cls && cls->del) {
 		ntValue *rslt = cls->del(cls, val, id);
 		if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
@@ -346,7 +346,7 @@ ntValue *nt_value_get(ntValue *val, const ntValue *id) {
 
 	// If the object is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
-	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	ntClass         *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
 	if (cls && cls->get) {
 		ntValue *rslt = cls->get(cls, val, id);
 		if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
@@ -397,7 +397,7 @@ ntValue *nt_value_set(ntValue *val, const ntValue *id, const ntValue *value, ntP
 
 	// If the object is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
-	ntClass         *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	ntClass         *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
 	if (cls && cls->set) {
 		ntValue *rslt = cls->set(cls, val, id, value);
 		if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
@@ -460,38 +460,38 @@ ntValue *nt_value_enumerate(ntValue *val) {
 
 	// If the object is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
-	ntClass *cls = nt_value_private_get(val, NATUS_PRIV_CLASS);
+	ntClass *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
 	if (cls && cls->enumerate)
 		return cls->enumerate(cls, val);
 
 	return val->eng->espec->value.enumerate(val);
 }
 
-bool nt_value_private_set(ntValue *obj, const char *key, void *priv, ntFreeFunction free) {
+bool nt_value_set_private_name(ntValue *obj, const char *key, void *priv, ntFreeFunction free) {
 	if (!nt_value_is_type(obj, ntValueTypeFunction | ntValueTypeObject)) return false;
 	if (!key) return false;
 	ntPrivate *prv = obj->eng->espec->value.private_get(obj);
 	return nt_private_set(prv, key, priv, free);
 }
 
-bool nt_value_private_set_value(ntValue *obj, const char *key, ntValue* priv) {
+bool nt_value_set_private_name_value(ntValue *obj, const char *key, ntValue* priv) {
 	nt_value_incref(priv);
-	if (!nt_value_private_set(obj, key, priv, (ntFreeFunction) nt_value_decref)) {
+	if (!nt_value_set_private_name(obj, key, priv, (ntFreeFunction) nt_value_decref)) {
 		nt_value_decref(priv);
 		return false;
 	}
 	return true;
 }
 
-void* nt_value_private_get(const ntValue *obj, const char *key) {
+void* nt_value_get_private_name(const ntValue *obj, const char *key) {
 	if (!nt_value_is_type(obj, ntValueTypeFunction | ntValueTypeObject)) return NULL;
 	if (!key) return NULL;
 	ntPrivate *prv = obj->eng->espec->value.private_get(obj);
 	return nt_private_get(prv, key);
 }
 
-ntValue *nt_value_private_get_value(const ntValue *obj, const char *key) {
-	return nt_value_incref(nt_value_private_get(obj, key));
+ntValue *nt_value_get_private_name_value(const ntValue *obj, const char *key) {
+	return nt_value_incref(nt_value_get_private_name(obj, key));
 }
 
 ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filename, unsigned int lineno) {
@@ -516,7 +516,7 @@ ntValue *nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValu
 	bool pushed = false;
 	ntValue *glbl = nt_value_get_global(ths);
 	ntValue *reqr = nt_value_get_utf8(glbl, "require");
-	ntValue *stck = nt_value_private_get_value(reqr, "natus.reqStack");
+	ntValue *stck = nt_value_get_private_name_value(reqr, "natus.reqStack");
 	nt_value_decref(glbl);
 	if (nt_value_is_array(stck))
 		nt_value_decref(nt_value_set_index(stck, nt_value_as_long(nt_value_get_utf8(stck, "length")), filename));
@@ -563,8 +563,8 @@ ntValue *nt_value_call(ntValue *func, ntValue *ths, ntValue *args) {
 
 	// If the function is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
-	ntNativeFunction fnc = nt_value_private_get(func, NATUS_PRIV_FUNCTION);
-	ntClass         *cls = nt_value_private_get(func, NATUS_PRIV_CLASS);
+	ntNativeFunction fnc = nt_value_get_private_name(func, NATUS_PRIV_FUNCTION);
+	ntClass         *cls = nt_value_get_private_name(func, NATUS_PRIV_CLASS);
 	ntValue         *res = NULL;
 	if (fnc || (cls && cls->call)) {
 		if (fnc)

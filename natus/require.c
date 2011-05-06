@@ -37,7 +37,6 @@
 #define URIPREFIX  "file://"
 #define NFSUFFIX   " not found!"
 
-#define NATUS_REQUIRE         "natus::Require"
 #define NATUS_REQUIRE_STACK   "natus::Require::Stack"
 #define CFG_PATH              "natus.require.path"
 #define CFG_WHITELIST         "natus.require.whitelist"
@@ -130,14 +129,14 @@ static char *check_path(struct stat *st, const char *fmt, ...) {
 static ntValue* internal_require(ntValue *ctx, ntRequireHookStep step, char *name, void *misc) {
 	if (step == ntRequireHookStepProcess) return NULL;
 
-	ntRequire *req = nt_value_private_get(ctx, NATUS_REQUIRE);
+	ntRequire *req = nt_value_get_private(ctx, ntRequire*);
 	if (!req) return NULL;
 
 	ntValue *path = NULL;
 
 	// If the path is a relative path, use the top of the evaluation stack
 	if (name && name[0] == '.') {
-		ntValue *stack = nt_value_private_get_value(ctx, NATUS_REQUIRE_STACK);
+		ntValue *stack = nt_value_get_private_name_value(ctx, NATUS_REQUIRE_STACK);
 		long len = nt_value_as_long(nt_value_get_utf8(stack, "length"));
 
 		ntValue *prfx = nt_value_get_index(stack, len > 0 ? len - 1 : 0);
@@ -330,7 +329,7 @@ bool              nt_require_init_value        (ntValue *ctx, ntValue *config) {
 
 	// Make sure we haven't already initialized a module loader
 	// If not, initialize
-	req = nt_value_private_get(glb, NATUS_REQUIRE);
+	req = nt_value_get_private(glb, ntRequire*);
 	if (req) {
 		nt_value_decref(glb);
 		return true;
@@ -351,7 +350,7 @@ bool              nt_require_init_value        (ntValue *ctx, ntValue *config) {
 		// The stack is the one big exception to the layer boundary since it needs to be
 		// updated by the nt_value_evalue() function.
 		ntValue *stack = nt_value_new_array(glb, NULL);
-		if (!nt_value_is_array(stack) || !nt_value_private_set_value(glb, NATUS_REQUIRE_STACK, stack)) {
+		if (!nt_value_is_array(stack) || !nt_value_set_private_name_value(glb, NATUS_REQUIRE_STACK, stack)) {
 			nt_value_decref(stack);
 			goto error;
 		}
@@ -375,10 +374,10 @@ bool              nt_require_init_value        (ntValue *ctx, ntValue *config) {
 	nt_value_decref(pth);
 
 	// Finish initialization
-	if (!nt_value_private_set(glb, NATUS_REQUIRE, req, (ntFreeFunction) _nt_require_free)
+	if (!nt_value_set_private(glb, ntRequire*, req, (ntFreeFunction) _nt_require_free)
 			|| !nt_require_hook_add(glb, "natus::InternalLoader", internal_require, NULL, NULL)) {
-		nt_value_private_set(glb, NATUS_REQUIRE, NULL, NULL);
-		nt_value_private_set(glb, NATUS_REQUIRE_STACK, NULL, NULL);
+		nt_value_set_private(glb, ntRequire*, NULL, NULL);
+		nt_value_set_private_name(glb, NATUS_REQUIRE_STACK, NULL, NULL);
 		nt_value_del_utf8(glb, "require");
 		nt_value_decref(glb);
 		return false;
@@ -395,15 +394,15 @@ bool              nt_require_init_value        (ntValue *ctx, ntValue *config) {
 
 void              nt_require_free              (ntValue *ctx) {
 	ntValue *glb = nt_value_get_global(ctx);
-	nt_value_private_set(glb, NATUS_REQUIRE, NULL, NULL);
-	nt_value_private_set(glb, NATUS_REQUIRE_STACK, NULL, NULL);
+	nt_value_set_private(glb, ntRequire*, NULL, NULL);
+	nt_value_set_private_name(glb, NATUS_REQUIRE_STACK, NULL, NULL);
 	nt_value_decref(glb);
 }
 
 ntValue          *nt_require_get_config        (ntValue *ctx) {
 	// Get the global and the ntRequire struct
 	ntValue  *global = nt_value_get_global(ctx);
-	ntRequire   *req = nt_value_private_get(global, NATUS_REQUIRE);
+	ntRequire   *req = nt_value_get_private(global, ntRequire*);
 	if (!req) {
 		nt_value_decref(global);
 		return NULL;
@@ -415,7 +414,7 @@ ntValue          *nt_require_get_config        (ntValue *ctx) {
 #define _do_set(ctx, field, name, item, free) \
 	ntValue *glb = nt_value_get_global(ctx); \
 	if (!glb) goto error; \
-	ntRequire *req = (ntRequire*) nt_value_private_get(glb, NATUS_REQUIRE); \
+	ntRequire *req = (ntRequire*) nt_value_get_private(glb, ntRequire*); \
 	if (!req) goto error; \
 	return nt_private_set(req->field, name, item, ((ntFreeFunction) free)); \
 	error: \
@@ -457,7 +456,7 @@ bool nt_require_origin_permitted(ntValue *ctx, const char *uri) {
 	if (!glb) return true;
 
 	// Get the require structure
-	ntRequire *req = nt_value_private_get(glb, NATUS_REQUIRE);
+	ntRequire *req = nt_value_get_private(glb, ntRequire*);
 	if (!req) {
 		nt_value_decref(glb);
 		return true;
@@ -562,7 +561,7 @@ static void do_hooks(const char *hookname, reqHook *hook, ntHookData *misc) {
 ntValue          *nt_require                   (ntValue *ctx, const char *name) {
 	// Get the global and the ntRequire struct
 	ntValue  *global = nt_value_get_global(ctx);
-	ntRequire   *req = nt_value_private_get(global, NATUS_REQUIRE);
+	ntRequire   *req = nt_value_get_private(global, ntRequire*);
 	if (!global || !req) {
 		nt_value_decref(global);
 		return NULL;

@@ -137,10 +137,12 @@ ntValue          *nt_value_set_index              (ntValue *obj, const   size_t 
 ntValue          *nt_value_set_recursive_utf8     (ntValue *obj, const    char *id, const ntValue *value, ntPropAttr attrs, bool mkpath);
 ntValue          *nt_value_enumerate              (ntValue *obj);
 
-bool              nt_value_private_set            (      ntValue *obj, const char *key, void *priv, ntFreeFunction free);
-bool              nt_value_private_set_value      (      ntValue *obj, const char *key, ntValue* priv);
-void             *nt_value_private_get            (const ntValue *obj, const char *key);
-ntValue          *nt_value_private_get_value      (const ntValue *obj, const char *key);
+#define           nt_value_set_private(obj, type, priv, free) nt_value_set_private_name(obj, # type, priv, free)
+bool              nt_value_set_private_name       (      ntValue *obj, const char *key, void *priv, ntFreeFunction free);
+bool              nt_value_set_private_name_value (      ntValue *obj, const char *key, ntValue* priv);
+#define           nt_value_get_private(obj, type) ((type) nt_value_get_private_name(obj, # type))
+void             *nt_value_get_private_name       (const ntValue *obj, const char *key);
+ntValue          *nt_value_get_private_name_value (const ntValue *obj, const char *key);
 
 ntValue          *nt_value_evaluate               (      ntValue *ths, const ntValue *javascript, const ntValue *filename, unsigned int lineno);
 ntValue          *nt_value_evaluate_utf8          (      ntValue *ths, const    char *javascript, const    char *filename, unsigned int lineno);
