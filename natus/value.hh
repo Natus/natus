@@ -195,7 +195,6 @@ public:
 	template <class T> bool setPrivateName(const char* key, T priv, FreeFunction free=NULL) {
 		return setPrivateName<void*>(key, (void*) priv, free);
 	}
-	bool                  setPrivateName(const char* key, Value value);
 
 	Value                 evaluate(Value javascript, Value filename,    unsigned int lineno=0);
 	Value                 evaluate(UTF8  javascript, UTF8  filename="", unsigned int lineno=0);
