@@ -15,25 +15,25 @@ using namespace natus;
 
 #include "../test.h"
 
-int doTest(Engine& engine, Value& global);
+int doTest (Engine& engine, Value& global);
 
-static Value alert(Value& fnc, Value& ths, Value& args) {
+static Value alert (Value& fnc, Value& ths, Value& args) {
 	NATUS_CHECK_ARGUMENTS(fnc, "s");
 
-	fprintf(stderr, "%s\n", args[0].to<UTF8>().c_str());
-	return ths.newUndefined();
+	fprintf (stderr, "%s\n", args[0].to<UTF8> ().c_str ());
+	return ths.newUndefined ();
 }
 
-int onEngine(const char *eng, int argc, const char **argv) {
+int onEngine (const char *eng, int argc, const char **argv) {
 	Engine engine;
-	if (!engine.initialize(eng)) {
-		fprintf(stderr, "Unable to init engine! %s\n", eng);
+	if (!engine.initialize (eng)) {
+		fprintf (stderr, "Unable to init engine! %s\n", eng);
 		return 1;
 	}
-	printf("Engine: %s\n", engine.getName());
+	printf ("Engine: %s\n", engine.getName ());
 
-	Value global = engine.newGlobal();
-	global.set("alert", alert, Value::PropAttrProtected);
+	Value global = engine.newGlobal ();
+	global.set ("alert", alert, Value::PropAttrProtected);
 
-	return doTest(engine, global);
+	return doTest (engine, global);
 }

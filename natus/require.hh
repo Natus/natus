@@ -43,28 +43,26 @@ namespace natus {
 class Require {
 public:
 	typedef enum {
-		HookStepResolve,
-		HookStepLoad,
-		HookStepProcess
+		HookStepResolve, HookStepLoad, HookStepProcess
 	} HookStep;
 
-	typedef Value (*Hook)(Value& ctx, HookStep step, char* name, void* misc);
-	typedef bool  (*OriginMatcher)(const char* pattern, const char* subject);
-	typedef bool  (*ModuleInit)(ntValue* module);
+	typedef Value (*Hook) (Value& ctx, HookStep step, char* name, void* misc);
+	typedef bool (*OriginMatcher) (const char* pattern, const char* subject);
+	typedef bool (*ModuleInit) (ntValue* module);
 
-	Require(Value ctx);
-	bool initialize(Value config);
-	bool initialize(const char* config);
-	Value getConfig();
+	Require (Value ctx);
+	bool initialize (Value config);
+	bool initialize (const char* config);
+	Value getConfig ();
 
-	bool addHook(const char* name, Hook func, void* misc=NULL, FreeFunction free=NULL);
-	bool delHook(const char* name);
+	bool addHook (const char* name, Hook func, void* misc = NULL, FreeFunction free = NULL);
+	bool delHook (const char* name);
 
-	bool addOriginMatcher(const char* name, OriginMatcher func, void* misc=NULL, FreeFunction free=NULL);
-	bool delOriginMatcher(const char* name);
+	bool addOriginMatcher (const char* name, OriginMatcher func, void* misc = NULL, FreeFunction free = NULL);
+	bool delOriginMatcher (const char* name);
 
-	Value require(const char* name);
-	bool  originPermitted(const char* name);
+	Value require (const char* name);
+	bool originPermitted (const char* name);
 
 private:
 	Value ctx;

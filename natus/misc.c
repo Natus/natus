@@ -38,104 +38,111 @@
 	*((type*) p) = (nt_value_is_undefined(val) ? ((type) (intptr_t) d) : ((type) nt_value_to_double(val))); \
 }
 
-static ntValue *exception_toString(ntValue *fnc, ntValue *ths, ntValue *args) {
+static ntValue *exception_toString (ntValue *fnc, ntValue *ths, ntValue *args) {
 	size_t typelen, msglen, codelen, len;
 
-	ntValue *type = nt_value_get_utf8(ths, "type");
-	ntValue *msg  = nt_value_get_utf8(ths, "msg");
-	ntValue *code = nt_value_get_utf8(ths, "code");
+	ntValue *type = nt_value_get_utf8 (ths, "type");
+	ntValue *msg = nt_value_get_utf8 (ths, "msg");
+	ntValue *code = nt_value_get_utf8 (ths, "code");
 
-	ntChar *stype = nt_value_to_string_utf16(type, &typelen);
-	ntChar *smsg  = nt_value_to_string_utf16(msg,  &msglen);
-	ntChar *scode = nt_value_to_string_utf16(code, &codelen);
-	bool hascode  = !nt_value_is_undefined(code);
+	ntChar *stype = nt_value_to_string_utf16 (type, &typelen);
+	ntChar *smsg = nt_value_to_string_utf16 (msg, &msglen);
+	ntChar *scode = nt_value_to_string_utf16 (code, &codelen);
+	bool hascode = !nt_value_is_undefined (code);
 	len = typelen + msglen + 2 + (hascode ? codelen + 2 : 0);
 
-	nt_value_decref(type);
-	nt_value_decref(msg);
-	nt_value_decref(code);
+	nt_value_decref (type);
+	nt_value_decref (msg);
+	nt_value_decref (code);
 
 	if (!stype || !smsg || !scode) {
-		free(stype);
-		free(smsg);
-		free(scode);
+		free (stype);
+		free (smsg);
+		free (scode);
 		return NULL;
 	}
 
-	ntChar *str = calloc(typelen + msglen + codelen + 4, sizeof(ntChar));
+	ntChar *str = calloc (typelen + msglen + codelen + 4, sizeof(ntChar));
 	if (!str) {
-		free(stype);
-		free(smsg);
-		free(scode);
+		free (stype);
+		free (smsg);
+		free (scode);
 		return NULL;
 	}
 	ntChar *tmp = str;
 
-	memcpy(tmp, stype, sizeof(ntChar) * typelen); tmp += typelen;
-	*tmp = ':'; tmp++;
-	*tmp = ' '; tmp++;
+	memcpy (tmp, stype, sizeof(ntChar) * typelen);
+	tmp += typelen;
+	*tmp = ':';
+	tmp++;
+	*tmp = ' ';
+	tmp++;
 	if (hascode) {
-		memcpy(tmp, scode, sizeof(ntChar) * codelen); tmp += codelen;
-		*tmp = ':'; tmp++;
-		*tmp = ' '; tmp++;
+		memcpy (tmp, scode, sizeof(ntChar) * codelen);
+		tmp += codelen;
+		*tmp = ':';
+		tmp++;
+		*tmp = ' ';
+		tmp++;
 	}
-	memcpy(tmp, smsg, sizeof(ntChar) * msglen);
+	memcpy (tmp, smsg, sizeof(ntChar) * msglen);
 
-	ntValue *vstr = nt_value_new_string_utf16_length(ths, str, len);
-	free(stype);
-	free(smsg);
-	free(scode);
-	free(str);
+	ntValue *vstr = nt_value_new_string_utf16_length (ths, str, len);
+	free (stype);
+	free (smsg);
+	free (scode);
+	free (str);
 	return vstr;
 }
 
-ntValue          *nt_throw_exception(const ntValue *ctx, const char *type, const char *format, ...) {
+ntValue *nt_throw_exception (const ntValue *ctx, const char *type, const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
-	ntValue *exc = nt_throw_exception_varg(ctx, type, format, ap);
+	ntValue *exc = nt_throw_exception_varg (ctx, type, format, ap);
 	va_end(ap);
 
 	return exc;
 }
 
-ntValue *nt_throw_exception_varg(const ntValue *ctx, const char *type, const char *format, va_list ap) {
-	char *msg = _vsprintf(format, ap);
-	if (!msg) return NULL;
+ntValue *nt_throw_exception_varg (const ntValue *ctx, const char *type, const char *format, va_list ap) {
+	char *msg = _vsprintf (format, ap);
+	if (!msg)
+		return NULL;
 
-	ntValue *exc   = nt_value_new_object(ctx, NULL);
-	ntValue *vtype = nt_value_new_string_utf8(ctx, type);
-	ntValue *vmsg  = nt_value_new_string_utf8(ctx, msg);
-	ntValue *vfunc = nt_value_new_function(ctx, exception_toString);
+	ntValue *exc = nt_value_new_object (ctx, NULL);
+	ntValue *vtype = nt_value_new_string_utf8 (ctx, type);
+	ntValue *vmsg = nt_value_new_string_utf8 (ctx, msg);
+	ntValue *vfunc = nt_value_new_function (ctx, exception_toString);
 
-	nt_value_decref(nt_value_set_utf8(exc, "type",     vtype, ntPropAttrConstant));
-	nt_value_decref(nt_value_set_utf8(exc, "msg",      vmsg,  ntPropAttrConstant));
-	nt_value_decref(nt_value_set_utf8(exc, "toString", vfunc, ntPropAttrConstant));
-	nt_value_to_exception(exc);
+	nt_value_decref (nt_value_set_utf8 (exc, "type", vtype, ntPropAttrConstant));
+	nt_value_decref (nt_value_set_utf8 (exc, "msg", vmsg, ntPropAttrConstant));
+	nt_value_decref (nt_value_set_utf8 (exc, "toString", vfunc, ntPropAttrConstant));
+	nt_value_to_exception (exc);
 
-	free(msg);
-	nt_value_decref(vtype);
-	nt_value_decref(vmsg);
-	nt_value_decref(vfunc);
+	free (msg);
+	nt_value_decref (vtype);
+	nt_value_decref (vmsg);
+	nt_value_decref (vfunc);
 	return exc;
 }
 
-ntValue          *nt_throw_exception_code (const ntValue *ctx, const char *type, int code, const char *format, ...) {
+ntValue *nt_throw_exception_code (const ntValue *ctx, const char *type, int code, const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
-	ntValue *exc = nt_throw_exception_code_varg(ctx, type, code, format, ap);
+	ntValue *exc = nt_throw_exception_code_varg (ctx, type, code, format, ap);
 	va_end(ap);
 	return exc;
 }
 
-ntValue          *nt_throw_exception_code_varg(const ntValue *ctx, const char *type, int code, const char *format, va_list ap) {
-	ntValue *exc   = nt_throw_exception_varg(ctx, type, format, ap);
-	ntValue *vcode = nt_value_new_number(ctx, (double) code);
-	nt_value_set_utf8(exc, "code", vcode, ntPropAttrConstant);
-	nt_value_decref(vcode);
+ntValue *nt_throw_exception_code_varg (const ntValue *ctx, const char *type, int code, const char *format, va_list ap) {
+	ntValue *exc = nt_throw_exception_varg (ctx, type, format, ap);
+	ntValue *vcode = nt_value_new_number (ctx, (double) code);
+	nt_value_set_utf8 (exc, "code", vcode, ntPropAttrConstant);
+	nt_value_decref (vcode);
 	return exc;
 }
 
-ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno) {
+ntValue *nt_throw_exception_errno (const ntValue *ctx, int errorno) {
 	const char* type = "OSError";
 	switch (errorno) {
 #ifdef ENOMEM
@@ -535,64 +542,64 @@ ntValue          *nt_throw_exception_errno(const ntValue *ctx, int errorno) {
 			break;
 	}
 
-	return nt_throw_exception_code(ctx, type, errorno, strerror(errorno));
+	return nt_throw_exception_code (ctx, type, errorno, strerror (errorno));
 }
 
-ntValue          *nt_ensure_arguments      (ntValue *arg, const char *fmt) {
+ntValue *nt_ensure_arguments (ntValue *arg, const char *fmt) {
 	char types[4096];
-	unsigned int len = nt_value_as_long(nt_value_get_utf8(arg, "length"));
+	unsigned int len = nt_value_as_long (nt_value_get_utf8 (arg, "length"));
 	unsigned int minimum = 0;
-	unsigned int i,j;
-	for (i=0,j=0 ; i < len ; i++) {
+	unsigned int i, j;
+	for (i = 0, j = 0; i < len ; i++) {
 		int depth = 0;
 		bool correct = false;
-		strcpy(types, "");
+		strcpy (types, "");
 
 		if (minimum == 0 && fmt[j] == '|')
 			minimum = j++;
 
-		ntValue *thsArg = nt_value_get_index(arg, i);
+		ntValue *thsArg = nt_value_get_index (arg, i);
 		do {
 			switch (fmt[j++]) {
 				case 'a':
-					correct = nt_value_get_type(thsArg) == ntValueTypeArray;
-					if (strlen(types) + strlen("array, ") < 4095)
-						strcat(types, "array, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeArray;
+					if (strlen (types) + strlen ("array, ") < 4095)
+						strcat (types, "array, ");
 					break;
 				case 'b':
-					correct = nt_value_get_type(thsArg) == ntValueTypeBoolean;
-					if (strlen(types) + strlen("boolean, ") < 4095)
-						strcat(types, "boolean, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeBoolean;
+					if (strlen (types) + strlen ("boolean, ") < 4095)
+						strcat (types, "boolean, ");
 					break;
 				case 'f':
-					correct = nt_value_get_type(thsArg) == ntValueTypeFunction;
-					if (strlen(types) + strlen("function, ") < 4095)
-						strcat(types, "function, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeFunction;
+					if (strlen (types) + strlen ("function, ") < 4095)
+						strcat (types, "function, ");
 					break;
 				case 'N':
-					correct = nt_value_get_type(thsArg) == ntValueTypeNull;
-					if (strlen(types) + strlen("null, ") < 4095)
-						strcat(types, "null, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeNull;
+					if (strlen (types) + strlen ("null, ") < 4095)
+						strcat (types, "null, ");
 					break;
 				case 'n':
-					correct = nt_value_get_type(thsArg) == ntValueTypeNumber;
-					if (strlen(types) + strlen("number, ") < 4095)
-						strcat(types, "number, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeNumber;
+					if (strlen (types) + strlen ("number, ") < 4095)
+						strcat (types, "number, ");
 					break;
 				case 'o':
-					correct = nt_value_get_type(thsArg) == ntValueTypeObject;
-					if (strlen(types) + strlen("object, ") < 4095)
-						strcat(types, "object, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeObject;
+					if (strlen (types) + strlen ("object, ") < 4095)
+						strcat (types, "object, ");
 					break;
 				case 's':
-					correct = nt_value_get_type(thsArg) == ntValueTypeString;
-					if (strlen(types) + strlen("string, ") < 4095)
-						strcat(types, "string, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeString;
+					if (strlen (types) + strlen ("string, ") < 4095)
+						strcat (types, "string, ");
 					break;
 				case 'u':
-					correct = nt_value_get_type(thsArg) == ntValueTypeUndefined;
-					if (strlen(types) + strlen("undefined, ") < 4095)
-						strcat(types, "undefined, ");
+					correct = nt_value_get_type (thsArg) == ntValueTypeUndefined;
+					if (strlen (types) + strlen ("undefined, ") < 4095)
+						strcat (types, "undefined, ");
 					break;
 				case '(':
 					depth++;
@@ -601,52 +608,53 @@ ntValue          *nt_ensure_arguments      (ntValue *arg, const char *fmt) {
 					depth--;
 					break;
 				default:
-					nt_value_decref(thsArg);
-					return nt_throw_exception(arg, "LogicError", "Invalid format character!");
+					nt_value_decref (thsArg);
+					return nt_throw_exception (arg, "LogicError", "Invalid format character!");
 			}
 
 		} while (!correct && depth > 0);
-		nt_value_decref(thsArg);
+		nt_value_decref (thsArg);
 
-		if (strlen(types) > 2)
-			types[strlen(types)-2] = '\0';
+		if (strlen (types) > 2)
+			types[strlen (types) - 2] = '\0';
 
-		if (strcmp(types, "") && !correct) {
+		if (strcmp (types, "") && !correct) {
 			char msg[5120];
-			snprintf(msg, 5120, "argument %u must be one of these types: %s", i, types);
-			return nt_throw_exception(arg, "TypeError", msg);
+			snprintf (msg, 5120, "argument %u must be one of these types: %s", i, types);
+			return nt_throw_exception (arg, "TypeError", msg);
 		}
 	}
 
 	if (len < minimum) {
 		char msg[1024];
-		snprintf(msg, 1024, "Function requires at least %u arguments!", minimum);
-		return nt_throw_exception(arg, "TypeError", msg);
+		snprintf (msg, 1024, "Function requires at least %u arguments!", minimum);
+		return nt_throw_exception (arg, "TypeError", msg);
 	}
 
-	return nt_value_new_undefined(arg);
+	return nt_value_new_undefined (arg);
 }
 
-ntValue *nt_convert_arguments(ntValue *arg, const char *fmt, ...) {
+ntValue *nt_convert_arguments (ntValue *arg, const char *fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
-	ntValue *ret = nt_convert_arguments_varg(arg, fmt, ap);
+	ntValue *ret = nt_convert_arguments_varg (arg, fmt, ap);
 	va_end(ap);
 	return ret;
 }
 
-ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
+ntValue *nt_convert_arguments_varg (ntValue *arg, const char *fmt, va_list ap) {
 	va_list apc;
-	size_t i=0;
+	size_t i = 0;
 	const char *c;
 
 	va_copy(apc, ap);
-	for (c = fmt ; *c ; c++) {
-		if (*c != '%') continue;
+	for (c = fmt; *c ; c++) {
+		if (*c != '%')
+			continue;
 
 		void *p;
 		void *d;
-		ntValue *val = nt_value_get_index(arg, i++);
+		ntValue *val = nt_value_get_index (arg, i++);
 
 		switch (*++c) {
 			case 'h':
@@ -655,13 +663,15 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 						switch (*++c) {
 							case 'd':
 							case 'i':
-								SET_ARGUMENT(signed char);
+								SET_ARGUMENT(signed char)
+								;
 								break;
 							case 'o':
 							case 'u':
 							case 'x':
 							case 'X':
-								SET_ARGUMENT(unsigned char);
+								SET_ARGUMENT(unsigned char)
+								;
 								break;
 							case 'n':
 								break;
@@ -672,13 +682,15 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 
 					case 'd':
 					case 'i':
-						SET_ARGUMENT(signed short int);
+						SET_ARGUMENT(signed short int)
+						;
 						break;
 					case 'o':
 					case 'u':
 					case 'x':
 					case 'X':
-						SET_ARGUMENT(unsigned short int);
+						SET_ARGUMENT(unsigned short int)
+						;
 						break;
 					case 'n':
 						break;
@@ -691,13 +703,15 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 				switch (*++c) {
 					case 'd':
 					case 'i':
-						SET_ARGUMENT(intmax_t);
+						SET_ARGUMENT(intmax_t)
+						;
 						break;
 					case 'o':
 					case 'u':
 					case 'x':
 					case 'X':
-						SET_ARGUMENT(uintmax_t);
+						SET_ARGUMENT(uintmax_t)
+						;
 						break;
 					case 'n':
 						break;
@@ -712,20 +726,23 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 						switch (*++c) {
 							case 'd':
 							case 'i':
-								SET_ARGUMENT(signed long long);
+								SET_ARGUMENT(signed long long)
+								;
 								break;
 							case 'o':
 							case 'u':
 							case 'x':
 							case 'X':
-								SET_ARGUMENT(unsigned long long);
+								SET_ARGUMENT(unsigned long long)
+								;
 								break;
 							case 'e':
 							case 'f':
 							case 'g':
 							case 'E':
 							case 'a':
-								SET_ARGUMENT(long double);
+								SET_ARGUMENT(long double)
+								;
 								break;
 							case 'n':
 								break;
@@ -736,52 +753,59 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 
 					case 'd':
 					case 'i':
-						SET_ARGUMENT(signed long int);
+						SET_ARGUMENT(signed long int)
+						;
 						break;
 
 					case 'o':
 					case 'u':
 					case 'x':
 					case 'X':
-						SET_ARGUMENT(unsigned long int);
+						SET_ARGUMENT(unsigned long int)
+						;
 						break;
 					case 'e':
 					case 'f':
 					case 'g':
 					case 'E':
 					case 'a':
-						SET_ARGUMENT(double);
+						SET_ARGUMENT(double)
+						;
 						break;
 					case 'c':
-						if (nt_value_is_string(val)) {
+						if (nt_value_is_string (val)) {
 							p = va_arg(apc, void*);
 							d = va_arg(apc, void*);
 							size_t len = 0;
-							ntChar *tmp = nt_value_to_string_utf16(val, &len);
+							ntChar *tmp = nt_value_to_string_utf16 (val, &len);
 							*((ntChar*) p) = len > 0 ? tmp[0] : (ntChar) 0;
-							free(tmp);
+							free (tmp);
 							tmp = va_arg(apc, void*); // consume the default
-						} else
-							SET_ARGUMENT(ntChar);
+						}
+							else
+							SET_ARGUMENT(ntChar)
+						;
 						break;
 					case 's':
 						p = va_arg(apc, void*);
 						d = va_arg(apc, void*);
 
-						if (nt_value_is_undefined(val)) {
+						if (nt_value_is_undefined (val)) {
 							if (d != NULL) {
 
 								ssize_t len = 0;
-								while (((ntChar*) d)[len++]);
-								ntChar *tmp = calloc(len, sizeof(ntChar));
-								if (!tmp) goto nomem;
-								for ( ; len >= 0 ; len--)
+								while (((ntChar*) d)[len++])
+									;
+								ntChar *tmp = calloc (len, sizeof(ntChar));
+								if (!tmp)
+									goto nomem;
+								for (; len >= 0 ; len--)
 									tmp[len] = ((ntChar*) d)[len];
 								d = tmp;
 							}
 							*((ntChar**) p) = (ntChar*) d;
 						} else
-							*((ntChar**) p) = (ntChar*) nt_value_to_string_utf16(val, NULL);
+							*((ntChar**) p) = (ntChar*) nt_value_to_string_utf16 (val, NULL);
 						break;
 					case 'n':
 						break;
@@ -795,20 +819,23 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 				switch (*++c) {
 					case 'd':
 					case 'i':
-						SET_ARGUMENT(signed long long);
+						SET_ARGUMENT(signed long long)
+						;
 						break;
 					case 'o':
 					case 'u':
 					case 'x':
 					case 'X':
-						SET_ARGUMENT(unsigned long long);
+						SET_ARGUMENT(unsigned long long)
+						;
 						break;
 					case 'e':
 					case 'f':
 					case 'g':
 					case 'E':
 					case 'a':
-						SET_ARGUMENT(long double);
+						SET_ARGUMENT(long double)
+						;
 						break;
 					case 'n':
 						break;
@@ -825,7 +852,8 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 					case 'u':
 					case 'x':
 					case 'X':
-						SET_ARGUMENT(ptrdiff_t);
+						SET_ARGUMENT(ptrdiff_t)
+						;
 						break;
 					case 'n':
 						break;
@@ -838,13 +866,15 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 				switch (*++c) {
 					case 'd':
 					case 'i':
-						SET_ARGUMENT(ssize_t);
+						SET_ARGUMENT(ssize_t)
+						;
 						break;
 					case 'o':
 					case 'u':
 					case 'x':
 					case 'X':
-						SET_ARGUMENT(size_t);
+						SET_ARGUMENT(size_t)
+						;
 						break;
 					case 'n':
 						break;
@@ -858,18 +888,21 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 
 			case 'd':
 			case 'i':
-				SET_ARGUMENT(int);
+				SET_ARGUMENT(int)
+				;
 				break;
 
 			case 'D':
-				SET_ARGUMENT(signed long int);
+				SET_ARGUMENT(signed long int)
+				;
 				break;
 
 			case 'o':
 			case 'u':
 			case 'x':
 			case 'X':
-				SET_ARGUMENT(unsigned int);
+				SET_ARGUMENT(unsigned int)
+				;
 				break;
 
 			case 'e':
@@ -877,44 +910,49 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 			case 'g':
 			case 'E':
 			case 'a':
-				SET_ARGUMENT(float);
+				SET_ARGUMENT(float)
+				;
 				break;
 
 			case 'c':
-				if (nt_value_is_string(val)) {
+				if (nt_value_is_string (val)) {
 					p = va_arg(apc, void*);
 					d = va_arg(apc, void*);
 
 					size_t len = 0;
-					char *tmp = nt_value_to_string_utf8(val, &len);
+					char *tmp = nt_value_to_string_utf8 (val, &len);
 					*((char*) p) = (tmp && len > 0) ? tmp[0] : (char) 0;
-					free(tmp);
-				} else
-					SET_ARGUMENT(char);
+					free (tmp);
+				}
+					else
+					SET_ARGUMENT(char)
+				;
 				break;
 
 			case 's':
 				p = va_arg(apc, void*);
 				d = va_arg(apc, void*);
-				if (nt_value_is_undefined(val))
-					*((char**) p) = strdup((char*) d);
+				if (nt_value_is_undefined (val))
+					*((char**) p) = strdup ((char*) d);
 				else
-					*((char**) p) = (char*) nt_value_to_string_utf8(val, NULL);
+					*((char**) p) = (char*) nt_value_to_string_utf8 (val, NULL);
 				break;
 
 			case '[':
 				p = va_arg(apc, void*);
 				d = va_arg(apc, void*);
-				if (!strchr(++c, ']')) goto inval;
-				if (!nt_value_is_undefined(val)) {
-					char *tmp = strdup(c);
-					if (!tmp) goto nomem;
-					*strchr(tmp, ']') = '\0';
-					*((void**) p) = nt_value_get_private_name(val, tmp);
-					free(tmp);
+				if (!strchr (++c, ']'))
+					goto inval;
+				if (!nt_value_is_undefined (val)) {
+					char *tmp = strdup (c);
+					if (!tmp)
+						goto nomem;
+					*strchr (tmp, ']') = '\0';
+					*((void**) p) = nt_value_get_private_name (val, tmp);
+					free (tmp);
 				} else
 					*((void**) p) = d;
-				c = strchr(c, ']');
+				c = strchr (c, ']');
 				break;
 
 			case 'n':
@@ -924,91 +962,90 @@ ntValue *nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap) {
 				goto inval;
 		}
 
-		nt_value_decref(val);
+		nt_value_decref (val);
 		continue;
 
-		inval:
-			va_end(ap);
-			nt_value_decref(val);
-			return nt_throw_exception(arg, "ValueError", "Invalid format string!");
+		inval: va_end(ap);
+		nt_value_decref (val);
+		return nt_throw_exception (arg, "ValueError", "Invalid format string!");
 
-		nomem:
-			va_end(ap);
-			nt_value_decref(val);
-			return NULL;
-	}
-
-	va_end(apc);
-	return nt_value_new_number(arg, i);
-}
-
-ntValue *nt_array_builder(ntValue *array, ntValue *item) {
-	if (!item) return NULL;
-
-	ntValue *newarray = NULL;
-	if (!nt_value_is_array(array))
-		array = newarray = nt_value_new_array(array, NULL);
-
-	ntValue *len = nt_value_get_utf8(array, "length");
-	if (!nt_value_is_number(len)) {
-		nt_value_decref(newarray);
-		nt_value_decref(len);
+		nomem: va_end(ap);
+		nt_value_decref (val);
 		return NULL;
 	}
 
-	nt_value_decref(nt_value_set(array, len, item, ntPropAttrNone));
-	nt_value_decref(len);
+	va_end(apc);
+	return nt_value_new_number (arg, i);
+}
+
+ntValue *nt_array_builder (ntValue *array, ntValue *item) {
+	if (!item)
+		return NULL;
+
+	ntValue *newarray = NULL;
+	if (!nt_value_is_array (array))
+		array = newarray = nt_value_new_array (array, NULL);
+
+	ntValue *len = nt_value_get_utf8 (array, "length");
+	if (!nt_value_is_number (len)) {
+		nt_value_decref (newarray);
+		nt_value_decref (len);
+		return NULL;
+	}
+
+	nt_value_decref (nt_value_set (array, len, item, ntPropAttrNone));
+	nt_value_decref (len);
 	return array;
 }
 
-ntValue          *nt_from_json            (const ntValue *json) {
-	ntValue *glbl = nt_value_get_global(json);
-	ntValue *JSON = nt_value_get_utf8(glbl, "JSON");
-	ntValue *args = nt_array_builder(glbl, nt_value_incref((ntValue*) json));
-	ntValue *rslt = nt_value_call_utf8(JSON, "parse", args);
+ntValue *nt_from_json (const ntValue *json) {
+	ntValue *glbl = nt_value_get_global (json);
+	ntValue *JSON = nt_value_get_utf8 (glbl, "JSON");
+	ntValue *args = nt_array_builder (glbl, nt_value_incref ((ntValue*) json));
+	ntValue *rslt = nt_value_call_utf8 (JSON, "parse", args);
 
-	nt_value_decref(args);
-	nt_value_decref(JSON);
-	nt_value_decref(glbl);
+	nt_value_decref (args);
+	nt_value_decref (JSON);
+	nt_value_decref (glbl);
 	return rslt;
 }
 
-ntValue          *nt_from_json_utf8       (const ntValue *ctx, const    char *json, size_t len) {
-	ntValue *JSON = nt_value_new_string_utf8_length(ctx, json, len);
-	ntValue *rslt = nt_from_json(JSON);
-	nt_value_decref(JSON);
+ntValue *nt_from_json_utf8 (const ntValue *ctx, const char *json, size_t len) {
+	ntValue *JSON = nt_value_new_string_utf8_length (ctx, json, len);
+	ntValue *rslt = nt_from_json (JSON);
+	nt_value_decref (JSON);
 	return rslt;
 }
 
-ntValue          *nt_from_json_utf16      (const ntValue *ctx, const  ntChar *json, size_t len) {
-	ntValue *JSON = nt_value_new_string_utf16_length(ctx, json, len);
-	ntValue *rslt = nt_from_json(JSON);
-	nt_value_decref(JSON);
+ntValue *nt_from_json_utf16 (const ntValue *ctx, const ntChar *json, size_t len) {
+	ntValue *JSON = nt_value_new_string_utf16_length (ctx, json, len);
+	ntValue *rslt = nt_from_json (JSON);
+	nt_value_decref (JSON);
 	return rslt;
 }
 
-ntValue          *nt_to_json              (const ntValue *val) {
-	ntValue *glbl = nt_value_get_global(val);
-	ntValue *JSON = nt_value_get_utf8(glbl, "JSON");
-	ntValue *args = nt_array_builder(glbl, nt_value_incref((ntValue*) val));
-	ntValue *rslt = nt_value_call_utf8(JSON, "stringify", args);
+ntValue *nt_to_json (const ntValue *val) {
+	ntValue *glbl = nt_value_get_global (val);
+	ntValue *JSON = nt_value_get_utf8 (glbl, "JSON");
+	ntValue *args = nt_array_builder (glbl, nt_value_incref ((ntValue*) val));
+	ntValue *rslt = nt_value_call_utf8 (JSON, "stringify", args);
 
-	nt_value_decref(args);
-	nt_value_decref(JSON);
-	nt_value_decref(glbl);
+	nt_value_decref (args);
+	nt_value_decref (JSON);
+	nt_value_decref (glbl);
 	return rslt;
 }
 
-char             *nt_to_json_utf8         (const ntValue *val, size_t *len) {
-	ntValue *rslt = nt_to_json(val);
-	char *srslt = nt_value_to_string_utf8(rslt, len);
-	nt_value_decref(rslt);
+char *nt_to_json_utf8 (const ntValue *val, size_t *len) {
+	ntValue *rslt = nt_to_json (val);
+	char *srslt = nt_value_to_string_utf8 (rslt, len);
+	nt_value_decref (rslt);
 	return srslt;
 }
 
-ntChar           *nt_to_json_utf16        (const ntValue *val, size_t *len) {
-	ntValue *rslt = nt_to_json(val);
-	ntChar *srslt = nt_value_to_string_utf16(rslt, len);
-	nt_value_decref(rslt);
+ntChar *nt_to_json_utf16 (const ntValue *val, size_t *len) {
+	ntValue *rslt = nt_to_json (val);
+	ntChar *srslt = nt_value_to_string_utf16 (rslt, len);
+	nt_value_decref (rslt);
 	return srslt;
 }

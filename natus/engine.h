@@ -29,11 +29,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
-ntEngine         *nt_engine_init                (const char *name_or_path);
-ntEngine         *nt_engine_incref              (ntEngine *engine);
-ntEngine         *nt_engine_decref              (ntEngine *engine);
-const char       *nt_engine_get_name            (ntEngine *engine);
-ntValue          *nt_engine_new_global          (ntEngine *engine, ntValue *global);
+ntEngine *nt_engine_init (const char *name_or_path);
+ntEngine *nt_engine_incref (ntEngine *engine);
+ntEngine *nt_engine_decref (ntEngine *engine);
+const char *nt_engine_get_name (ntEngine *engine);
+ntValue *nt_engine_new_global (ntEngine *engine, ntValue *global);
 
 #ifdef __cplusplus
 } /* extern "C" */

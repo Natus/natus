@@ -49,7 +49,7 @@ typedef uint16_t Char;
  * Parameters:
  *     mem - The memory to free.
  */
-typedef void (*FreeFunction)(void *mem);
+typedef void (*FreeFunction) (void *mem);
 }
 #endif /* TYPES_HPP_ */
 

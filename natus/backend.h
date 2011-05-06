@@ -80,58 +80,58 @@ extern "C" {
 #define NATUS_PRIV_GLOBAL    "natus::Global"
 
 typedef struct {
-	void*    (*init)();
-	ntValue *(*newg)(void *, ntValue *);
-	void     (*free)(void *);
+	void* (*init) ();
+	ntValue *(*newg) (void *, ntValue *);
+	void (*free) (void *);
 } ntEngineTable;
 
 typedef struct {
-	ntPrivate       *(*private_get)      (const ntValue *val);
-	bool             (*borrow_context)   (const ntValue *ctx, void **context, void **value);
-	ntValue         *(*get_global)       (const ntValue *val);
-	ntValueType      (*get_type)         (const ntValue *val);
-	void             (*free)             (ntValue *val);
-	ntValue         *(*new_bool)         (const ntValue *ctx, bool b);
-	ntValue         *(*new_number)       (const ntValue *ctx, double n);
-	ntValue         *(*new_string_utf8)  (const ntValue *ctx, const char   *str, size_t len);
-	ntValue         *(*new_string_utf16) (const ntValue *ctx, const ntChar *str, size_t len);
-	ntValue         *(*new_array)        (const ntValue *ctx, const ntValue **array);
-	ntValue         *(*new_function)     (const ntValue *ctx, ntPrivate *priv);
-	ntValue         *(*new_object)       (const ntValue *ctx, ntClass *cls, ntPrivate *priv);
-	ntValue         *(*new_null)         (const ntValue *ctx);
-	ntValue         *(*new_undefined)    (const ntValue *ctx);
-	bool             (*to_bool)          (const ntValue *val);
-	double           (*to_double)        (const ntValue *val);
-	char            *(*to_string_utf8)   (const ntValue *val, size_t *len);
-	ntChar          *(*to_string_utf16)  (const ntValue *val, size_t *len);
-	ntValue         *(*del)              (ntValue *obj, const ntValue *id);
-	ntValue         *(*get)              (const ntValue *obj, const ntValue *id);
-	ntValue         *(*set)              (ntValue *obj, const ntValue *id, const ntValue *value, ntPropAttr attrs);
-	ntValue         *(*enumerate)        (const ntValue *obj);
-	ntValue         *(*call)             (ntValue *func, ntValue *ths, ntValue *args);
-	ntValue         *(*evaluate)         (ntValue *ths, const ntValue *jscript, const ntValue *filename, unsigned int lineno);
-	bool             (*equal)            (ntValue *val1, ntValue *val2, bool strict);
+	ntPrivate *(*private_get) (const ntValue *val);
+	bool (*borrow_context) (const ntValue *ctx, void **context, void **value);
+	ntValue *(*get_global) (const ntValue *val);
+	ntValueType (*get_type) (const ntValue *val);
+	void (*free) (ntValue *val);
+	ntValue *(*new_bool) (const ntValue *ctx, bool b);
+	ntValue *(*new_number) (const ntValue *ctx, double n);
+	ntValue *(*new_string_utf8) (const ntValue *ctx, const char *str, size_t len);
+	ntValue *(*new_string_utf16) (const ntValue *ctx, const ntChar *str, size_t len);
+	ntValue *(*new_array) (const ntValue *ctx, const ntValue **array);
+	ntValue *(*new_function) (const ntValue *ctx, ntPrivate *priv);
+	ntValue *(*new_object) (const ntValue *ctx, ntClass *cls, ntPrivate *priv);
+	ntValue *(*new_null) (const ntValue *ctx);
+	ntValue *(*new_undefined) (const ntValue *ctx);
+	bool (*to_bool) (const ntValue *val);
+	double (*to_double) (const ntValue *val);
+	char *(*to_string_utf8) (const ntValue *val, size_t *len);
+	ntChar *(*to_string_utf16) (const ntValue *val, size_t *len);
+	ntValue *(*del) (ntValue *obj, const ntValue *id);
+	ntValue *(*get) (const ntValue *obj, const ntValue *id);
+	ntValue *(*set) (ntValue *obj, const ntValue *id, const ntValue *value, ntPropAttr attrs);
+	ntValue *(*enumerate) (const ntValue *obj);
+	ntValue *(*call) (ntValue *func, ntValue *ths, ntValue *args);
+	ntValue *(*evaluate) (ntValue *ths, const ntValue *jscript, const ntValue *filename, unsigned int lineno);
+	bool (*equal) (ntValue *val1, ntValue *val2, bool strict);
 } ntValueTable;
 
 typedef struct {
-	unsigned int  version;
-	const char   *name;
-	const char   *symbol;
+	unsigned int version;
+	const char *name;
+	const char *symbol;
 	ntEngineTable engine;
-	ntValueTable  value;
+	ntValueTable value;
 } ntEngineSpec;
 
 struct _ntEngine {
-	size_t         ref;
-	ntEngineSpec  *espec;
-	void          *engine;
-	void          *dll;
+	size_t ref;
+	ntEngineSpec *espec;
+	void *engine;
+	void *dll;
 };
 
 struct _ntValue {
-	size_t         ref;
-	ntEngine      *eng;
-	ntValueType    typ;
+	size_t ref;
+	ntEngine *eng;
+	ntValueType typ;
 };
 
 #ifdef __cplusplus

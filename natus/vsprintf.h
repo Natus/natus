@@ -27,17 +27,18 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-static inline char *_vsprintf(const char *format, va_list ap) {
+static inline char *_vsprintf (const char *format, va_list ap) {
 	va_list apc;
 	int size = 0;
 
 	va_copy(apc, ap);
-	size = vsnprintf(NULL, 0, format, apc);
+	size = vsnprintf (NULL, 0, format, apc);
 	va_end(apc);
 
-	char *buf = malloc(size+1);
-	if (!size) return NULL;
-	assert(size == vsnprintf(buf, size+1, format, ap));
+	char *buf = malloc (size + 1);
+	if (!size)
+		return NULL;
+	assert (size == vsnprintf (buf, size + 1, format, ap));
 	return buf;
 }
 

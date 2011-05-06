@@ -29,37 +29,37 @@
 #include "engine.h"
 using namespace natus;
 
-Engine::Engine() {
+Engine::Engine () {
 	internal = NULL;
 }
 
-Engine::Engine(void* engine) {
+Engine::Engine (void* engine) {
 	internal = engine;
 }
 
-Engine::Engine(Engine& engine) {
-	nt_engine_decref((ntEngine*) internal);
+Engine::Engine (Engine& engine) {
+	nt_engine_decref ((ntEngine*) internal);
 	internal = engine.internal;
-	nt_engine_incref((ntEngine*) internal);
+	nt_engine_incref ((ntEngine*) internal);
 }
 
-Engine::~Engine() {
-	internal = nt_engine_decref((ntEngine*) internal);
+Engine::~Engine () {
+	internal = nt_engine_decref ((ntEngine*) internal);
 }
 
-bool Engine::initialize(const char *name_or_path) {
-	nt_engine_decref((ntEngine*) internal);
-	return (internal = nt_engine_init(name_or_path));
+bool Engine::initialize (const char *name_or_path) {
+	nt_engine_decref ((ntEngine*) internal);
+	return (internal = nt_engine_init (name_or_path));
 }
 
-const char *Engine::getName() {
-	return nt_engine_get_name((ntEngine*) internal);
+const char *Engine::getName () {
+	return nt_engine_get_name ((ntEngine*) internal);
 }
 
-Value Engine::newGlobal() {
-	return nt_engine_new_global((ntEngine*) internal, NULL);
+Value Engine::newGlobal () {
+	return nt_engine_new_global ((ntEngine*) internal, NULL);
 }
 
-Value Engine::newGlobal(Value global) {
-	return nt_engine_new_global((ntEngine*) internal, global.borrowCValue());
+Value Engine::newGlobal (Value global) {
+	return nt_engine_new_global ((ntEngine*) internal, global.borrowCValue ());
 }

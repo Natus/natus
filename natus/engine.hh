@@ -28,17 +28,17 @@
 namespace natus {
 class Engine {
 public:
-	Engine();
-	Engine(void* engine);
-	Engine(Engine& engine);
-	~Engine();
-	bool initialize(const char *name_or_path);
-	const char *getName();
-	Value newGlobal();
-	Value newGlobal(Value global);
+	Engine ();
+	Engine (void* engine);
+	Engine (Engine& engine);
+	~Engine ();
+	bool initialize (const char *name_or_path);
+	const char *getName ();
+	Value newGlobal ();
+	Value newGlobal (Value global);
 
 private:
 	void *internal;
 };
-}  // namespace natus
+} // namespace natus
 #endif /* ENGINE_ */
