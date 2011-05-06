@@ -61,7 +61,8 @@ struct Class {
 class Value {
 public:
 	typedef enum {
-		TypeUnknown = 0, TypeException = 1 << 0, // Internal use only
+		TypeUnknown = 0,
+		TypeException = 1 << 0, // Internal use only
 		TypeArray = 1 << 1,
 		TypeBool = 1 << 2,
 		TypeFunction = 1 << 3,
@@ -70,10 +71,16 @@ public:
 		TypeObject = 1 << 6,
 		TypeString = 1 << 7,
 		TypeUndefined = 1 << 8,
+		TypeSupportsPrivate = TypeFunction | TypeObject,
 	} Type;
 
 	typedef enum {
-		PropAttrNone = 0, PropAttrReadOnly = 1 << 0, PropAttrDontEnum = 1 << 1, PropAttrDontDelete = 1 << 2, PropAttrConstant = PropAttrReadOnly | PropAttrDontDelete, PropAttrProtected = PropAttrConstant | PropAttrDontEnum
+		PropAttrNone = 0,
+		PropAttrReadOnly = 1 << 0,
+		PropAttrDontEnum = 1 << 1,
+		PropAttrDontDelete = 1 << 2,
+		PropAttrConstant = PropAttrReadOnly | PropAttrDontDelete,
+		PropAttrProtected = PropAttrConstant | PropAttrDontEnum
 	} PropAttr;
 
 	Value ();

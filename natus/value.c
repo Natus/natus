@@ -323,8 +323,6 @@ ntChar *nt_value_as_string_utf16 (ntValue *val, size_t *len) {
 }
 
 ntValue *nt_value_del (ntValue *val, const ntValue *id) {
-	if (!nt_value_is_type (val, ntValueTypeComplex))
-		return NULL;
 	if (!nt_value_is_type (id, ntValueTypeNumber | ntValueTypeString))
 		return NULL;
 
@@ -382,8 +380,6 @@ ntValue *nt_value_del_recursive_utf8 (ntValue *obj, const char *id) {
 }
 
 ntValue *nt_value_get (ntValue *val, const ntValue *id) {
-	if (!nt_value_is_type (val, ntValueTypeComplex))
-		return NULL;
 	if (!nt_value_is_type (id, ntValueTypeNumber | ntValueTypeString))
 		return NULL;
 
@@ -440,8 +436,6 @@ ntValue *nt_value_get_recursive_utf8 (ntValue *obj, const char *id) {
 }
 
 ntValue *nt_value_set (ntValue *val, const ntValue *id, const ntValue *value, ntPropAttr attrs) {
-	if (!nt_value_is_type (val, ntValueTypeComplex))
-		return NULL;
 	if (!nt_value_is_type (id, ntValueTypeNumber | ntValueTypeString))
 		return NULL;
 	if (!value)
@@ -514,9 +508,6 @@ ntValue *nt_value_set_recursive_utf8 (ntValue *obj, const char *id, const ntValu
 }
 
 ntValue *nt_value_enumerate (ntValue *val) {
-	if (!nt_value_is_type (val, ntValueTypeComplex))
-		return NULL;
-
 	// If the object is native, skip argument conversion and js overhead;
 	//    call directly for increased speed
 	ntClass *cls = nt_value_get_private_name (val, NATUS_PRIV_CLASS);
@@ -527,7 +518,7 @@ ntValue *nt_value_enumerate (ntValue *val) {
 }
 
 bool nt_value_set_private_name (ntValue *obj, const char *key, void *priv, ntFreeFunction free) {
-	if (!nt_value_is_type (obj, ntValueTypeFunction | ntValueTypeObject))
+	if (!nt_value_is_type (obj, ntValueTypeSupportsPrivate))
 		return false;
 	if (!key)
 		return false;
@@ -545,7 +536,7 @@ bool nt_value_set_private_name_value (ntValue *obj, const char *key, ntValue* pr
 }
 
 void* nt_value_get_private_name (const ntValue *obj, const char *key) {
-	if (!nt_value_is_type (obj, ntValueTypeFunction | ntValueTypeObject))
+	if (!nt_value_is_type (obj, ntValueTypeSupportsPrivate))
 		return NULL;
 	if (!key)
 		return NULL;

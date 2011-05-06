@@ -40,7 +40,8 @@
 typedef ntValue *(*ntNativeFunction) (ntValue *fnc, ntValue *ths, ntValue *arg);
 
 typedef enum {
-	ntValueTypeUnknown = 0 << 0, ntValueTypeException = 1 << 0, // Internal use only
+	ntValueTypeUnknown = 0 << 0,
+	ntValueTypeException = 1 << 0, // Internal use only
 	ntValueTypeArray = 1 << 1,
 	ntValueTypeBoolean = 1 << 2,
 	ntValueTypeFunction = 1 << 3,
@@ -49,12 +50,16 @@ typedef enum {
 	ntValueTypeObject = 1 << 6,
 	ntValueTypeString = 1 << 7,
 	ntValueTypeUndefined = 1 << 8,
-	ntValueTypeSimple = ntValueTypeBoolean | ntValueTypeNull | ntValueTypeNumber | ntValueTypeString | ntValueTypeUndefined,
-	ntValueTypeComplex = ntValueTypeArray | ntValueTypeFunction | ntValueTypeObject,
+	ntValueTypeSupportsPrivate = ntValueTypeFunction | ntValueTypeObject,
 } ntValueType;
 
 typedef enum {
-	ntPropAttrNone = 0, ntPropAttrReadOnly = 1 << 0, ntPropAttrDontEnum = 1 << 1, ntPropAttrDontDelete = 1 << 2, ntPropAttrConstant = ntPropAttrReadOnly | ntPropAttrDontDelete, ntPropAttrProtected = ntPropAttrConstant | ntPropAttrDontEnum
+	ntPropAttrNone = 0,
+	ntPropAttrReadOnly = 1 << 0,
+	ntPropAttrDontEnum = 1 << 1,
+	ntPropAttrDontDelete = 1 << 2,
+	ntPropAttrConstant = ntPropAttrReadOnly | ntPropAttrDontDelete,
+	ntPropAttrProtected = ntPropAttrConstant | ntPropAttrDontEnum
 } ntPropAttr;
 
 typedef struct _ntClass ntClass;
