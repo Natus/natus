@@ -1,3 +1,13 @@
+Tue May 10 12:42:12 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
+    * == Released 0.2.1 ===
+    *   [shell] Tab completion is now crack-addict approved
+    *   [shell] Remove alert() and dir(), these need to be provided by modules
+    *    [misc] throwException() functions now use the integral exception types
+    *    [core] new type-based privates system (parallel to namespaced priv)
+    *    [core] add support for equals(), equalsStrict(), == and !=
+    *    [misc] new convertArguments() function for eas conversion to C types
+    * [require] better module definition macros (now supports C++!)
+    * [require] don't use a separate global for imports
 Sat Apr 23 22:10:46 2011 Nathaniel McCallum <nathaniel@natemccallum.com>
     * == Released 0.2.0 ===
     * Major rewrite for dramatically reduced memory usage (~75% reduction)
