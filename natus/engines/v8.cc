@@ -423,36 +423,16 @@ static double v8_value_to_double (const ntValue *val) {
 	return VAL(val)->NumberValue ();
 }
 
-static Handle<String> _val_to_string (Handle<Context> ctx, Handle<Value> val) {
-	HandleScope hs;
-	Context::Scope cs (ctx);
-	TryCatch tc;
-
-	Handle<Object> oval = val->ToObject ();
-	if (!tc.HasCaught ()) {
-		Handle<Value> toString = oval->Get (String::New ("toString"));
-		if (!toString.IsEmpty () && toString->IsFunction ()) {
-			Handle<Value> rslt = Function::Cast (*toString)->Call (val->ToObject (), 0, NULL);
-			if (rslt->IsString ())
-				return rslt->ToString ();
-		}
-	}
-	tc.Reset ();
-
-	Handle<String> str = val->ToString ();
-	if (tc.HasCaught ()) {
-		assert(val->IsObject());
-		str = String::New ("[object NativeObject]");
-	}
-
-	return str;
-}
-
 static char *v8_value_to_string_utf8 (const ntValue *val, size_t *len) {
 	HandleScope hs;
 	Context::Scope cs (CTX(val));
 
-	Handle<String> str = _val_to_string (CTX(val), VAL(val));
+	TryCatch tc;
+	Handle<String> str = VAL(val)->ToString ();
+	if (tc.HasCaught ()) {
+		assert(VAL(val)->IsObject());
+		str = String::New ("[object NativeObject]");
+	}
 
 	*len = str->Utf8Length ();
 
@@ -469,7 +449,12 @@ static ntChar *v8_value_to_string_utf16 (const ntValue *val, size_t *len) {
 	HandleScope hs;
 	Context::Scope cs (CTX(val));
 
-	Handle<String> str = _val_to_string (CTX(val), VAL(val));
+	TryCatch tc;
+	Handle<String> str = VAL(val)->ToString ();
+	if (tc.HasCaught ()) {
+		assert(VAL(val)->IsObject());
+		str = String::New ("[object NativeObject]");
+	}
 
 	*len = str->Length ();
 

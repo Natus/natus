@@ -274,6 +274,17 @@ char *nt_value_to_string_utf8 (const ntValue *val, size_t *len) {
 	size_t intlen = 0;
 	if (!len)
 		len = &intlen;
+
+	if (!nt_value_is_string(val)) {
+		ntValue *str = nt_value_call_utf8((ntValue*) val, "toString", NULL);
+		if (nt_value_is_string(str)) {
+			char *tmp = val->eng->espec->value.to_string_utf8 (str, len);
+			nt_value_decref(str);
+			return tmp;
+		}
+		nt_value_decref(str);
+	}
+
 	return val->eng->espec->value.to_string_utf8 (val, len);
 }
 
@@ -283,6 +294,17 @@ ntChar *nt_value_to_string_utf16 (const ntValue *val, size_t *len) {
 	size_t intlen = 0;
 	if (!len)
 		len = &intlen;
+
+	if (!nt_value_is_string(val)) {
+		ntValue *str = nt_value_call_utf8((ntValue*) val, "toString", NULL);
+		if (nt_value_is_string(str)) {
+			ntChar *tmp = val->eng->espec->value.to_string_utf16 (str, len);
+			nt_value_decref(str);
+			return tmp;
+		}
+		nt_value_decref(str);
+	}
+
 	return val->eng->espec->value.to_string_utf16 (val, len);
 }
 

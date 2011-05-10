@@ -175,19 +175,6 @@ static inline JSBool call_handler (JSContext *ctx, uintN argc, jsval *vp, bool c
 	return JS_TRUE;
 }
 
-static JSBool obj_convert (JSContext *ctx, JSObject *obj, JSType type, jsval *vp) {
-	jsid vid;
-	JS_ValueToId (ctx, STRING_TO_JSVAL (JS_NewStringCopyZ (ctx, "toString")), &vid);
-
-	jsval v = JSVAL_VOID;
-	JSClass* jsc = NULL;
-	if ((((jsc = JS_GetClass (ctx, obj)) && jsc->getProperty && jsc->getProperty != JS_PropertyStub && jsc->getProperty (ctx, obj, vid, &v)) || JS_GetProperty (ctx, obj, "toString", &v)) && JS_CallFunctionValue (ctx, obj, v, 0, NULL, &v)) {
-		*vp = v;
-		return JS_TRUE;
-	}
-	return JS_FALSE;
-}
-
 static void obj_finalize (JSContext *ctx, JSObject *obj) {
 	nt_private_free (get_private (ctx, obj));
 }
@@ -282,9 +269,9 @@ static JSBool fnc_call (JSContext *ctx, uintN argc, jsval *vp) {
 
 static JSClass glbdef = { "GlobalObject", JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, obj_finalize, };
 
-static JSClass fncdef = { "NativeFunction", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, obj_convert, obj_finalize, };
+static JSClass fncdef = { "NativeFunction", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, obj_finalize, };
 
-static JSClass objdef = { "NativeObject", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, obj_convert, obj_finalize, };
+static JSClass objdef = { "NativeObject", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, obj_finalize, };
 
 static void report_error (JSContext *cx, const char *message, JSErrorReport *report) {
 	fprintf (stderr, "%s:%u:%s\n", report->filename ? report->filename : "<no filename>", (unsigned int) report->lineno, message);
@@ -401,7 +388,7 @@ ntValue* sm_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivate *priv)
 		jscls->setProperty = cls->set ? obj_set : JS_StrictPropertyStub;
 		jscls->enumerate = cls->enumerate ? (JSEnumerateOp) obj_enum : JS_EnumerateStub;
 		jscls->resolve = JS_ResolveStub;
-		jscls->convert = obj_convert;
+		jscls->convert = JS_ConvertStub;
 		jscls->finalize = obj_finalize;
 		jscls->call = cls->call ? obj_call : NULL;
 		jscls->construct = cls->call ? obj_new : NULL;
@@ -435,20 +422,8 @@ static double sm_value_to_double (const ntValue *val) {
 	return d;
 }
 
-static inline JSString *_val_to_string (JSContext *ctx, jsval val) {
-	JSClass* jsc = NULL;
-	jsval v;
-	if (!JSVAL_IS_OBJECT (val) || !(jsc = JS_GetClass (ctx, JSVAL_TO_OBJECT (val))) || !jsc->convert || !jsc->convert (ctx, JSVAL_TO_OBJECT (val), JSTYPE_STRING, &v))
-		JS_ConvertValue (ctx, val, JSTYPE_STRING, &v);
-
-	if (JSVAL_IS_OBJECT (v))
-		if (!obj_convert (ctx, JSVAL_TO_OBJECT (v), JSTYPE_STRING, &v))
-			return JS_NewStringCopyN (ctx, "[object Object]", strlen ("[object Object]"));
-	return JS_ValueToString (ctx, v);
-}
-
 static char *sm_value_to_string_utf8 (const ntValue *val, size_t *len) {
-	JSString *str = _val_to_string (CTX(val), VAL(val));
+	JSString *str = JS_ValueToString (CTX(val), VAL(val));
 	*len = JS_GetStringLength (str);
 
 	size_t bufflen = JS_GetStringEncodingLength (CTX(val), str);
@@ -465,7 +440,7 @@ static char *sm_value_to_string_utf8 (const ntValue *val, size_t *len) {
 }
 
 static ntChar *sm_value_to_string_utf16 (const ntValue *val, size_t *len) {
-	JSString *str = _val_to_string (CTX(val), VAL(val));
+	JSString *str = JS_ValueToString (CTX(val), VAL(val));
 	*len = JS_GetStringLength (str);
 
 	const jschar *jschars = JS_GetStringCharsAndLength (CTX(val), str, len);
