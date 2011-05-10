@@ -115,7 +115,7 @@ static vector<string> pathparser (string path) {
 	return paths;
 }
 
-static Value recursive_enumerate (Value obj, bool doconstr = true, size_t depth = 0) {
+static Value recursive_enumerate (Value obj, size_t depth = 0) {
 	if (depth > 100)
 		return obj.newArray (); // Guard against infinite loop
 
@@ -124,15 +124,10 @@ static Value recursive_enumerate (Value obj, bool doconstr = true, size_t depth 
 	Value args = obj.newArray (argv);
 	Value names = glbl->get ("Object").call ("getOwnPropertyNames", args);
 
-	// Recurse through the prototypes
-	Value proto = obj.get ("prototype");
-	if (doconstr && proto.isUndefined ()) {
-		Value constr = obj.get ("constructor");
-		proto = constr.get ("prototype");
-		doconstr = constr != proto.get ("constructor"); // Check for infinite loop
-	}
-	if (!proto.isUndefined ()) {
-		proto = recursive_enumerate (proto, doconstr, depth + 1);
+	// Recurse through the prototype
+	Value proto = obj.get ("__proto__");
+	if (!proto.isUndefined () && !proto.isNull()) {
+		proto = recursive_enumerate (proto, depth + 1);
 		long olen = names.get ("length").to<long> ();
 		long plen = proto.get ("length").to<long> ();
 		for (long i = 0 ; i < plen ; i++)
