@@ -38,104 +38,68 @@
 	*((type*) p) = (nt_value_is_undefined(val) ? ((type) (intptr_t) d) : ((type) nt_value_to_double(val))); \
 }
 
-static ntValue *exception_toString (ntValue *fnc, ntValue *ths, ntValue *args) {
-	size_t typelen, msglen, codelen, len;
-
-	ntValue *type = nt_value_get_utf8 (ths, "type");
-	ntValue *msg = nt_value_get_utf8 (ths, "msg");
-	ntValue *code = nt_value_get_utf8 (ths, "code");
-
-	ntChar *stype = nt_value_to_string_utf16 (type, &typelen);
-	ntChar *smsg = nt_value_to_string_utf16 (msg, &msglen);
-	ntChar *scode = nt_value_to_string_utf16 (code, &codelen);
-	bool hascode = !nt_value_is_undefined (code);
-	len = typelen + msglen + 2 + (hascode ? codelen + 2 : 0);
-
-	nt_value_decref (type);
-	nt_value_decref (msg);
-	nt_value_decref (code);
-
-	if (!stype || !smsg || !scode) {
-		free (stype);
-		free (smsg);
-		free (scode);
-		return NULL;
-	}
-
-	ntChar *str = calloc (typelen + msglen + codelen + 4, sizeof(ntChar));
-	if (!str) {
-		free (stype);
-		free (smsg);
-		free (scode);
-		return NULL;
-	}
-	ntChar *tmp = str;
-
-	memcpy (tmp, stype, sizeof(ntChar) * typelen);
-	tmp += typelen;
-	*tmp = ':';
-	tmp++;
-	*tmp = ' ';
-	tmp++;
-	if (hascode) {
-		memcpy (tmp, scode, sizeof(ntChar) * codelen);
-		tmp += codelen;
-		*tmp = ':';
-		tmp++;
-		*tmp = ' ';
-		tmp++;
-	}
-	memcpy (tmp, smsg, sizeof(ntChar) * msglen);
-
-	ntValue *vstr = nt_value_new_string_utf16_length (ths, str, len);
-	free (stype);
-	free (smsg);
-	free (scode);
-	free (str);
-	return vstr;
-}
-
-ntValue *nt_throw_exception (const ntValue *ctx, const char *type, const char *format, ...) {
+ntValue *nt_throw_exception (const ntValue *ctx, const char *base, const char *name, const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
-	ntValue *exc = nt_throw_exception_varg (ctx, type, format, ap);
+	ntValue *exc = nt_throw_exception_varg (ctx, base, name, format, ap);
 	va_end(ap);
 
 	return exc;
 }
 
-ntValue *nt_throw_exception_varg (const ntValue *ctx, const char *type, const char *format, va_list ap) {
+ntValue *nt_throw_exception_varg (const ntValue *ctx, const char *base, const char *name, const char *format, va_list ap) {
 	char *msg = _vsprintf (format, ap);
 	if (!msg)
 		return NULL;
 
-	ntValue *exc = nt_value_new_object (ctx, NULL);
-	ntValue *vtype = nt_value_new_string_utf8 (ctx, type);
 	ntValue *vmsg = nt_value_new_string_utf8 (ctx, msg);
-	ntValue *vfunc = nt_value_new_function (ctx, exception_toString);
-
-	nt_value_decref (nt_value_set_utf8 (exc, "type", vtype, ntPropAttrConstant));
-	nt_value_decref (nt_value_set_utf8 (exc, "msg", vmsg, ntPropAttrConstant));
-	nt_value_decref (nt_value_set_utf8 (exc, "toString", vfunc, ntPropAttrConstant));
-	nt_value_to_exception (exc);
-
 	free (msg);
-	nt_value_decref (vtype);
+	if (nt_value_is_exception (vmsg))
+		return vmsg;
+
+	ntValue *glb = nt_value_get_global (ctx);
+	if (nt_value_is_exception (glb)) {
+		nt_value_decref (vmsg);
+		return glb;
+	}
+
+	// If the name passed in is an actual function, use it
+	ntValue *err = nt_value_get_utf8 (glb, name);
+	if (!nt_value_is_function (err)) {
+		nt_value_decref (err);
+
+		// Try to get the base.  If base is not found, use Error().
+		err = nt_value_get_utf8 (glb, base);
+		if (!nt_value_is_function (err)) {
+			nt_value_decref (err);
+			err = nt_value_get_utf8 (glb, "Error");
+		}
+	}
+
+	// Construct the exception
+	ntValue *argv = nt_array_builder (err, vmsg);
+	ntValue *exc = nt_value_call_new (err, argv);
+	nt_value_decref (argv);
 	nt_value_decref (vmsg);
-	nt_value_decref (vfunc);
-	return exc;
+
+	// Set the name
+	ntValue *vname = nt_value_new_string_utf8 (ctx, name);
+	nt_value_decref (nt_value_set_utf8 (exc, "name", vname, ntPropAttrNone));
+	nt_value_decref (vname);
+
+	return nt_value_to_exception (exc);
 }
 
-ntValue *nt_throw_exception_code (const ntValue *ctx, const char *type, int code, const char *format, ...) {
+ntValue *nt_throw_exception_code (const ntValue *ctx, const char *base, const char *name, int code, const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
-	ntValue *exc = nt_throw_exception_code_varg (ctx, type, code, format, ap);
+	ntValue *exc = nt_throw_exception_code_varg (ctx, base, name, code, format, ap);
 	va_end(ap);
 	return exc;
 }
 
-ntValue *nt_throw_exception_code_varg (const ntValue *ctx, const char *type, int code, const char *format, va_list ap) {
-	ntValue *exc = nt_throw_exception_varg (ctx, type, format, ap);
+ntValue *nt_throw_exception_code_varg (const ntValue *ctx, const char *base, const char *name, int code, const char *format, va_list ap) {
+	ntValue *exc = nt_throw_exception_varg (ctx, base, name, format, ap);
 	ntValue *vcode = nt_value_new_number (ctx, (double) code);
 	nt_value_set_utf8 (exc, "code", vcode, ntPropAttrConstant);
 	nt_value_decref (vcode);
@@ -143,7 +107,8 @@ ntValue *nt_throw_exception_code_varg (const ntValue *ctx, const char *type, int
 }
 
 ntValue *nt_throw_exception_errno (const ntValue *ctx, int errorno) {
-	const char* type = "OSError";
+	const char* base = NULL;
+	const char* name = "OSError";
 	switch (errorno) {
 #ifdef ENOMEM
 		case ENOMEM:
@@ -151,7 +116,7 @@ ntValue *nt_throw_exception_errno (const ntValue *ctx, int errorno) {
 #endif
 #ifdef EPERM
 		case EPERM:
-			type = "PermissionError";
+			name = "PermissionError";
 			break;
 #endif
 #ifdef ENOENT
@@ -542,7 +507,7 @@ ntValue *nt_throw_exception_errno (const ntValue *ctx, int errorno) {
 			break;
 	}
 
-	return nt_throw_exception_code (ctx, type, errorno, strerror (errorno));
+	return nt_throw_exception_code (ctx, base, name, errorno, strerror (errorno));
 }
 
 ntValue *nt_ensure_arguments (ntValue *arg, const char *fmt) {
@@ -609,7 +574,7 @@ ntValue *nt_ensure_arguments (ntValue *arg, const char *fmt) {
 					break;
 				default:
 					nt_value_decref (thsArg);
-					return nt_throw_exception (arg, "LogicError", "Invalid format character!");
+					return nt_throw_exception (arg, NULL, "SyntaxError", "Invalid format character!");
 			}
 
 		} while (!correct && depth > 0);
@@ -621,14 +586,12 @@ ntValue *nt_ensure_arguments (ntValue *arg, const char *fmt) {
 		if (strcmp (types, "") && !correct) {
 			char msg[5120];
 			snprintf (msg, 5120, "argument %u must be one of these types: %s", i, types);
-			return nt_throw_exception (arg, "TypeError", msg);
+			return nt_throw_exception (arg, NULL, "TypeError", msg);
 		}
 	}
 
 	if (len < minimum) {
-		char msg[1024];
-		snprintf (msg, 1024, "Function requires at least %u arguments!", minimum);
-		return nt_throw_exception (arg, "TypeError", msg);
+		return nt_throw_exception (arg, NULL, "TypeError", "Function requires at least %u arguments!", minimum);
 	}
 
 	return nt_value_new_undefined (arg);
@@ -965,13 +928,15 @@ ntValue *nt_convert_arguments_varg (ntValue *arg, const char *fmt, va_list ap) {
 		nt_value_decref (val);
 		continue;
 
-		inval: va_end(ap);
-		nt_value_decref (val);
-		return nt_throw_exception (arg, "ValueError", "Invalid format string!");
+		inval:
+			va_end(ap);
+			nt_value_decref (val);
+			return nt_throw_exception (arg, NULL, "SyntaxError", "Invalid format string!");
 
-		nomem: va_end(ap);
-		nt_value_decref (val);
-		return NULL;
+		nomem:
+			va_end(ap);
+			nt_value_decref (val);
+			return NULL;
 	}
 
 	va_end(apc);

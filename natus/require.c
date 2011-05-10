@@ -179,7 +179,7 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 
 			void *dll = dlopen (file, RTLD_NOW | RTLD_GLOBAL);
 			if (!dll) {
-				retval = nt_throw_exception (ctx, "ImportError", dlerror ());
+				retval = nt_throw_exception (ctx, NULL, "RequireError", dlerror ());
 				goto out;
 			}
 
@@ -188,7 +188,7 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 			if (!retval || !load || !load (retval)) {
 				nt_value_decref (retval);
 				dlclose (dll);
-				retval = nt_throw_exception (ctx, "ImportError", "Module initialization failed!");
+				retval = nt_throw_exception (ctx, NULL, "RequireError", "Module initialization failed!");
 				goto out;
 			}
 
@@ -217,7 +217,7 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 			if (fread (jscript + strlen (JS_REQUIRE_PREFIX), 1, st.st_size, modfile) != st.st_size) {
 				fclose (modfile);
 				free (jscript);
-				retval = nt_throw_exception (ctx, "ImportError", "Error reading file!");
+				retval = nt_throw_exception (ctx, NULL, "RequireError", "Error reading file!");
 				goto out;
 			}
 			fclose (modfile);
@@ -303,7 +303,7 @@ static ntValue *require_js (ntValue *require, ntValue *ths, ntValue *arg) {
 			nt_value_decref (cfg);
 			nt_value_decref (path);
 			nt_value_decref (whitelist);
-			return nt_throw_exception (ths, "SecurityError", "Permission denied!");
+			return nt_throw_exception (ths, NULL, "SecurityError", "Permission denied!");
 		}
 	}
 
@@ -604,7 +604,7 @@ ntValue *nt_require (ntValue *ctx, const char *name) {
 	nt_value_decref (hd.res);
 
 	// Module not found
-	return nt_throw_exception (ctx, "ImportError", "Module %s not found!", name);
+	return nt_throw_exception (ctx, NULL, "RequireError", "Module %s not found!", name);
 
 	// Module found
 	modfound: hd.step = ntRequireHookStepProcess;
