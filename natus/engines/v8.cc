@@ -348,7 +348,7 @@ static ntValue* v8_value_new_array (const ntValue *ctx, const ntValue **array) {
 	return v8Value::getInstance (ctx, valv);
 }
 
-static ntValue* v8_value_new_function (const ntValue *ctx, ntPrivate *priv) {
+static ntValue* v8_value_new_function (const ntValue *ctx, const char *name, ntPrivate *priv) {
 	HandleScope hs;
 	Context::Scope cs (CTX(ctx));
 
@@ -362,6 +362,7 @@ static ntValue* v8_value_new_function (const ntValue *ctx, ntPrivate *priv) {
 	tmp->hndl.MakeWeak (tmp, v8Private::private_free);
 
 	Handle<FunctionTemplate> ft = FunctionTemplate::New (fnc_call, prv);
+	if (name) ft->SetClassName(String::New(name));
 	Handle<Function> fnc = ft->GetFunction ();
 	fnc->SetHiddenValue (V8_PRIV_STRING, prv);
 	return v8Value::getInstance (ctx, fnc);

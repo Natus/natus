@@ -86,7 +86,7 @@ ntValue *nt_value_new_string_utf8_length (const ntValue *ctx, const char *string
 ntValue *nt_value_new_string_utf16 (const ntValue *ctx, const ntChar *string);
 ntValue *nt_value_new_string_utf16_length (const ntValue *ctx, const ntChar *string, size_t len);
 ntValue *nt_value_new_array (const ntValue *ctx, const ntValue **array);
-ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func);
+ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func, const char *name);
 ntValue *nt_value_new_object (const ntValue *ctx, ntClass* cls);
 ntValue *nt_value_new_null (const ntValue *ctx);
 ntValue *nt_value_new_undefined (const ntValue *ctx);

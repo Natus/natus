@@ -90,7 +90,7 @@ ntValue *nt_value_new_array (const ntValue *ctx, const ntValue **array) {
 	return ctx->eng->espec->value.new_array (ctx, array);
 }
 
-ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func) {
+ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func, const char *name) {
 	if (!ctx || !func)
 		return NULL;
 
@@ -101,7 +101,7 @@ ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func) {
 		goto error;
 	if (!nt_private_set (priv, NATUS_PRIV_FUNCTION, func, NULL))
 		goto error;
-	return ctx->eng->espec->value.new_function (ctx, priv);
+	return ctx->eng->espec->value.new_function (ctx, name, priv);
 
 	error: nt_private_free (priv);
 	return NULL;

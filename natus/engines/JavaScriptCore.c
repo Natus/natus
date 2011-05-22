@@ -399,11 +399,49 @@ static ntValue* jsc_value_new_array (const ntValue *ctx, const ntValue **array) 
 	return get_instance (ctx, obj ? obj : exc, obj ? false : true);
 }
 
-static ntValue* jsc_value_new_function (const ntValue *ctx, ntPrivate *priv) {
-	JSValueRef val = JSObjectMake (CTX(ctx), ENG(ctx)->function, priv);
-	if (!val)
+static ntValue* jsc_value_new_function (const ntValue *ctx, const char *name, ntPrivate *priv) {
+	// Get the function object and the prototype
+	ntValue *glb = nt_value_get_global(ctx);
+	ntValue *fnc = nt_value_get_utf8(glb, "Function");
+	nt_value_decref(glb);
+	if (!fnc)
 		return NULL;
-	return get_instance (ctx, val, false);
+	ntValue *prt = nt_value_get_utf8(fnc, "prototype");
+	if (!prt) {
+		nt_value_decref(fnc);
+		return NULL;
+	}
+
+	// Make our new function (which is really an object we will convert to emulate a function)
+	JSObjectRef obj = JSObjectMake (CTX(ctx), ENG(ctx)->function, priv);
+	if (!obj) {
+		nt_value_decref(prt);
+		return NULL;
+	}
+
+	// Convert the object to emulate a function
+	JSObjectSetPrototype(CTX(ctx), obj, VAL(prt));
+	nt_value_decref(prt);
+
+	// Add a proper toString() function
+	JSStringRef fname = JSStringCreateWithUTF8CString("toString");
+	JSStringRef stmp = JSStringCreateWithUTF8CString("return 'function ' + this.name + '() {\\n    [native code]\\n}';");
+	JSObjectRef toString = JSObjectMakeFunction(CTX(ctx), fname, 0, NULL, stmp, NULL, 0, NULL);
+	JSStringRelease(stmp);
+	JSObjectSetProperty(CTX(ctx), obj, fname, toString, kJSPropertyAttributeNone, NULL);
+	JSStringRelease(fname);
+
+	// Set the name
+	fname = JSStringCreateWithUTF8CString(name ? name : "anonymous");
+	stmp  = JSStringCreateWithUTF8CString("name");
+	JSObjectSetProperty(CTX(ctx), obj, stmp, JSValueMakeString(CTX(ctx), fname), kJSPropertyAttributeNone, NULL);
+	JSStringRelease(stmp);
+	JSStringRelease(fname);
+
+	ntValue *func = get_instance (ctx, obj, false);
+	nt_value_decref(nt_value_set_utf8(func, "constructor", fnc, ntPropAttrNone));
+	nt_value_decref(fnc);
+	return func;
 }
 
 static ntValue* jsc_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivate *priv) {

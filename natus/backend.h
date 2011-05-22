@@ -96,7 +96,7 @@ typedef struct {
 	ntValue *(*new_string_utf8) (const ntValue *ctx, const char *str, size_t len);
 	ntValue *(*new_string_utf16) (const ntValue *ctx, const ntChar *str, size_t len);
 	ntValue *(*new_array) (const ntValue *ctx, const ntValue **array);
-	ntValue *(*new_function) (const ntValue *ctx, ntPrivate *priv);
+	ntValue *(*new_function) (const ntValue *ctx, const char *name, ntPrivate *priv);
 	ntValue *(*new_object) (const ntValue *ctx, ntClass *cls, ntPrivate *priv);
 	ntValue *(*new_null) (const ntValue *ctx);
 	ntValue *(*new_undefined) (const ntValue *ctx);

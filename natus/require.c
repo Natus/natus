@@ -370,7 +370,7 @@ bool nt_require_init_value (ntValue *ctx, ntValue *config) {
 		nt_value_decref (stack);
 
 		// Setup the require function
-		ntValue *require = nt_value_new_function (glb, require_js);
+		ntValue *require = nt_value_new_function (glb, require_js, "require");
 		if (!nt_value_is_function (require) || !nt_value_as_bool (nt_value_set_utf8 (glb, "require", require, ntPropAttrConstant))) {
 			nt_value_decref (require);
 			goto error;

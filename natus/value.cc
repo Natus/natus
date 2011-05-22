@@ -218,8 +218,8 @@ Value Value::newArray (const Value* const * array) const {
 	return v;
 }
 
-Value Value::newFunction (NativeFunction func) const {
-	Value f = nt_value_new_function (internal, txFunction);
+Value Value::newFunction (NativeFunction func, const char* name) const {
+	Value f = nt_value_new_function (internal, txFunction, name);
 	f.setPrivate(NativeFunction, func);
 	return f;
 }
@@ -436,7 +436,7 @@ Value Value::set (Value idx, UTF16 value, Value::PropAttr attrs) {
 }
 
 Value Value::set (Value idx, NativeFunction value, Value::PropAttr attrs) {
-	Value v = newFunction (value);
+	Value v = newFunction (value, idx.isString() ? idx.to<UTF8>().c_str() : NULL);
 	return nt_value_set (internal, idx.internal, v.internal, (ntPropAttr) attrs);
 }
 
@@ -495,7 +495,7 @@ Value Value::set (UTF8 idx, UTF16 value, Value::PropAttr attrs) {
 
 Value Value::set (UTF8 idx, NativeFunction value, Value::PropAttr attrs) {
 	Value n = newString (idx);
-	Value v = newFunction (value);
+	Value v = newFunction (value, idx.c_str());
 	return nt_value_set (internal, n.borrowCValue (), v.internal, (ntPropAttr) attrs);
 }
 
@@ -554,7 +554,7 @@ Value Value::set (UTF16 idx, UTF16 value, Value::PropAttr attrs) {
 
 Value Value::set (UTF16 idx, NativeFunction value, Value::PropAttr attrs) {
 	Value n = newString (idx);
-	Value v = newFunction (value);
+	Value v = newFunction (value, n.to<UTF8>().c_str());
 	return nt_value_set (internal, n.borrowCValue (), v.internal, (ntPropAttr) attrs);
 }
 

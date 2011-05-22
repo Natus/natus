@@ -359,8 +359,8 @@ ntValue* sm_value_new_array (const ntValue *ctx, const ntValue **array) {
 	return get_instance (ctx, OBJECT_TO_JSVAL (obj), false);
 }
 
-ntValue* sm_value_new_function (const ntValue *ctx, ntPrivate *priv) {
-	JSFunction *fnc = JS_NewFunction (CTX(ctx), fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, NULL);
+ntValue* sm_value_new_function (const ntValue *ctx, const char *name, ntPrivate *priv) {
+	JSFunction *fnc = JS_NewFunction (CTX(ctx), fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, name);
 	JSObject *obj = JS_GetFunctionObject (fnc);
 	JSObject *prv = JS_NewObject (CTX(ctx), &fncdef, NULL, NULL);
 	if (!fnc || !obj || !prv || !JS_SetReservedSlot (CTX(ctx), obj, 0, OBJECT_TO_JSVAL (prv)))

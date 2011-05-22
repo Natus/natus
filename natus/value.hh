@@ -100,7 +100,7 @@ public:
 	Value newString (UTF8 string) const;
 	Value newString (UTF16 string) const;
 	Value newArray (const Value* const * array = NULL) const;
-	Value newFunction (NativeFunction func) const;
+	Value newFunction (NativeFunction func, const char* name=NULL) const;
 	Value newObject (Class* cls = NULL) const;
 	Value newNull () const;
 	Value newUndefined () const;
