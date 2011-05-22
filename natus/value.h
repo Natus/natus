@@ -24,6 +24,7 @@
 #ifndef VALUE_H_
 #define VALUE_H_
 #include "types.h"
+#include <stdarg.h>
 
 /* Type: NativeFunction
  * Function type for calls made back into native space from javascript.
@@ -81,6 +82,8 @@ ntValue *nt_value_decref (ntValue *val);
 
 ntValue *nt_value_new_boolean (const ntValue *ctx, bool b);
 ntValue *nt_value_new_number (const ntValue *ctx, double n);
+ntValue *nt_value_new_string (const ntValue *ctx, const char *fmt, ...);
+ntValue *nt_value_new_string_varg (const ntValue *ctx, const char *fmt, va_list arg);
 ntValue *nt_value_new_string_utf8 (const ntValue *ctx, const char *string);
 ntValue *nt_value_new_string_utf8_length (const ntValue *ctx, const char *string, size_t len);
 ntValue *nt_value_new_string_utf16 (const ntValue *ctx, const ntChar *string);

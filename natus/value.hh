@@ -25,6 +25,7 @@
 #define VALUE_HPP_
 #include "types.hh"
 #include <string>
+#include <cstdarg>
 
 #ifndef _HAVE_NT_VALUE
 #define _HAVE_NT_VALUE
@@ -115,6 +116,8 @@ public:
 	Value newNumber (double n) const;
 	Value newString (UTF8 string) const;
 	Value newString (UTF16 string) const;
+	Value newString (const char* fmt, va_list arg);
+	Value newString (const char* fmt, ...);
 	Value newArray (const Value* const * array = NULL) const;
 	Value newFunction (NativeFunction func, const char* name=NULL) const;
 	Value newObject (Class* cls = NULL) const;

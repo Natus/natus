@@ -221,6 +221,18 @@ Value Value::newString (UTF16 string) const {
 	return nt_value_new_string_utf16_length (internal, string.data (), string.length ());
 }
 
+Value Value::newString (const char* fmt, va_list arg) {
+	return nt_value_new_string_varg(internal, fmt, arg);
+}
+
+Value Value::newString (const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	ntValue *tmpv = nt_value_new_string_varg(internal, fmt, ap);
+	va_end(ap);
+	return tmpv;
+}
+
 Value Value::newArray (const Value* const * array) const {
 	long len;
 	for (len = 0; array && array[len] ; len++)

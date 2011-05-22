@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 static inline char *_vsprintf (const char *format, va_list ap) {
 	va_list apc;

@@ -28,6 +28,8 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "backend.h"
 
+#include "vsprintf.h"
+
 ntValue *nt_value_incref (ntValue *val) {
 	if (!val)
 		return NULL;
@@ -56,6 +58,22 @@ ntValue *nt_value_new_number (const ntValue *ctx, double n) {
 	if (!ctx)
 		return NULL;
 	return ctx->eng->espec->value.new_number (ctx, n);
+}
+
+ntValue *nt_value_new_string (const ntValue *ctx, const char *fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	ntValue *tmpv = nt_value_new_string_varg(ctx, fmt, ap);
+	va_end(ap);
+	return tmpv;
+}
+
+ntValue *nt_value_new_string_varg (const ntValue *ctx, const char *fmt, va_list arg) {
+	char *tmp = _vsprintf(fmt, arg);
+	if (!tmp) return NULL;
+	ntValue *tmpv = nt_value_new_string_utf8(ctx, tmp);
+	free(tmp);
+	return tmpv;
 }
 
 ntValue *nt_value_new_string_utf8 (const ntValue *ctx, const char *string) {
