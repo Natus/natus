@@ -74,7 +74,7 @@ struct txClass {
 		Value n ((ntValue*) prop, false);
 
 		Class *txcls = ((txClass *) cls)->cls;
-		return nt_value_incref (txcls->del (txcls, o, n).borrowCValue ());
+		return nt_value_incref (txcls->del (o, n).borrowCValue ());
 	}
 
 	static ntValue *get (ntClass *cls, ntValue *obj, const ntValue *prop) {
@@ -82,7 +82,7 @@ struct txClass {
 		Value n ((ntValue*) prop, false);
 
 		Class *txcls = ((txClass *) cls)->cls;
-		return nt_value_incref (txcls->get (txcls, o, n).borrowCValue ());
+		return nt_value_incref (txcls->get (o, n).borrowCValue ());
 	}
 
 	static ntValue *set (ntClass *cls, ntValue *obj, const ntValue *prop, const ntValue *value) {
@@ -91,14 +91,14 @@ struct txClass {
 		Value v ((ntValue*) value, false);
 
 		Class *txcls = ((txClass *) cls)->cls;
-		return nt_value_incref (txcls->set (txcls, o, n, v).borrowCValue ());
+		return nt_value_incref (txcls->set (o, n, v).borrowCValue ());
 	}
 
 	static ntValue *enumerate (ntClass *cls, ntValue *obj) {
 		Value o (obj, false);
 
 		Class *txcls = ((txClass *) cls)->cls;
-		return nt_value_incref (txcls->enumerate (txcls, o).borrowCValue ());
+		return nt_value_incref (txcls->enumerate (o).borrowCValue ());
 	}
 
 	static ntValue *call (ntClass *cls, ntValue *obj, ntValue *ths, ntValue* args) {
@@ -107,32 +107,54 @@ struct txClass {
 		Value a (args, false);
 
 		Class *txcls = ((txClass *) cls)->cls;
-		Value rslt = txcls->call (txcls, o, t, a);
+		Value rslt = txcls->call (o, t, a);
 
 		return nt_value_incref (rslt.borrowCValue ());
 	}
 
 	static void free (ntClass *cls) {
-		if (!cls)
-			return;
-
+		assert(cls && ((txClass *) cls)->cls);
 		Class *txcls = ((txClass *) cls)->cls;
-		if (txcls && txcls->free)
-			txcls->free (txcls);
-		delete ((txClass *) cls);
+		txcls->free();
 	}
 
 	txClass (Class* cls) {
 		assert(cls);
-		this->hdr.del = cls->del ? txClass::del : NULL;
-		this->hdr.get = cls->get ? txClass::get : NULL;
-		this->hdr.set = cls->set ? txClass::set : NULL;
-		this->hdr.enumerate = cls->enumerate ? txClass::enumerate : NULL;
-		this->hdr.call = cls->call ? txClass::call : NULL;
+
+		Class::Hooks hooks = cls->getHooks();
+		this->hdr.del = (hooks & Class::HookDel) ? txClass::del : NULL;
+		this->hdr.get = (hooks & Class::HookGet) ? txClass::get : NULL;
+		this->hdr.set = (hooks & Class::HookSet) ? txClass::set : NULL;
+		this->hdr.enumerate = (hooks & Class::HookEnumerate) ? txClass::enumerate : NULL;
+		this->hdr.call = (hooks & Class::HookCall) ? txClass::call : NULL;
 		this->hdr.free = txClass::free;
 		this->cls = cls;
 	}
 };
+
+Class::Hooks Class::getHooks() {
+	return Class::HookNone;
+}
+
+Value Class::del (Value& obj, Value& idx) {
+	return NULL;
+}
+
+Value Class::get (Value& obj, Value& idx) {
+	return NULL;
+}
+
+Value Class::set (Value& obj, Value& idx, Value& val) {
+	return NULL;
+}
+
+Value Class::enumerate (Value& obj) {
+	return NULL;
+}
+
+Value Class::call (Value& obj, Value& ths, Value& arg) {
+	return NULL;
+}
 
 Value::Value () {
 	internal = NULL;

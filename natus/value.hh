@@ -49,13 +49,29 @@ typedef Value (*NativeFunction) (Value& fnc, Value& ths, Value& arg);
 typedef std::basic_string<char> UTF8;
 typedef std::basic_string<Char> UTF16;
 
-struct Class {
-	Value (*del) (Class* cls, Value& obj, Value& idx);
-	Value (*get) (Class* cls, Value& obj, Value& idx);
-	Value (*set) (Class* cls, Value& obj, Value& idx, Value& val);
-	Value (*enumerate) (Class* cls, Value& obj);
-	Value (*call) (Class* cls, Value& obj, Value& ths, Value& arg);
-	void (*free) (Class* cls);
+class Class {
+public:
+	typedef enum {
+		HookNone = 0,
+		HookDel = 1 << 0,
+		HookGet = 1 << 1,
+		HookSet = 1 << 2,
+		HookEnumerate = 1 << 3,
+		HookCall = 1 << 4,
+		HookProperties = (HookDel | HookGet | HookSet | HookEnumerate),
+		HookAll = (HookProperties | HookCall),
+	} Hooks;
+
+	virtual Hooks getHooks();
+	virtual Value del(Value& obj, Value& idx);
+	virtual Value get(Value& obj, Value& idx);
+	virtual Value set(Value& obj, Value& idx, Value& val);
+	virtual Value enumerate(Value& obj);
+	virtual Value call(Value& obj, Value& ths, Value& arg);
+
+	virtual void free() {
+		delete this;
+	}
 };
 
 class Value {
@@ -77,10 +93,10 @@ public:
 	typedef enum {
 		PropAttrNone = 0,
 		PropAttrReadOnly = 1 << 0,
-		PropAttrDontEnum = 1 << 1,
+		PropAttrDontEnumerate = 1 << 1,
 		PropAttrDontDelete = 1 << 2,
 		PropAttrConstant = PropAttrReadOnly | PropAttrDontDelete,
-		PropAttrProtected = PropAttrConstant | PropAttrDontEnum
+		PropAttrProtected = PropAttrConstant | PropAttrDontEnumerate
 	} PropAttr;
 
 	Value ();

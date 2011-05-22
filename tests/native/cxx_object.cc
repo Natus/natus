@@ -1,8 +1,7 @@
 #include "test.hh"
 
 class TestClass: public Class {
-private:
-	static Value del_ (Class* cls, Value& obj, Value& name) {
+	virtual Value del (Value& obj, Value& name) {
 		assert (obj.borrowCValue ());
 		assert (name.borrowCValue ());
 		assert (obj.isObject ());
@@ -10,7 +9,7 @@ private:
 		return obj.getPrivateName<Value> ("retval");
 	}
 
-	static Value get_ (Class* cls, Value& obj, Value& name) {
+	virtual Value get (Value& obj, Value& name) {
 		assert (obj.borrowCValue ());
 		assert (name.borrowCValue ());
 		assert (obj.isObject ());
@@ -18,7 +17,7 @@ private:
 		return obj.getPrivateName<Value> ("retval");
 	}
 
-	static Value set_ (Class* cls, Value& obj, Value& name, Value& value) {
+	virtual Value set (Value& obj, Value& name, Value& value) {
 		assert (obj.borrowCValue ());
 		assert (name.borrowCValue ());
 		assert (value.borrowCValue ());
@@ -27,13 +26,13 @@ private:
 		return obj.getPrivateName<Value> ("retval");
 	}
 
-	static Value enumerate_ (Class* cls, Value& obj) {
+	virtual Value enumerate (Value& obj) {
 		assert (obj.borrowCValue ());
 		assert (obj.isObject ());
 		return obj.getPrivateName<Value> ("retval");
 	}
 
-	static Value call_ (Class* cls, Value& obj, Value& ths, Value& args) {
+	virtual Value call (Value& obj, Value& ths, Value& args) {
 		assert (obj.borrowCValue ());
 		assert (ths.borrowCValue ());
 		assert (args.borrowCValue ());
@@ -46,18 +45,8 @@ private:
 		return args[0];
 	}
 
-	static void free_ (Class* cls) {
-		delete static_cast<TestClass*> (cls);
-	}
-
-public:
-	TestClass () {
-		this->del = TestClass::del_;
-		this->get = TestClass::get_;
-		this->set = TestClass::set_;
-		this->enumerate = TestClass::enumerate_;
-		this->call = TestClass::call_;
-		this->free = TestClass::free_;
+	virtual Class::Hooks getHooks() {
+		return Class::HookAll;
 	}
 };
 
