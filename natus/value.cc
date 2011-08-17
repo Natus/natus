@@ -117,6 +117,7 @@ struct txClass {
 		assert(cls && ((txClass *) cls)->cls);
 		Class *txcls = ((txClass *) cls)->cls;
 		txcls->free();
+		delete cls;
 	}
 
 	txClass (Class* cls) {
