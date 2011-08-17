@@ -27,25 +27,25 @@
 #include <jsapi.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+typedef JSContext* ntEngCtx;
+typedef jsval* ntEngVal;
 #include <natus/backend.h>
 
-#define CTX(v) (((smValue*) v)->ctx)
-#define VAL(v) (((smValue*) v)->val)
-#define OBJ(v) (JSVAL_TO_OBJECT(VAL(v)))
+static void sm_val_free(ntEngCtx ctx, ntEngVal val);
+static ntValueType sm_get_type(const ntEngCtx ctx, const ntEngVal val);
 
-typedef struct {
-	ntValue hdr;
-	JSContext *ctx;
-	jsval val;
-} smValue;
-
-typedef enum {
-	smPropertyActionDel, smPropertyActionGet, smPropertyActionSet
-} smPropertyAction;
+static ntEngVal mkjsval(JSContext *ctx, jsval val) {
+	jsval *v = malloc(sizeof(jsval));
+	if (!v)
+		return NULL;
+	*v = val;
+	JSVAL_LOCK(ctx, *v);
+	return v;
+}
 
 static void obj_finalize (JSContext *ctx, JSObject *obj);
 
-static inline ntPrivate *get_private (JSContext *ctx, JSObject *obj) {
+static ntPrivate *get_private (JSContext *ctx, JSObject *obj) {
 	if (!ctx || !obj)
 		return NULL;
 	if (JS_IsArrayObject (ctx, obj))
@@ -65,113 +65,74 @@ static inline ntPrivate *get_private (JSContext *ctx, JSObject *obj) {
 	return JS_GetPrivate (ctx, obj);
 }
 
-static inline ntPrivate *get_private_val (JSContext *ctx, jsval val) {
-	if (JSVAL_IS_NULL (val) || !JSVAL_IS_OBJECT (val))
-		return NULL;
-	return get_private (ctx, JSVAL_TO_OBJECT (val));
-}
-
-static ntValue* get_instance (const ntValue* ctx, jsval val, bool exc) {
-	ntValue *global = nt_private_get (get_private_val (CTX(ctx), val), NATUS_PRIV_GLOBAL);
-	if (global && VAL(global) == val)
-		return nt_value_incref (global);
-
-	ntValue *self = malloc (sizeof(smValue));
-	if (!self)
-		return self;
-	memset (self, 0, sizeof(smValue));
-
-	CTX(self) = CTX(ctx);
-	VAL(self) = val;
-	self->typ = ntValueTypeUnknown;
-	JSVAL_LOCK(CTX(ctx), val);
-
-	if (exc)
-		self->typ |= ntValueTypeException;
-	self->eng = nt_engine_incref (ctx->eng);
-	self->ref = 1;
-	return self;
-}
-
-static inline JSBool property_handler (JSContext *ctx, JSObject *object, jsid id, jsval *vp, smPropertyAction act) {
+static JSBool property_handler (JSContext *ctx, JSObject *object, jsid id, jsval *vp, ntPropertyAction act) {
 	ntPrivate *priv = get_private (ctx, object);
-	ntValue *glbl = nt_private_get (priv, NATUS_PRIV_GLOBAL);
-	ntClass *clss = nt_private_get (priv, NATUS_PRIV_CLASS);
-	assert(glbl && clss);
+	if (!priv)
+		return JS_FALSE;
 
 	jsval key;
-	JS_IdToValue (ctx, id, &key);
-	ntValue *obj = get_instance (glbl, OBJECT_TO_JSVAL (object), false);
-	ntValue *idx = get_instance (glbl, key, false);
-	ntValue *val = NULL;
-	assert(nt_value_is_type(idx, ntValueTypeNumber | ntValueTypeString));
-	ntValue *res = NULL;
-	switch (act) {
-		case smPropertyActionDel:
-			assert(clss->del);
-			res = clss->del (clss, obj, idx);
-			break;
-		case smPropertyActionGet:
-			assert(clss->get);
-			res = clss->get (clss, obj, idx);
-			break;
-		case smPropertyActionSet:
-			assert(clss->set);
-			val = get_instance (glbl, *vp, false);
-			res = clss->set (clss, obj, idx, val);
-			break;
-		default:
-			assert(false);
+	if (act & ~ntPropertyActionEnumerate) {
+		if (!JS_IdToValue (ctx, id, &key))
+			return JS_FALSE;
+		assert(JSVAL_IS_STRING(key) || JSVAL_IS_NUMBER(key));
 	}
-	nt_value_decref (obj);
-	nt_value_decref (idx);
-	nt_value_decref (val);
 
-	if (nt_value_is_exception (res)) {
-		if (nt_value_is_undefined (res)) {
-			nt_value_decref (res);
+	ntEngValFlags flags = ntEngValFlagNone;
+	ntEngVal obj = mkjsval(ctx, OBJECT_TO_JSVAL(object));
+	ntEngVal idx = (act & ~ntPropertyActionEnumerate) ? mkjsval(ctx, key) : NULL;
+	ntEngVal val = (act & ntPropertyActionSet) ? mkjsval(ctx, *vp) : NULL;
+	ntEngVal res = nt_value_handle_property(act, obj, priv, idx, val, &flags);
+
+	if (flags & ntEngValFlagException) {
+		if (!res || JSVAL_IS_VOID(*res)) {
+			if (flags & ntEngValFlagMustFree && res)
+				sm_val_free(ctx, res);
 			return JS_TRUE;
 		}
 
-		JS_SetPendingException (ctx, VAL(res));
-		nt_value_decref (res);
+		JS_SetPendingException (ctx, *res);
+		if (flags & ntEngValFlagMustFree)
+			sm_val_free(ctx, res);
 		return JS_FALSE;
 	}
-	if (act == smPropertyActionGet)
-		*vp = VAL(res);
-	nt_value_decref (res);
+
+	if (act == ntPropertyActionGet)
+		*vp = *res;
+
+	if (flags & ntEngValFlagMustFree)
+		sm_val_free(ctx, res);
 	return JS_TRUE;
 }
 
 static inline JSBool call_handler (JSContext *ctx, uintN argc, jsval *vp, bool constr) {
-	ntPrivate *priv = get_private (ctx, JSVAL_TO_OBJECT (JS_CALLEE(ctx, vp)));
-	ntValue *glbl = nt_private_get (priv, NATUS_PRIV_GLOBAL);
-	ntNativeFunction func = nt_private_get (priv, NATUS_PRIV_FUNCTION);
-	ntClass *clss = nt_private_get (priv, NATUS_PRIV_CLASS);
-	assert(glbl && (func || clss));
-
 	// Allocate our array of arguments
 	JSObject *arga = JS_NewArrayObject (ctx, argc, JS_ARGV(ctx, vp));
 	if (!arga)
 		return JS_FALSE;
 
-	// Do the call
-	ntValue *fnc = get_instance (glbl, JS_CALLEE(ctx, vp), false);
-	ntValue *ths = constr ? nt_value_new_undefined (glbl) : get_instance (glbl, JS_THIS(ctx, vp), false);
-	ntValue *arg = get_instance (glbl, OBJECT_TO_JSVAL (arga), false);
-	ntValue *res = func ? func (fnc, ths, arg) : clss->call (clss, fnc, ths, arg);
-	nt_value_decref (arg);
-	nt_value_decref (ths);
-	nt_value_decref (fnc);
+	// Get the private
+	ntPrivate *priv = get_private (ctx, JSVAL_TO_OBJECT (JS_CALLEE(ctx, vp)));
+	if (!priv)
+		return JS_FALSE;
 
-	// Handle results
-	if (nt_value_is_exception (res)) {
-		JS_SetPendingException (ctx, res ? VAL(res) : JSVAL_VOID);
-		nt_value_decref (res);
+	// Do the call
+	ntEngValFlags flags;
+	ntEngVal obj = mkjsval(ctx, JS_CALLEE(ctx, vp));
+	ntEngVal ths = mkjsval(ctx, constr ? JSVAL_VOID : JS_THIS(ctx, vp));
+	ntEngVal arg = mkjsval(ctx, OBJECT_TO_JSVAL(arga));
+	ntEngVal res = nt_value_handle_call(obj, priv, ths, arg, &flags);
+
+	// Handle the results
+	if (flags & ntEngValFlagException) {
+		JS_SetPendingException(ctx, res ? *res : JSVAL_VOID);
+		if (flags & ntEngValFlagMustFree && res)
+			sm_val_free(ctx, res);
 		return JS_FALSE;
 	}
-	JS_SET_RVAL(ctx, vp, VAL(res));
-	nt_value_decref (res);
+
+	JS_SET_RVAL(ctx, vp, *res);
+	if (flags & ntEngValFlagMustFree)
+		sm_val_free(ctx, res);
 	return JS_TRUE;
 }
 
@@ -180,15 +141,15 @@ static void obj_finalize (JSContext *ctx, JSObject *obj) {
 }
 
 static JSBool obj_del (JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
-	return property_handler (ctx, object, id, vp, smPropertyActionDel);
+	return property_handler (ctx, object, id, vp, ntPropertyActionDelete);
 }
 
 static JSBool obj_get (JSContext *ctx, JSObject *object, jsid id, jsval *vp) {
-	return property_handler (ctx, object, id, vp, smPropertyActionGet);
+	return property_handler (ctx, object, id, vp, ntPropertyActionGet);
 }
 
 static JSBool obj_set (JSContext *ctx, JSObject *object, jsid id, JSBool strict, jsval *vp) {
-	return property_handler (ctx, object, id, vp, smPropertyActionSet);
+	return property_handler (ctx, object, id, vp, ntPropertyActionSet);
 }
 
 static JSBool obj_enum (JSContext *ctx, JSObject *object, JSIterateOp enum_op, jsval *statep, jsid *idp) {
@@ -228,27 +189,17 @@ static JSBool obj_enum (JSContext *ctx, JSObject *object, JSIterateOp enum_op, j
 	assert(enum_op == JSENUMERATE_INIT);
 	assert(statep);
 
-	// Get our privates
-	ntPrivate *priv = get_private (ctx, object);
-	ntValue *glbl = nt_private_get (priv, NATUS_PRIV_GLOBAL);
-	ntClass *clss = nt_private_get (priv, NATUS_PRIV_CLASS);
-	assert(glbl && clss && clss->set);
-
-	// Call our callback
-	ntValue *obj = get_instance (glbl, OBJECT_TO_JSVAL (object), false);
-	ntValue *res = clss->enumerate (clss, obj);
-	nt_value_decref (obj);
-
 	// Handle the results
+	jsval res = JSVAL_VOID;
 	step = INT_TO_JSVAL (0);
-	if (!nt_value_is_array (res) || !JS_GetArrayLength (ctx, JSVAL_TO_OBJECT (VAL(res)), &len) || !JS_SetProperty (ctx, JSVAL_TO_OBJECT (VAL(res)), "step", &step)) {
-		nt_value_decref (res);
+	if (!property_handler(ctx, object, 0, &res, ntPropertyActionEnumerate)
+		|| sm_get_type(ctx, &res) != ntValueTypeArray
+		|| !JS_GetArrayLength (ctx, JSVAL_TO_OBJECT (res), &len)
+		|| !JS_SetProperty (ctx, JSVAL_TO_OBJECT (res), "step", &step))
 		return JS_FALSE;
-	}
 
-	// Keep the jsval, but dispose of the ntValue
-	*statep = VAL(res);
-	nt_value_decref (res);
+	// Keep the jsval, but dispose of the wrapper
+	*statep = res;
 	JSVAL_LOCK(ctx, *statep);
 	if (idp)
 		*idp = INT_TO_JSVAL (len);
@@ -277,107 +228,162 @@ static void report_error (JSContext *cx, const char *message, JSErrorReport *rep
 	fprintf (stderr, "%s:%u:%s\n", report->filename ? report->filename : "<no filename>", (unsigned int) report->lineno, message);
 }
 
-ntPrivate *sm_value_private_get (const ntValue *val) {
-	return get_private (CTX(val), OBJ(val));
+static void sm_ctx_free(ntEngCtx ctx) {
+	JSRuntime *run = JS_GetRuntime(ctx);
+	JS_GC (ctx);
+	JS_DestroyContext (ctx);
+	JS_DestroyRuntime (run);
 }
 
-static bool sm_value_borrow_context (const ntValue *ctx, void **context, void **value) {
-	if (context)
-		*context = &(CTX(ctx));
-	if (value)
-		*value = &(VAL(ctx));
-	return true;
+static void sm_val_free(ntEngCtx ctx, ntEngVal val) {
+	JSVAL_UNLOCK(ctx, *val);
+	free(val);
 }
 
-static ntValue* sm_value_get_global (const ntValue *val) {
-	return (ntValue*) nt_private_get (get_private (CTX(val), JS_GetGlobalObject (CTX(val))), NATUS_PRIV_GLOBAL);
-}
+static ntEngVal sm_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags) {
+	bool freectx = false;
+	JSObject *glb = NULL;
 
-static ntValueType sm_value_get_type (const ntValue *val) {
-	if (JSVAL_IS_BOOLEAN (VAL(val)))
-		return ntValueTypeBoolean;
-	else if (JSVAL_IS_NULL (VAL(val)))
-		return ntValueTypeNull;
-	else if (JSVAL_IS_NUMBER (VAL(val)))
-		return ntValueTypeNumber;
-	else if (JSVAL_IS_STRING (VAL(val)))
-		return ntValueTypeString;
-	else if (JSVAL_IS_VOID (VAL(val)))
-		return ntValueTypeUndefined;
-	else if (JSVAL_IS_OBJECT (VAL(val))) {
-		if (JS_IsArrayObject (CTX(val), JSVAL_TO_OBJECT (VAL(val))))
-			return ntValueTypeArray;
-		else if (JS_ObjectIsFunction (CTX(val), JSVAL_TO_OBJECT (VAL(val))))
-			return ntValueTypeFunction;
-		else
-			return ntValueTypeObject;
+	/* Reuse existing runtime and context */
+	if (ctx && val) {
+		*newctx = ctx;
+		glb = JS_NewGlobalObject(ctx, &glbdef);
+
+	/* Create a new runtime and context */
+	} else {
+		freectx = true;
+
+		JSRuntime *run = JS_NewRuntime (1024 * 1024);
+		if (!run)
+			return NULL;
+
+		*newctx = JS_NewContext (run, 1024 * 1024);
+		if (!*newctx) {
+			JS_DestroyRuntime(run);
+			return NULL;
+		}
+		JS_SetOptions (*newctx, JSOPTION_VAROBJFIX | JSOPTION_DONT_REPORT_UNCAUGHT | JSOPTION_XML | JSOPTION_UNROOTED_GLOBAL);
+		JS_SetVersion (*newctx, JSVERSION_LATEST);
+		JS_SetErrorReporter (*newctx, report_error);
+
+		glb = JS_NewCompartmentAndGlobalObject (*newctx, &glbdef, NULL);
 	}
-	return ntValueTypeUnknown;
-}
-
-void sm_value_free (ntValue *val) {
-	JSVAL_UNLOCK(CTX(val), VAL(val));
-	if (JS_GetGlobalObject (CTX(val)) == OBJ(val)) {
-		JS_GC (CTX(val));
-		JS_DestroyContext (CTX(val));
+	if (!glb || !JS_InitStandardClasses (*newctx, glb)) {
+		if (freectx && *newctx) {
+			JSRuntime *run = JS_GetRuntime(*newctx);
+			JS_DestroyContext(*newctx);
+			JS_DestroyRuntime(run);
+		}
+		return NULL;
 	}
-	nt_engine_decref (val->eng);
-	free (val);
+
+	if (!JS_SetPrivate (ctx, glb, priv)) {
+		nt_private_free(priv);
+		if (freectx && *newctx) {
+			JSRuntime *run = JS_GetRuntime(*newctx);
+			JS_DestroyContext(*newctx);
+			JS_DestroyRuntime(run);
+		}
+		return NULL;
+	}
+
+	ntEngVal v = mkjsval(*newctx, OBJECT_TO_JSVAL(glb));
+	if (!v) {
+		if (freectx && *newctx) {
+			JSRuntime *run = JS_GetRuntime(*newctx);
+			JS_DestroyContext(*newctx);
+			JS_DestroyRuntime(run);
+		}
+		return NULL;
+	}
+	return v;
 }
 
-ntValue* sm_value_new_bool (const ntValue *ctx, bool b) {
-	return get_instance (ctx, BOOLEAN_TO_JSVAL (b), false);
+static ntEngVal sm_new_bool(const ntEngCtx ctx, bool b, ntEngValFlags *flags) {
+	return mkjsval(ctx, BOOLEAN_TO_JSVAL(b));
 }
 
-ntValue* sm_value_new_number (const ntValue *ctx, double n) {
-	jsval v;
-	assert(JS_NewNumberValue(CTX(ctx), n, &v));
-	return get_instance (ctx, v, false);
+static ntEngVal sm_new_number(const ntEngCtx ctx, double n, ntEngValFlags *flags) {
+	jsval v = JSVAL_VOID;
+	if (!JS_NewNumberValue(ctx, n, &v)) {
+		v = JSVAL_VOID;
+		if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
+			*flags |= ntEngValFlagException;
+	}
+	return mkjsval(ctx, v);
 }
 
-ntValue* sm_value_new_string_utf8 (const ntValue *ctx, const char *str, size_t len) {
-	return get_instance (ctx, STRING_TO_JSVAL (JS_NewStringCopyN (CTX(ctx), str, len)), false);
+static ntEngVal sm_new_string_utf8(const ntEngCtx ctx, const char *str, size_t len, ntEngValFlags *flags) {
+	jsval v = JSVAL_VOID;
+	JSString *s = JS_NewStringCopyN(ctx, str, len);
+	if (s)
+		v = STRING_TO_JSVAL(s);
+	else {
+		if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
+			*flags |= ntEngValFlagException;
+	}
+
+	return mkjsval(ctx, STRING_TO_JSVAL(s));
 }
 
-ntValue* sm_value_new_string_utf16 (const ntValue *ctx, const ntChar *str, size_t len) {
-	return get_instance (ctx, STRING_TO_JSVAL (JS_NewUCStringCopyN (CTX(ctx), str, len)), false);
+static ntEngVal sm_new_string_utf16(const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValFlags *flags) {
+	jsval v = JSVAL_VOID;
+	JSString *s = JS_NewUCStringCopyN(ctx, str, len);
+	if (s)
+		v = STRING_TO_JSVAL(s);
+	else {
+		if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
+			*flags |= ntEngValFlagException;
+	}
+
+	return mkjsval(ctx, STRING_TO_JSVAL(s));
 }
 
-ntValue* sm_value_new_array (const ntValue *ctx, const ntValue **array) {
-	int i;
-	for (i = 0; array && array[i] ; i++)
-		;
-
-	jsval *valv = calloc (i, sizeof(jsval));
+static ntEngVal sm_new_array(const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlags *flags) {
+	jsval *valv = calloc (len, sizeof(jsval));
 	if (!valv)
 		return NULL;
-	for (i = 0; array && array[i] ; i++)
-		valv[i] = VAL(array[i]);
 
-	JSObject* obj = JS_NewArrayObject (CTX(ctx), i, valv);
+	int i;
+	for (i = 0; i < len ; i++)
+		valv[i] = *array[i];
+
+	JSObject* obj = JS_NewArrayObject(ctx, i, valv);
 	free (valv);
-	return get_instance (ctx, OBJECT_TO_JSVAL (obj), false);
+
+	jsval v;
+	if (obj)
+		v = OBJECT_TO_JSVAL(obj);
+	else if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
+		*flags |= ntEngValFlagException;
+
+	return mkjsval(ctx, v);
 }
 
-ntValue* sm_value_new_function (const ntValue *ctx, const char *name, ntPrivate *priv) {
-	JSFunction *fnc = JS_NewFunction (CTX(ctx), fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, name);
+static ntEngVal sm_new_function(const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValFlags *flags) {
+	JSFunction *fnc = JS_NewFunction (ctx, fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, name);
 	JSObject *obj = JS_GetFunctionObject (fnc);
-	JSObject *prv = JS_NewObject (CTX(ctx), &fncdef, NULL, NULL);
-	if (!fnc || !obj || !prv || !JS_SetReservedSlot (CTX(ctx), obj, 0, OBJECT_TO_JSVAL (prv)))
-		return NULL;
+	JSObject *prv = JS_NewObject (ctx, &fncdef, NULL, NULL);
 
-	if (!JS_SetPrivate (CTX(ctx), prv, priv))
-		return NULL;
+	jsval v = JSVAL_VOID;
+	if (fnc && obj && prv && JS_SetReservedSlot (ctx, obj, 0, OBJECT_TO_JSVAL (prv)) && JS_SetPrivate (ctx, prv, priv))
+		v = OBJECT_TO_JSVAL(obj);
+	else {
+		nt_private_free(priv);
+		if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &v))
+			return NULL;
+		*flags |= ntEngValFlagException;
+	}
 
-	return get_instance (ctx, OBJECT_TO_JSVAL (obj), false);
+	return mkjsval(ctx, v);
 }
 
-ntValue* sm_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivate *priv) {
+static ntEngVal sm_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *flags) {
 	JSClass *jscls = NULL;
 	if (cls) {
 		jscls = malloc (sizeof(JSClass));
 		if (!jscls)
-			return NULL;
+			goto error;
 
 		memset (jscls, 0, sizeof(JSClass));
 		jscls->name = cls->call ? "NativeFunction" : "NativeObject";
@@ -393,40 +399,52 @@ ntValue* sm_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivate *priv)
 		jscls->call = cls->call ? obj_call : NULL;
 		jscls->construct = cls->call ? obj_new : NULL;
 
-		if (!nt_private_set (priv, "natus.SpiderMonkey.JSClass", jscls, free))
-			return NULL;
+		if (!nt_private_set (priv, "natus::SpiderMonkey::JSClass", jscls, free))
+			goto error;
 	}
 
 	// Build the object
-	JSObject* obj = JS_NewObject (CTX(ctx), jscls ? jscls : &objdef, NULL, NULL);
-	if (!obj || !JS_SetPrivate (CTX(ctx), obj, priv))
+	jsval v = JSVAL_VOID;
+	JSObject* obj = JS_NewObject (ctx, jscls ? jscls : &objdef, NULL, NULL);
+	if (obj && JS_SetPrivate (ctx, obj, priv))
+		v = OBJECT_TO_JSVAL(obj);
+	else {
+		if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &v))
+			goto error;
+		*flags |= ntEngValFlagException;
+		nt_private_free(priv);
+	}
+
+	return mkjsval(ctx, v);
+
+	error:
+		nt_private_free(priv);
 		return NULL;
-	return get_instance (ctx, OBJECT_TO_JSVAL (obj), false);
 }
 
-ntValue* sm_value_new_null (const ntValue *ctx) {
-	return get_instance (ctx, JSVAL_NULL, false);
+static ntEngVal sm_new_null(const ntEngCtx ctx, ntEngValFlags *flags) {
+	return mkjsval(ctx, JSVAL_NULL);
 }
 
-ntValue* sm_value_new_undefined (const ntValue *ctx) {
-	return get_instance (ctx, JSVAL_VOID, false);
+static ntEngVal sm_new_undefined(const ntEngCtx ctx, ntEngValFlags *flags) {
+	return mkjsval(ctx, JSVAL_VOID);
 }
 
-static bool sm_value_to_bool (const ntValue *val) {
-	return JSVAL_TO_BOOLEAN (VAL(val));
+static bool sm_to_bool(const ntEngCtx ctx, const ntEngVal val) {
+	return JSVAL_TO_BOOLEAN(*val);
 }
 
-static double sm_value_to_double (const ntValue *val) {
+static double sm_to_double(const ntEngCtx ctx, const ntEngVal val) {
 	double d;
-	JS_ValueToNumber (CTX(val), VAL(val), &d);
+	JS_ValueToNumber (ctx, *val, &d);
 	return d;
 }
 
-static char *sm_value_to_string_utf8 (const ntValue *val, size_t *len) {
-	JSString *str = JS_ValueToString (CTX(val), VAL(val));
+static char *sm_to_string_utf8(const ntEngCtx ctx, const ntEngVal val, size_t *len) {
+	JSString *str = JS_ValueToString (ctx, *val);
 	*len = JS_GetStringLength (str);
 
-	size_t bufflen = JS_GetStringEncodingLength (CTX(val), str);
+	size_t bufflen = JS_GetStringEncodingLength (ctx, str);
 	char *buff = calloc (bufflen + 1, sizeof(char));
 	if (!buff)
 		return NULL;
@@ -439,208 +457,247 @@ static char *sm_value_to_string_utf8 (const ntValue *val, size_t *len) {
 	return NULL;
 }
 
-static ntChar *sm_value_to_string_utf16 (const ntValue *val, size_t *len) {
-	JSString *str = JS_ValueToString (CTX(val), VAL(val));
-	*len = JS_GetStringLength (str);
+static ntChar *sm_to_string_utf16(const ntEngCtx ctx, const ntEngVal val, size_t *len) {
+	JSString *str = JS_ValueToString(ctx, *val);
+	*len = JS_GetStringLength(str);
 
-	const jschar *jschars = JS_GetStringCharsAndLength (CTX(val), str, len);
-	ntChar *ntchars = calloc (*len, sizeof(ntChar));
+	const jschar *jschars = JS_GetStringCharsAndLength(ctx, str, len);
+	ntChar *ntchars = calloc(*len + 1, sizeof(ntChar));
 	if (jschars && ntchars) {
-		memcpy (ntchars, jschars, sizeof(ntChar) * *len);
+		memset(ntchars, 0, sizeof(ntChar) * (*len + 1));
+		memcpy(ntchars, jschars, sizeof(ntChar) * *len);
 		return ntchars;
 	}
 
-	free (ntchars);
+	free(ntchars);
 	return NULL;
 }
 
-static ntValue *sm_value_del (ntValue *obj, const ntValue *idx) {
+ntEngVal sm_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags) {
 	jsid vid;
-	JS_ValueToId (CTX(idx), VAL(idx), &vid);
+	jsval rval = JSVAL_VOID;
 
-	if (!JS_DeletePropertyById (CTX(obj), OBJ(obj), vid)) {
-		jsval rval;
-		if (JS_IsExceptionPending (CTX(obj)) && JS_GetPendingException (CTX(obj), &rval))
-			return get_instance (obj, rval, true);
-		return nt_value_to_exception (nt_value_new_boolean (obj, false));
-	}
-	return sm_value_new_bool (obj, true);
-}
+	JS_ValueToId (ctx, *id, &vid);
 
-static ntValue *sm_value_get (const ntValue *obj, const ntValue *idx) {
-	jsid vid;
-	JS_ValueToId (CTX(idx), VAL(idx), &vid);
-
-	bool isexc = false;
-	jsval v = JSVAL_VOID;
-	if (!JS_GetPropertyById (CTX(obj), OBJ(obj), vid, &v))
-		if ((isexc = JS_IsExceptionPending (CTX(obj))))
-			JS_GetPendingException (CTX(obj), &v);
-	return get_instance (obj, v, isexc);
-}
-
-static ntValue *sm_value_set (ntValue *obj, const ntValue *idx, const ntValue *value, ntPropAttr attrs) {
-	jsint flags = (attrs & ntPropAttrDontEnum) ? 0 : JSPROP_ENUMERATE;
-	flags |= (attrs & ntPropAttrReadOnly) ? JSPROP_READONLY : 0;
-	flags |= (attrs & ntPropAttrDontDelete) ? JSPROP_PERMANENT : 0;
-
-	jsid vid;
-	JS_ValueToId (CTX(idx), VAL(idx), &vid);
-
-	jsval v = VAL(value);
-	if (!JS_SetPropertyById (CTX(obj), OBJ(obj), vid, &v)) {
-		if (JS_IsExceptionPending (CTX(obj)) && JS_GetPendingException (CTX(obj), &v))
-			return get_instance (obj, v, true);
-		return nt_value_to_exception (nt_value_new_boolean (obj, false));
-	}
-	if (JSID_IS_STRING (vid)) {
-		size_t len;
-		JSBool found;
-		JSString *str = JSID_TO_STRING (vid);
-		const jschar *chars = JS_GetStringCharsAndLength (CTX(obj), str, &len);
-		JS_SetUCPropertyAttributes (CTX(obj), OBJ(obj), chars, len, flags, &found);
+	if (JS_DeletePropertyById (ctx, JSVAL_TO_OBJECT(*val), vid))
+		rval = BOOLEAN_TO_JSVAL(true);
+	else {
+		*flags |= ntEngValFlagException;
+		if (!JS_IsExceptionPending (ctx) || !JS_GetPendingException (ctx, &rval))
+			return NULL;
 	}
 
-	return sm_value_new_bool (obj, true);
+	return mkjsval(ctx, rval);
 }
 
-static ntValue *sm_value_enumerate (const ntValue *obj) {
+ntEngVal sm_get(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags) {
+	jsid vid;
+	JS_ValueToId (ctx, *id, &vid);
+
+	jsval rval = JSVAL_VOID;
+	if (!JS_GetPropertyById (ctx, JSVAL_TO_OBJECT(*val), vid, &rval)) {
+		*flags |= ntEngValFlagException;
+		if (!JS_IsExceptionPending (ctx) || !JS_GetPendingException (ctx, &rval))
+			return NULL;
+	}
+
+	return mkjsval(ctx, rval);
+}
+
+ntEngVal sm_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value, ntPropAttr attrs, ntEngValFlags *flags) {
+	jsint attr = (attrs & ntPropAttrDontEnum) ? 0 : JSPROP_ENUMERATE;
+	attr |= (attrs & ntPropAttrReadOnly) ? JSPROP_READONLY : 0;
+	attr |= (attrs & ntPropAttrDontDelete) ? JSPROP_PERMANENT : 0;
+
+	jsid vid;
+	JS_ValueToId (ctx, *id, &vid);
+
+	jsval rval = *value;
+	if (JS_SetPropertyById (ctx, JSVAL_TO_OBJECT(*val), vid, &rval)) {
+		BOOLEAN_TO_JSVAL(true);
+
+		if (JSID_IS_STRING (vid)) {
+			size_t len;
+			JSBool found;
+			JSString *str = JSID_TO_STRING (vid);
+			const jschar *chars = JS_GetStringCharsAndLength (ctx, str, &len);
+			JS_SetUCPropertyAttributes (ctx, JSVAL_TO_OBJECT(*val), chars, len, attr, &found);
+		}
+	} else {
+		*flags |= ntEngValFlagException;
+		if (!JS_IsExceptionPending (ctx) || !JS_GetPendingException (ctx, &rval))
+			return NULL;
+	}
+
+	return mkjsval(ctx, rval);
+}
+
+ntEngVal sm_enumerate(const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags) {
 	jsint i;
 
-	JSIdArray* na = JS_Enumerate (CTX(obj), OBJ(obj));
+	JSIdArray* na = JS_Enumerate (ctx, JSVAL_TO_OBJECT(*val));
 	if (!na)
 		return NULL;
 
-	ntValue *array = nt_value_new_array (obj, NULL);
-	for (i = 0; i < na->length ; i++) {
-		jsval str;
-		if (!JS_IdToValue (CTX(obj), na->vector[i], &str))
-			break;
-		ntValue *v = get_instance (obj, str, false);
-		if (!v)
-			break;
-		nt_value_decref (nt_value_set_index (array, i, v));
-		nt_value_decref (v);
+	jsval *vals = calloc(na->length, sizeof(jsval));
+	if (!vals) {
+		JS_DestroyIdArray (ctx, na);
+		return NULL;
 	}
 
-	JS_DestroyIdArray (CTX(obj), na);
-	return array;
+	for (i = 0; i < na->length ; i++)
+		assert(JS_IdToValue (ctx, na->vector[i], &vals[i]));
+
+	JSObject *array = JS_NewArrayObject(ctx, na->length, vals);
+	JS_DestroyIdArray (ctx, na);
+	free(vals);
+	if (!array)
+		return NULL;
+
+	return mkjsval(ctx, OBJECT_TO_JSVAL(array));
 }
 
-static ntValue *sm_value_call (ntValue *func, ntValue *ths, ntValue *args) {
+static ntEngVal sm_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngValFlags *flags) {
 	// Convert to jsval array
-	ntValue *length = nt_value_get_utf8 (args, "length");
-	long i, len = nt_value_to_long (length);
-	nt_value_decref (length);
+	jsuint i, len;
+	if (!JS_GetArrayLength(ctx, JSVAL_TO_OBJECT(*args), &len))
+		return NULL;
 
 	jsval *argv = calloc (len, sizeof(jsval));
+	if (!argv)
+		return NULL;
+
+
 	for (i = 0; i < len ; i++) {
-		ntValue *item = nt_value_get_index (args, i);
-		argv[i] = VAL(item);
-		nt_value_decref (item);
+		jsid id;
+		if (!JS_NewNumberValue(ctx, i, &argv[i])
+			|| !JS_ValueToId(ctx, argv[i], &id)
+			|| !JS_GetPropertyById(ctx, JSVAL_TO_OBJECT(*args), id, &argv[i])) {
+			free(argv);
+			return NULL;
+		}
 	}
 
 	// Call the function
-	jsval rval;
-	bool exception = false;
-	if (nt_value_is_undefined (ths)) {
-		JSObject *obj = JS_New (CTX(func), OBJ(func), len, argv);
-		if (!obj && JS_IsExceptionPending (CTX(func)) && JS_GetPendingException (CTX(func), &rval))
-			exception = true;
-		else if (obj)
+	jsval rval = JSVAL_VOID;
+	if (JSVAL_IS_VOID(*ths)) {
+		JSObject *obj = JS_New (ctx, JSVAL_TO_OBJECT(*func), len, argv);
+		if (obj)
 			rval = OBJECT_TO_JSVAL (obj);
 		else {
-			free (argv);
-			return nt_value_new_undefined (func);
+			*flags |= ntEngValFlagException;
+			if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval)) {
+				free(argv);
+				return NULL;
+			}
 		}
 	} else {
-		if (!JS_CallFunctionValue (CTX(func), OBJ(ths), VAL(func), len, argv, &rval)) {
-			if (JS_IsExceptionPending (CTX(func)) && JS_GetPendingException (CTX(func), &rval))
-				exception = true;
-			else {
-				free (argv);
-				return nt_value_new_undefined (func);
+		if (!JS_CallFunctionValue (ctx, JSVAL_TO_OBJECT(*ths), *func, len, argv, &rval)) {
+			*flags |= ntEngValFlagException;
+			if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval)) {
+				free(argv);
+				return NULL;
 			}
 		}
 	}
 	free (argv);
 
-	return get_instance (func, rval, exception);
+	return mkjsval(ctx, rval);
 }
 
-static ntValue *sm_value_evaluate (ntValue *ths, const ntValue *jscript, const ntValue *filename, unsigned int lineno) {
-	size_t len = 0;
-	const jschar *jschars = JS_GetStringCharsAndLength (CTX(jscript), JS_ValueToString (CTX(jscript), VAL(jscript)), &len);
-	char *fnchars = nt_value_to_string_utf8 (filename, NULL);
+static ntEngVal sm_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEngVal filename, unsigned int lineno, ntEngValFlags *flags) {
+	size_t jslen = 0, fnlen = 0;
+	const jschar *jschars = JS_GetStringCharsAndLength (ctx, JS_ValueToString (ctx, *jscript), &jslen);
+	char *fnchars = sm_to_string_utf8(ctx, filename, &fnlen);
 
-	jsval val;
-	if (JS_EvaluateUCScript (CTX(ths), OBJ(ths), jschars, len, fnchars, lineno, &val) == JS_FALSE) {
-		free (fnchars);
-		if (JS_IsExceptionPending (CTX(ths)) && JS_GetPendingException (CTX(ths), &val))
-			return get_instance (ths, val, true);
-		return nt_value_new_undefined (ths);
+	jsval rval;
+	if (!JS_EvaluateUCScript (ctx, JSVAL_TO_OBJECT(*ths), jschars, jslen, fnchars, lineno, &rval)) {
+		*flags |= ntEngValFlagException;
+		if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval)) {
+			free(fnchars);
+			return NULL;
+		}
 	}
-	free (fnchars);
 
-	return get_instance (ths, val, false);
+	free (fnchars);
+	return mkjsval(ctx, rval);
 }
 
-static bool sm_value_equal (ntValue *val1, ntValue *val2, bool strict) {
+static ntPrivate *sm_get_private(const ntEngCtx ctx, const ntEngVal val) {
+	return get_private (ctx, JSVAL_TO_OBJECT(*val));
+}
+
+static ntEngVal sm_get_global(const ntEngCtx ctx, const ntEngVal val) {
+	JSObject *obj = NULL;
+	JS_ValueToObject(ctx, *val, &obj);
+	if (obj)
+		obj = JS_GetGlobalForObject(ctx, obj);
+	if (!obj)
+		obj = JS_GetGlobalForScopeChain(ctx);
+	if (!obj)
+		obj = JS_GetGlobalObject(ctx);
+	return mkjsval(ctx, OBJECT_TO_JSVAL(obj));
+}
+
+static ntValueType sm_get_type(const ntEngCtx ctx, const ntEngVal val) {
+	if (JSVAL_IS_BOOLEAN (*val))
+		return ntValueTypeBoolean;
+	else if (JSVAL_IS_NULL (*val))
+		return ntValueTypeNull;
+	else if (JSVAL_IS_NUMBER (*val))
+		return ntValueTypeNumber;
+	else if (JSVAL_IS_STRING (*val))
+		return ntValueTypeString;
+	else if (JSVAL_IS_VOID (*val))
+		return ntValueTypeUndefined;
+	else if (JSVAL_IS_OBJECT (*val)) {
+		if (JS_IsArrayObject (ctx, JSVAL_TO_OBJECT (*val)))
+			return ntValueTypeArray;
+		else if (JS_ObjectIsFunction (ctx, JSVAL_TO_OBJECT (*val)))
+			return ntValueTypeFunction;
+		else
+			return ntValueTypeObject;
+	}
+	return ntValueTypeUnknown;
+}
+
+static bool sm_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value) {
+	*context = ctx;
+	*value = val;
+	return true;
+}
+
+static bool sm_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict) {
 	JSBool eql = false;
-	if (!JS_StrictlyEqual (CTX(val1), VAL(val1), VAL(val2), &eql))
-		return false;
+
+	switch (strict) {
+		default:
+		case ntEqualityStrictnessLoose:
+#if 0
+			if (!JS_LooselyEqual (ctx, *val1, *val2, &eql))
+				return false;
+			break;
+#endif
+		case ntEqualityStrictnessStrict:
+			if (!JS_StrictlyEqual (ctx, *val1, *val2, &eql))
+				return false;
+			break;
+		case ntEqualityStrictnessIdentity:
+			eql = (!val1 && !val2) || (val1 && val2 && *val1 == *val2);
+			break;
+	}
+
 	return eql;
 }
 
-static ntValue* sm_engine_newg (void *engine, ntValue *global) {
-	ntValue *self = malloc (sizeof(smValue));
-	if (!self)
-		return NULL;
-	memset (self, 0, sizeof(smValue));
-
-	JSContext *ctx = NULL;
-	JSObject *glb = NULL;
-	if (global) {
-		ctx = CTX(global);
-		glb = JS_NewGlobalObject (ctx, &glbdef);
-	} else {
-		ctx = JS_NewContext ((JSRuntime*) engine, 1024 * 1024);
-		if (!ctx) {
-			free (self);
-			return NULL;
-		}
-		JS_SetOptions (ctx, JSOPTION_VAROBJFIX | JSOPTION_DONT_REPORT_UNCAUGHT | JSOPTION_XML | JSOPTION_UNROOTED_GLOBAL);
-		JS_SetVersion (ctx, JSVERSION_LATEST);
-		JS_SetErrorReporter (ctx, report_error);
-
-		glb = JS_NewCompartmentAndGlobalObject (ctx, &glbdef, NULL);
-	}
-	if (!glb || !JS_InitStandardClasses (ctx, glb)) {
-		free (self);
-		JS_DestroyContext (ctx);
-		return NULL;
-	}
-
-	CTX(self) = ctx;
-	VAL(self) = OBJECT_TO_JSVAL (glb);
-
-	ntPrivate *priv = nt_private_init ();
-	if (!priv || !JS_SetPrivate (ctx, glb, priv)) {
-		free (self);
-		JS_DestroyContext (ctx);
-	}
-
-	JSVAL_LOCK(ctx, VAL(self));
-	return self;
+__attribute__((constructor))
+static void _init() {
+	JS_SetCStringsAreUTF8();
 }
 
-static void sm_engine_free (void *engine) {
-	JS_DestroyRuntime ((JSRuntime*) engine);
-	JS_ShutDown ();
+__attribute__((destructor))
+static void _fini() {
+	JS_ShutDown();
 }
 
-static void *sm_engine_init () {
-	JS_SetCStringsAreUTF8 ();
-	return JS_NewRuntime (1024 * 1024);
-}
 NATUS_ENGINE("SpiderMonkey", "JS_GetProperty", sm);

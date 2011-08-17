@@ -21,6 +21,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -30,7 +31,6 @@
 
 #include "misc.h"
 #include "value.h"
-#include "vsprintf.h"
 
 #define SET_ARGUMENT(type) { \
 	p = va_arg(apc, void*); \
@@ -48,8 +48,8 @@ ntValue *nt_throw_exception (const ntValue *ctx, const char *base, const char *n
 }
 
 ntValue *nt_throw_exception_varg (const ntValue *ctx, const char *base, const char *name, const char *format, va_list ap) {
-	char *msg = _vsprintf (format, ap);
-	if (!msg)
+	char *msg;
+	if (vasprintf (&msg, format, ap) < 0)
 		return NULL;
 
 	ntValue *vmsg = nt_value_new_string_utf8 (ctx, msg);
@@ -80,7 +80,7 @@ ntValue *nt_throw_exception_varg (const ntValue *ctx, const char *base, const ch
 	ntValue *argv = nt_array_builder (err, vmsg);
 	ntValue *exc = nt_value_call_new (err, argv);
 	nt_value_decref (argv);
-	nt_value_decref (vmsg);
+	nt_value_decref (err);
 
 	// Set the name
 	ntValue *vname = nt_value_new_string_utf8 (ctx, name);
@@ -99,10 +99,10 @@ ntValue *nt_throw_exception_code (const ntValue *ctx, const char *base, const ch
 }
 
 ntValue *nt_throw_exception_code_varg (const ntValue *ctx, const char *base, const char *name, int code, const char *format, va_list ap) {
-	ntValue *exc = nt_throw_exception_varg (ctx, base, name, format, ap);
-	ntValue *vcode = nt_value_new_number (ctx, (double) code);
-	nt_value_set_utf8 (exc, "code", vcode, ntPropAttrConstant);
-	nt_value_decref (vcode);
+	ntValue *exc = nt_throw_exception_varg(ctx, base, name, format, ap);
+	ntValue *vcode = nt_value_new_number(ctx, (double) code);
+	nt_value_decref(nt_value_set_utf8(exc, "code", vcode, ntPropAttrConstant));
+	nt_value_decref(vcode);
 	return exc;
 }
 
@@ -759,7 +759,7 @@ ntValue *nt_convert_arguments_varg (ntValue *arg, const char *fmt, va_list ap) {
 								ssize_t len = 0;
 								while (((ntChar*) d)[len++])
 									;
-								ntChar *tmp = calloc (len, sizeof(ntChar));
+								ntChar *tmp = calloc (len+1, sizeof(ntChar));
 								if (!tmp)
 									goto nomem;
 								for (; len >= 0 ; len--)
@@ -948,18 +948,19 @@ ntValue *nt_array_builder (ntValue *array, ntValue *item) {
 		return NULL;
 
 	ntValue *newarray = NULL;
-	if (!nt_value_is_array (array))
-		array = newarray = nt_value_new_array (array, NULL);
+	if (!nt_value_is_array(array))
+		array = newarray = nt_value_new_array(array, NULL);
 
-	ntValue *len = nt_value_get_utf8 (array, "length");
-	if (!nt_value_is_number (len)) {
-		nt_value_decref (newarray);
-		nt_value_decref (len);
+	ntValue *len = nt_value_get_utf8(array, "length");
+	if (!nt_value_is_number(len)) {
+		nt_value_decref(newarray);
+		nt_value_decref(len);
 		return NULL;
 	}
 
-	nt_value_decref (nt_value_set (array, len, item, ntPropAttrNone));
-	nt_value_decref (len);
+	nt_value_decref(nt_value_set(array, len, item, ntPropAttrNone));
+	nt_value_decref(len);
+	nt_value_decref(item);
 	return array;
 }
 
@@ -971,7 +972,6 @@ ntValue *nt_from_json (const ntValue *json) {
 
 	nt_value_decref (args);
 	nt_value_decref (JSON);
-	nt_value_decref (glbl);
 	return rslt;
 }
 
@@ -997,7 +997,6 @@ ntValue *nt_to_json (const ntValue *val) {
 
 	nt_value_decref (args);
 	nt_value_decref (JSON);
-	nt_value_decref (glbl);
 	return rslt;
 }
 

@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	Value json = global.get ("JSON");
 	assert (global.isGlobal ());
 	assert (!json.isException ());
@@ -15,7 +15,7 @@ int doTest (Engine& engine, Value& global) {
 	assert (!global.set ("object", global.newObject ()).isException ());
 	assert (!global.set ("string", global.newString ("hi")).isException ());
 
-	Value glb = engine.newGlobal (global);
+	Value glb = Value::newGlobal (global);
 	assert (glb.isGlobal ());
 	assert (!glb.set ("array", global.get ("array")).isException ());
 	assert (!glb.set ("bool", global.get ("bool")).isException ());

@@ -24,7 +24,8 @@
 #include <cstdlib> // For free()
 #include <cassert>
 
-#include "engine.hh"
+#include <cstdio>
+
 #include "value.hh"
 #include "value.h"
 using namespace natus;
@@ -156,6 +157,14 @@ Value Class::call (Value& obj, Value& ths, Value& arg) {
 	return NULL;
 }
 
+Value Value::newGlobal(const Value global) {
+	return nt_value_new_global_shared(global.internal);
+}
+
+Value Value::newGlobal(const char *name_or_path) {
+	return nt_value_new_global(name_or_path);
+}
+
 Value::Value () {
 	internal = NULL;
 }
@@ -167,8 +176,7 @@ Value::Value (ntValue *value, bool steal) {
 }
 
 Value::Value (const Value& value) {
-	internal = value.internal;
-	nt_value_incref (internal);
+	internal = nt_value_incref(value.internal);
 }
 
 Value::~Value () {
@@ -273,12 +281,11 @@ Value Value::newUndefined () const {
 }
 
 Value Value::getGlobal () const {
-	return nt_value_get_global (internal);
+	return nt_value_incref(nt_value_get_global (internal));
 }
 
-Engine Value::getEngine () const {
-	Engine e (nt_value_get_engine (internal));
-	return e;
+const char* Value::getEngineName () const {
+	return nt_value_get_engine_name(internal);
 }
 
 Value::Type Value::getType () const {

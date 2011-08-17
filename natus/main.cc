@@ -230,7 +230,6 @@ static Value set_path (Value& ctx, Require::HookStep step, char* name, void* mis
 }
 
 int main (int argc, char** argv) {
-	Engine engine;
 	Value global;
 	vector<string> configs;
 	const char *eng = NULL;
@@ -276,12 +275,8 @@ int main (int argc, char** argv) {
 		}
 	}
 
-	// Initialize the engine
-	if (!engine.initialize (eng))
-		error(1, 0, "Unable to init engine!\n");
-
 	// Setup our global
-	global = engine.newGlobal ();
+	global = Value::newGlobal (eng);
 	if (global.isUndefined () || global.isException ())
 		error(2, 0, "Unable to init global!\n");
 
@@ -343,7 +338,7 @@ int main (int argc, char** argv) {
 
 	// Start the shell
 	if (optind >= argc) {
-		fprintf (stderr, "Natus v" PACKAGE_VERSION " - Using: %s\n", engine.getName ());
+		fprintf (stderr, "Natus v" PACKAGE_VERSION " - Using: %s\n", global.getEngineName());
 		if (getenv ("HOME"))
 			read_history ((string (getenv ("HOME")) + "/" + HISTORYFILE).c_str ());
 		rl_readline_name = (char*) "natus";

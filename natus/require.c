@@ -21,6 +21,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
@@ -47,10 +48,6 @@
 #include "misc.h"
 #include "private.h"
 #include "require.h"
-#include "vsprintf.h"
-
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "backend.h"
 
 #define  _str(s) # s
 #define __str(s) _str(s)
@@ -113,11 +110,13 @@ static void _foreach_match (const char *name, reqOriginMatcher *om, loopData *ld
 }
 
 static char *check_path (struct stat *st, const char *fmt, ...) {
+	char *fn = NULL;
+
 	va_list ap;
 	va_start(ap, fmt);
-	char *fn = _vsprintf (fmt, ap);
+	int sz = vasprintf (&fn, fmt, ap);
 	va_end(ap);
-	if (!fn)
+	if (sz < 0)
 		return NULL;
 
 	char *rp = realpath (fn, NULL);
@@ -148,8 +147,10 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 
 		ntValue *prfx = nt_value_get_index (stack, len > 0 ? len - 1 : 0);
 		nt_value_decref (stack);
-		if (nt_value_is_undefined (prfx))
+		if (nt_value_is_undefined (prfx)) {
+			nt_value_decref(prfx);
 			prfx = nt_value_new_string_utf8 (ctx, ".");
+		}
 
 		const ntValue *items[2] = { prfx, NULL };
 		path = nt_value_new_array (ctx, items);
@@ -252,6 +253,7 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 
 			// Call the function
 			ntValue *res = nt_value_call (func, exports, args);
+			nt_value_decref (func);
 			nt_value_decref (args);
 			if (nt_value_is_exception (res)) {
 				nt_value_decref (exports);
@@ -268,12 +270,13 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 		free (prefix);
 		continue;
 
-		out: strncpy (name, "file://", PATH_MAX);
-		strncat (name, file, PATH_MAX - strlen ("file://"));
-		nt_value_decref (path);
-		free (prefix);
-		free (file);
-		return retval;
+		out:
+			strncpy (name, "file://", PATH_MAX);
+			strncat (name, file, PATH_MAX - strlen ("file://"));
+			nt_value_decref (path);
+			free (prefix);
+			free (file);
+			return retval;
 	}
 	nt_value_decref (path);
 	return NULL;
@@ -342,10 +345,8 @@ bool nt_require_init_value (ntValue *ctx, ntValue *config) {
 	// Make sure we haven't already initialized a module loader
 	// If not, initialize
 	req = nt_value_get_private(glb, ntRequire*);
-	if (req) {
-		nt_value_decref (glb);
+	if (req)
 		return true;
-	}
 	if (!(req = malloc (sizeof(ntRequire))))
 		goto error;
 	memset (req, 0, sizeof(ntRequire));
@@ -391,14 +392,11 @@ bool nt_require_init_value (ntValue *ctx, ntValue *config) {
 		nt_value_set_private(glb, ntRequire*, NULL, NULL);
 		nt_value_set_private_name (glb, NATUS_REQUIRE_STACK, NULL, NULL);
 		nt_value_del_utf8 (glb, "require");
-		nt_value_decref (glb);
 		return false;
 	}
-	nt_value_decref (glb);
 	return true;
 
 	error: _nt_require_free (req);
-	nt_value_decref (glb);
 	nt_value_decref (pth);
 	return false;
 }
@@ -407,19 +405,13 @@ void nt_require_free (ntValue *ctx) {
 	ntValue *glb = nt_value_get_global (ctx);
 	nt_value_set_private(glb, ntRequire*, NULL, NULL);
 	nt_value_set_private_name (glb, NATUS_REQUIRE_STACK, NULL, NULL);
-	nt_value_decref (glb);
 }
 
 ntValue *nt_require_get_config (ntValue *ctx) {
 	// Get the global and the ntRequire struct
 	ntValue *global = nt_value_get_global (ctx);
 	ntRequire *req = nt_value_get_private(global, ntRequire*);
-	if (!req) {
-		nt_value_decref (global);
-		return NULL;
-	}
-
-	return nt_value_incref (req->config);
+	return nt_value_incref (req ? req->config : NULL);
 }
 
 #define _do_set(ctx, field, name, item, free) \
@@ -430,7 +422,6 @@ ntValue *nt_require_get_config (ntValue *ctx) {
 	return nt_private_set(req->field, name, item, ((ntFreeFunction) free)); \
 	error: \
 		if (item) free((reqPayload*) item); \
-		nt_value_decref(glb); \
 		return false;
 
 bool nt_require_hook_add (ntValue *ctx, const char *name, ntRequireHook func, void *misc, ntFreeFunction free) {
@@ -469,10 +460,8 @@ bool nt_require_origin_permitted (ntValue *ctx, const char *uri) {
 
 	// Get the require structure
 	ntRequire *req = nt_value_get_private(glb, ntRequire*);
-	if (!req) {
-		nt_value_decref (glb);
+	if (!req)
 		return true;
-	}
 
 	// Get the whitelist and blacklist
 	ntValue *whitelist = nt_value_get_recursive_utf8 (req->config, CFG_ORIGINS_WHITELIST);
@@ -480,7 +469,6 @@ bool nt_require_origin_permitted (ntValue *ctx, const char *uri) {
 	if (!nt_value_is_array (whitelist)) {
 		nt_value_decref (blacklist);
 		nt_value_decref (whitelist);
-		nt_value_decref (glb);
 		return true;
 	}
 
@@ -577,16 +565,13 @@ ntValue *nt_require (ntValue *ctx, const char *name) {
 	// Get the global and the ntRequire struct
 	ntValue *global = nt_value_get_global (ctx);
 	ntRequire *req = nt_value_get_private(global, ntRequire*);
-	if (!global || !req) {
-		nt_value_decref (global);
+	if (!global || !req)
 		return NULL;
-	}
 
 	// Check to see if we've already loaded the module (resolve step)
 	ntHookData hd = { name, req, ntRequireHookStepResolve, global, NULL };
 	nt_private_foreach (req->hooks, true, (ntPrivateForeach) do_hooks, &hd);
 	if (hd.res) {
-		nt_value_decref (global);
 		if (!nt_value_is_exception (hd.res))
 			goto modfound;
 		return hd.res;
@@ -596,7 +581,6 @@ ntValue *nt_require (ntValue *ctx, const char *name) {
 	hd.step = ntRequireHookStepLoad;
 	nt_private_foreach (req->hooks, true, (ntPrivateForeach) do_hooks, &hd);
 	if (hd.res) {
-		nt_value_decref (global);
 		if (!nt_value_is_exception (hd.res))
 			goto modfound;
 		return hd.res;

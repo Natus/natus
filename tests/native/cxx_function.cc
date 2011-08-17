@@ -17,8 +17,8 @@ static Value exception_function (Value& fnc, Value& ths, Value& arg) {
 	return firstarg_function (fnc, ths, arg).toException ();
 }
 
-int doTest (Engine& engine, Value& global) {
-	Value glbl = engine.newGlobal (global);
+int doTest (Value& global) {
+	Value glbl = Value::newGlobal (global);
 	Value rslt;
 	Value func = global.newFunction (firstarg_function);
 	assert (func.isFunction ());

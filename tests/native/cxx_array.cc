@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	Value array = arrayBuilder (arrayBuilder (global, 123), 456);
 	assert (array.isArray ());
 	assert (array.get ("length").to<int> () == 2);

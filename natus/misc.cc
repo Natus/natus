@@ -22,6 +22,7 @@
  */
 
 #include "misc.h"
+#include "value.h"
 #include "value.hh"
 using namespace natus;
 
@@ -71,7 +72,7 @@ Value convertArguments (Value args, const char *fmt, ...) {
 }
 
 Value arrayBuilder (Value array, Value item) {
-	ntValue *tmp = nt_array_builder (array.borrowCValue (), item.borrowCValue ());
+	ntValue *tmp = nt_array_builder (array.borrowCValue (), nt_value_incref(item.borrowCValue ()));
 	if (!array.isArray ())
 		return tmp;
 	return Value (tmp, false);

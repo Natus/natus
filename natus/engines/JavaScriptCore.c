@@ -27,9 +27,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/backend.h>
-
 #ifdef __APPLE__
 // JavaScriptCore.h requires CoreFoundation
 // This is only found on Mac OS X
@@ -38,61 +35,29 @@
 #include <JavaScriptCore/JavaScript.h>
 #endif
 
-#define CTX(v) (((JavaScriptCoreValue*) v)->ctx)
-#define VAL(v) (((JavaScriptCoreValue*) v)->val)
-#define OBJ(v) (JSValueToObject(CTX(v), VAL(v), NULL))
-#define ENG(v) ((JavaScriptCoreEngine*) v->eng->engine)
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+typedef JSContextRef ntEngCtx;
+typedef JSValueRef ntEngVal;
+#include <natus/backend.h>
 
-typedef struct {
-	JSClassRef global;
-	JSClassRef object;
-	JSClassRef function;
-} JavaScriptCoreEngine;
+#define NATUS_PRIV_JSC_CLASS "natus.JavaScriptCore.JSClass"
 
-typedef struct {
-	ntValue hdr;
-	JSContextRef ctx;
-	JSValueRef val;
-} JavaScriptCoreValue;
+#define checkerror() \
+	if (exc) { \
+		*flags |= ntEngValFlagException; \
+		return exc; \
+	}
+
+#define checkerrorval(val) \
+	checkerror(); \
+	if (!val) \
+		return NULL
+
 
 typedef struct {
 	JSClassDefinition def;
 	JSClassRef ref;
 } JavaScriptCoreClass;
-
-static ntValue* get_instance (const ntValue* ctx, JSValueRef val, bool exc) {
-	if (JSValueIsObject (CTX(ctx), val)) {
-		ntValue* global = (ntValue*) nt_private_get (JSObjectGetPrivate (JSValueToObject (CTX(ctx), val, NULL)), NATUS_PRIV_GLOBAL);
-		if (global && VAL(global) == val)
-			return nt_value_incref (global);
-	}
-
-	ntValue *self = malloc (sizeof(JavaScriptCoreValue));
-	if (!self)
-		return self;
-	memset (self, 0, sizeof(JavaScriptCoreValue));
-
-	CTX(self) = CTX(ctx);
-
-	if (!val) {
-		VAL(self) = JSValueMakeUndefined (CTX(ctx));
-		self->typ = ntValueTypeUndefined;
-	} else {
-		VAL(self) = val;
-		self->typ = ntValueTypeUnknown;
-	}
-	if (!VAL(self)) {
-		free (self);
-		return NULL;
-	}
-	JSValueProtect (CTX(self), VAL(self));
-
-	if (exc)
-		self->typ |= ntValueTypeException;
-	self->eng = nt_engine_incref (ctx->eng);
-	self->ref = 1;
-	return self;
-}
 
 static void class_free (JavaScriptCoreClass *jscc) {
 	if (!jscc)
@@ -108,7 +73,7 @@ static size_t pows (size_t base, size_t pow) {
 	return base * pows (base, pow - 1);
 }
 
-static ntValue *property_to_value (ntValue *glbl, JSStringRef propertyName) {
+static ntEngVal property_to_value (ntEngCtx ctx, JSStringRef propertyName) {
 	size_t i = 0, idx = 0, len = JSStringGetLength (propertyName);
 	const JSChar *jschars = JSStringGetCharactersPtr (propertyName);
 	if (!jschars)
@@ -121,67 +86,10 @@ static ntValue *property_to_value (ntValue *glbl, JSStringRef propertyName) {
 		idx += (jschars[len] - '0') * pows (10, i);
 	}
 	if (i > 0)
-		return nt_value_new_number (glbl, idx);
+		return JSValueMakeNumber(ctx, idx);
 
-	str: return nt_value_new_string_utf16_length (glbl, jschars, JSStringGetLength (propertyName));
-}
-
-static inline void property_handler (JSContextRef ct, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef *exc, bool *retb, JSValueRef *retv) {
-	// Bootstrap the basic private variables
-	ntPrivate *prv = JSObjectGetPrivate (object);
-	ntClass *cls = nt_private_get (prv, NATUS_PRIV_CLASS);
-	ntValue *ctx = nt_private_get (prv, NATUS_PRIV_GLOBAL);
-	assert(cls && ctx);
-
-	// Convert the arguments
-	ntValue *prp = property_to_value (ctx, propertyName);
-
-	ntValue *obj = get_instance (ctx, object, false);
-	ntValue *val = value ? get_instance (ctx, value, false) : NULL;
-	if (!prp || !obj || (value && !val)) {
-		nt_value_decref (val);
-		nt_value_decref (obj);
-		nt_value_decref (prp);
-		*exc = NULL;
-		if (retb)
-			*retb = false;
-		if (retv)
-			*retv = NULL;
-		return;
-	}
-
-	// Call the hook
-	assert(prp->eng);
-	assert(prp->eng->espec);
-	assert(obj->eng);
-	assert(obj->eng->espec);
-	ntValue *rslt = NULL;
-	if (retb) {
-		if (value)
-			rslt = cls->set (cls, obj, prp, val);
-		else
-			rslt = cls->del (cls, obj, prp);
-	} else
-		rslt = cls->get (cls, obj, prp);
-	nt_value_decref (val);
-	nt_value_decref (obj);
-	nt_value_decref (prp);
-
-	// Analyze the results
-	if (nt_value_is_exception (rslt)) {
-		*exc = !nt_value_is_undefined (rslt) ? VAL(rslt) : NULL;
-		if (retv)
-			*retv = NULL;
-		if (retb)
-			*retb = false;
-		nt_value_decref (rslt);
-		return;
-	}
-	if (retv)
-		*retv = VAL(rslt);
-	if (retb)
-		*retb = true;
-	nt_value_decref (rslt);
+	str:
+		return JSValueMakeString(ctx, propertyName);
 }
 
 static void obj_finalize (JSObjectRef object) {
@@ -189,82 +97,125 @@ static void obj_finalize (JSObjectRef object) {
 }
 
 static bool obj_del (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef *exc) {
-	bool ret;
-	property_handler (ctx, object, propertyName, NULL, exc, &ret, NULL);
-	return ret;
+	ntEngVal idx = property_to_value(ctx, propertyName);
+	if (idx) {
+		ntEngValFlags flags = ntEngValFlagNone;
+		JSValueProtect(ctx, object);
+		JSValueProtect(ctx, idx);
+		JSValueRef ret = nt_value_handle_property(ntPropertyActionDelete, object, JSObjectGetPrivate(object), idx, NULL, &flags);
+		if (flags & ntEngValFlagMustFree)
+			JSValueUnprotect(ctx, ret);
+		if (flags & ntEngValFlagException) {
+			*exc = ret;
+			return false;
+		}
+
+		return JSValueIsBoolean(ctx, ret) ? JSValueToBoolean(ctx, ret) : false;
+	}
+	return false;
 }
 
 static JSValueRef obj_get (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef *exc) {
-	JSValueRef ret;
-	property_handler (ctx, object, propertyName, NULL, exc, NULL, &ret);
-	return ret;
+	ntEngVal idx = property_to_value(ctx, propertyName);
+	if (idx) {
+		ntEngValFlags flags = ntEngValFlagNone;
+		JSValueProtect(ctx, object);
+		JSValueProtect(ctx, idx);
+		JSValueRef ret = nt_value_handle_property(ntPropertyActionGet, object, JSObjectGetPrivate(object), idx, NULL, &flags);
+		if (flags & ntEngValFlagMustFree)
+			JSValueUnprotect(ctx, ret);
+		if (flags & ntEngValFlagException) {
+			*exc = ret;
+			return NULL;
+		}
+
+		return ret;
+	}
+	return NULL;
 }
 
 static bool obj_set (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef *exc) {
-	bool ret;
-	property_handler (ctx, object, propertyName, value, exc, &ret, NULL);
-	return ret;
+	ntEngVal idx = property_to_value(ctx, propertyName);
+	if (idx) {
+		ntEngValFlags flags = ntEngValFlagNone;
+		JSValueProtect(ctx, object);
+		JSValueProtect(ctx, idx);
+		JSValueProtect(ctx, value);
+		JSValueRef ret = nt_value_handle_property(ntPropertyActionSet, object, JSObjectGetPrivate(object), idx, value, &flags);
+		if (flags & ntEngValFlagMustFree)
+			JSValueUnprotect(ctx, ret);
+		if (flags & ntEngValFlagException) {
+			*exc = ret;
+			return false;
+		}
+
+		return JSValueIsBoolean(ctx, ret) ? JSValueToBoolean(ctx, ret) : false;
+	}
+	return false;
 }
 
 static void obj_enum (JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef propertyNames) {
-	ntPrivate *prv = JSObjectGetPrivate (object);
-	ntClass *cls = nt_private_get (prv, NATUS_PRIV_CLASS);
-	ntValue *glb = nt_private_get (prv, NATUS_PRIV_GLOBAL);
-	assert(cls && glb);
+	JSValueRef exc = NULL;
 
-	ntValue *obj = get_instance (glb, object, false);
-	if (!obj)
+	ntEngValFlags flags = ntEngValFlagNone;
+	JSValueRef rslt = nt_value_handle_property(ntPropertyActionEnumerate, JSObjectGetPrivate(object), NULL, NULL, NULL, &flags);
+	if (!rslt)
+		return;
+	if (flags & ntEngValFlagMustFree)
+		JSValueUnprotect(ctx, rslt);
+
+	JSObjectRef obj = JSValueToObject(ctx, rslt, &exc);
+	if (!obj || exc)
 		return;
 
-	ntValue *res = cls->enumerate (cls, obj);
-	nt_value_decref (obj);
-	if (!res)
+	JSStringRef length = JSStringCreateWithUTF8CString("length");
+	if (!length)
 		return;
-	ntValue *len = nt_value_get_utf8 (res, "length");
+	JSValueRef len = JSObjectGetProperty(ctx, obj, length, &exc);
+	JSStringRelease(length);
+	if (!len || exc)
+		return;
 
-	long i, l = nt_value_to_long (len);
-	nt_value_decref (len);
-	for (i = 0; i < l ; i++) {
-		ntValue *item = nt_value_get_index (res, i);
-		JSStringRef str = JSValueToStringCopy (ctx, VAL(item), NULL);
-		nt_value_decref (item);
+	int count = (int) JSValueToNumber(ctx, len, &exc);
+	if (exc)
+		return;
+
+	int i;
+	for (i = 0; i < count ; i++) {
+		JSValueRef val = JSObjectGetPropertyAtIndex(ctx, obj, i, &exc);
+		if (!val || exc)
+			return;
+
+		JSStringRef str = JSValueToStringCopy(ctx, val, NULL);
 		if (!str)
-			continue;
-		JSPropertyNameAccumulatorAddName (propertyNames, str);
-		JSStringRelease (str);
+			return;
+
+		JSPropertyNameAccumulatorAddName(propertyNames, str);
+		JSStringRelease(str);
 	}
-	nt_value_decref (res);
 }
 
 static JSValueRef obj_call (JSContextRef ctx, JSObjectRef object, JSObjectRef thisObject, size_t argc, const JSValueRef args[], JSValueRef* exc) {
-	ntPrivate *priv = JSObjectGetPrivate (object);
-	ntValue *glbl = nt_private_get (priv, NATUS_PRIV_GLOBAL);
-	ntNativeFunction func = nt_private_get (priv, NATUS_PRIV_FUNCTION);
-	ntClass *clss = nt_private_get (priv, NATUS_PRIV_CLASS);
-	assert(glbl && (func || clss));
-
-	// Allocate our array of arguments
-	JSObjectRef arga = JSObjectMakeArray (ctx, argc, args, exc);
-	if (!arga)
-		return NULL;
-
-	// Do the call
-	ntValue *fnc = get_instance (glbl, object, false);
-	ntValue *ths = thisObject ? get_instance (glbl, thisObject, false) : nt_value_new_undefined (glbl);
-	ntValue *arg = get_instance (glbl, arga, false);
-	ntValue *res = func ? func (fnc, ths, arg) : clss->call (clss, fnc, ths, arg);
-	nt_value_decref (arg);
-	nt_value_decref (ths);
-	nt_value_decref (fnc);
-
-	JSValueRef r = res ? VAL(res) : NULL;
-	if (nt_value_is_exception (res)) {
-		nt_value_decref (res);
-		*exc = r ? r : JSValueMakeUndefined (ctx);
+	ntEngValFlags flags = ntEngValFlagNone;
+	JSValueRef arg = JSObjectMakeArray(ctx, argc, args, exc);
+	JSValueProtect(ctx, object);
+	if (thisObject) JSValueProtect(ctx, thisObject);
+	JSValueProtect(ctx, arg);
+	JSValueRef ret = nt_value_handle_call(object, JSObjectGetPrivate(object), thisObject, arg, &flags);
+	if (!ret) {
+		*exc = JSValueMakeUndefined(ctx);
 		return NULL;
 	}
-	nt_value_decref (res);
-	return r;
+
+	if (flags & ntEngValFlagMustFree)
+		JSValueUnprotect(ctx, ret);
+
+	if (flags & ntEngValFlagException) {
+		*exc = ret;
+		return NULL;
+	}
+
+	return ret;
 }
 
 static JSObjectRef obj_new (JSContextRef ctx, JSObjectRef object, size_t argc, const JSValueRef args[], JSValueRef* exc) {
@@ -272,181 +223,187 @@ static JSObjectRef obj_new (JSContextRef ctx, JSObjectRef object, size_t argc, c
 }
 
 static JSClassDefinition glbclassdef = { .className = "GlobalObject", .finalize = obj_finalize, };
-
 static JSClassDefinition objclassdef = { .className = "NativeObject", .finalize = obj_finalize, };
-
 static JSClassDefinition fncclassdef = { .className = "NativeFunction", .finalize = obj_finalize, .callAsFunction = obj_call, .callAsConstructor = obj_new, };
+static JSClassRef glbcls;
+static JSClassRef objcls;
+static JSClassRef fnccls;
 
-static ntPrivate *jsc_value_private_get (const ntValue *val) {
-	return JSObjectGetPrivate (OBJ(val));
+__attribute__((constructor))
+static void _init() {
+	// Make sure the enum values don't get changed on us
+	assert(kJSPropertyAttributeNone == (JSPropertyAttributes) ntPropAttrNone);
+	assert(kJSPropertyAttributeReadOnly == (JSPropertyAttributes) ntPropAttrReadOnly << 1);
+	assert(kJSPropertyAttributeDontEnum == (JSPropertyAttributes) ntPropAttrDontEnum << 1);
+	assert(kJSPropertyAttributeDontDelete == (JSPropertyAttributes) ntPropAttrDontDelete << 1);
+
+	if (!glbcls)
+		assert(glbcls = JSClassCreate(&glbclassdef));
+	if (!objcls)
+		assert(objcls = JSClassCreate(&objclassdef));
+	if (!fnccls)
+		assert(fnccls = JSClassCreate(&fncclassdef));
 }
 
-static bool jsc_value_borrow_context (const ntValue *ctx, void **context, void **value) {
-	if (context)
-		*context = &CTX(ctx);
-	if (value)
-		*value = &VAL(ctx);
-	return true;
-}
-
-static ntValue* jsc_value_get_global (const ntValue *val) {
-	return (ntValue*) nt_private_get (JSObjectGetPrivate (JSContextGetGlobalObject (CTX(val))), NATUS_PRIV_GLOBAL);
-}
-
-static ntValueType jsc_value_get_type (const ntValue *val) {
-	JSType type = JSValueGetType (CTX(val), VAL(val));
-	switch (type) {
-		case kJSTypeBoolean:
-			return ntValueTypeBoolean;
-		case kJSTypeNull:
-			return ntValueTypeNull;
-		case kJSTypeNumber:
-			return ntValueTypeNumber;
-		case kJSTypeString:
-			return ntValueTypeString;
-		case kJSTypeObject:
-			break;
-		default:
-			return ntValueTypeUndefined;
+__attribute__((destructor))
+static void _fini() {
+	if (glbcls) {
+		JSClassRelease(glbcls);
+		glbcls = NULL;
 	}
-
-	// FUNCTION
-	if (JSObjectIsFunction (CTX(val), JSValueToObject (CTX(val), VAL(val), NULL))) {
-		ntPrivate *priv = JSObjectGetPrivate (JSValueToObject (CTX(val), VAL(val), NULL));
-		if (!priv || (nt_private_get (priv, NATUS_PRIV_FUNCTION) && !nt_private_get (priv, NATUS_PRIV_CLASS)))
-			return ntValueTypeFunction;
+	if (objcls) {
+		JSClassRelease(objcls);
+		objcls = NULL;
 	}
+	if (fnccls) {
+		JSClassRelease(fnccls);
+		fnccls = NULL;
+	}
+}
 
-	// Bypass infinite loops for objects defined by natus
-	// (otherwise, the JSObjectGetProperty() calls below will
-	//  call the natus defined property handler, which may call
-	//  get_type(), etc)
-	if (JSObjectGetPrivate (OBJ(val)))
-		return ntValueTypeObject;
+static void jsc_ctx_free(ntEngCtx ctx) {
+	JSGarbageCollect(ctx);
+	JSGlobalContextRelease ((JSGlobalContextRef) ctx);
+}
 
-	// ARRAY
-	JSStringRef str = JSStringCreateWithUTF8CString ("constructor");
-	if (!str)
-		return ntValueTypeUnknown;
-	JSValueRef prp = JSObjectGetProperty (CTX(val), OBJ(val), str, NULL);
-	JSStringRelease (str);
-	JSObjectRef obj = JSValueIsObject (CTX(val), prp) ? JSValueToObject (CTX(val), prp, NULL) : NULL;
-	str = JSStringCreateWithUTF8CString ("name");
-	if (!str)
-		return ntValueTypeUnknown;
-	if (obj && (prp = JSObjectGetProperty (CTX(val), obj, str, NULL)) && JSValueIsString (CTX(val), prp)) {
-		JSStringRelease (str);
-		str = JSValueToStringCopy (CTX(val), prp, NULL);
-		if (!str)
-			return ntValueTypeUnknown;
-		if (JSStringIsEqualToUTF8CString (str, "Array")) {
-			JSStringRelease (str);
-			return ntValueTypeArray;
+static void jsc_val_free(ntEngCtx ctx, ntEngVal val) {
+	if (val != JSContextGetGlobalObject(ctx))
+		JSValueUnprotect(ctx, val);
+}
+
+static ntEngVal jsc_new_global (ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags) {
+	*newctx = NULL;
+	*flags = ntEngValFlagNone;
+
+	JSContextGroupRef grp = NULL;
+	if (ctx)
+		grp = JSContextGetGroup (ctx);
+
+	*newctx = JSGlobalContextCreateInGroup (grp, glbcls);
+	if (!*newctx)
+		goto error;
+
+	JSObjectRef glb = JSContextGetGlobalObject (*newctx);
+	if (!glb)
+		goto error;
+
+	if (!JSObjectSetPrivate (glb, priv))
+		goto error;
+
+	return glb;
+
+	error:
+		if (*newctx) {
+			JSGlobalContextRelease ((JSGlobalContextRef) *newctx);
+			*newctx = NULL;
 		}
-	}
-	JSStringRelease (str);
-
-	// OBJECT
-	return ntValueTypeObject;
+		nt_private_free(priv);
+		return NULL;
 }
 
-static void jsc_value_free (ntValue *val) {
-	JSValueUnprotect (CTX(val), VAL(val));
-	if (nt_value_is_global (val)) {
-		JSGarbageCollect (CTX(val));
-		JSGlobalContextRelease ((JSGlobalContextRef) CTX(val));
-	}
-	nt_engine_decref (val->eng);
-	free (val);
+static ntEngVal jsc_new_bool (const ntEngCtx ctx, bool b, ntEngValFlags *flags) {
+	return JSValueMakeBoolean(ctx, b);
 }
 
-static ntValue* jsc_value_new_bool (const ntValue *ctx, bool b) {
-	return get_instance (ctx, JSValueMakeBoolean (CTX(ctx), b), false);
+static ntEngVal jsc_new_number(const ntEngCtx ctx, double n, ntEngValFlags *flags) {
+	return JSValueMakeNumber(ctx, n);
 }
 
-static ntValue* jsc_value_new_number (const ntValue *ctx, double n) {
-	return get_instance (ctx, JSValueMakeNumber (CTX(ctx), n), false);
+static ntEngVal jsc_new_string_utf8(const ntEngCtx ctx, const char *str, size_t len, ntEngValFlags *flags) {
+	JSStringRef string = JSStringCreateWithUTF8CString (str);
+	JSValueRef val = JSValueMakeString (ctx, string);
+	JSStringRelease (string);
+	return val;
 }
 
-static ntValue* jsc_value_new_string_utf8 (const ntValue *ctx, const char *string, size_t len) {
-	JSStringRef str = JSStringCreateWithUTF8CString (string);
-	JSValueRef val = JSValueMakeString (CTX(ctx), str);
-	JSStringRelease (str);
-	return get_instance (ctx, val, false);
+static ntEngVal jsc_new_string_utf16(const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValFlags *flags) {
+	JSStringRef string = JSStringCreateWithCharacters (str, len);
+	JSValueRef val = JSValueMakeString (ctx, string);
+	JSStringRelease (string);
+	return val;
 }
 
-static ntValue* jsc_value_new_string_utf16 (const ntValue *ctx, const ntChar *string, size_t len) {
-	JSStringRef str = JSStringCreateWithCharacters (string, len);
-	JSValueRef val = JSValueMakeString (CTX(ctx), str);
-	JSStringRelease (str);
-	return get_instance (ctx, val, false);
-}
-
-static ntValue* jsc_value_new_array (const ntValue *ctx, const ntValue **array) {
-	int i;
-	for (i = 0; array && array[i] ; i++)
-		;
-
-	JSValueRef *vals = calloc (i + 1, sizeof(JSValueRef));
-	memset (vals, 0, sizeof(JSValueRef) * (i + 1));
-	for (i = 0; array && array[i] ; i++)
-		vals[i] = VAL(array[i]);
-
+static ntEngVal jsc_new_array(const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlags *flags) {
 	JSValueRef exc = NULL;
-	JSObjectRef obj = JSObjectMakeArray (CTX(ctx), i, vals, &exc);
-	free (vals);
-
-	return get_instance (ctx, obj ? obj : exc, obj ? false : true);
+	JSObjectRef ret = JSObjectMakeArray (ctx, len, array, &exc);
+	checkerrorval(ret);
+	return ret;
 }
 
-static ntValue* jsc_value_new_function (const ntValue *ctx, const char *name, ntPrivate *priv) {
+
+static ntEngVal jsc_new_function(const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValFlags *flags) {
+	JSStringRef stmp;
+	JSValueRef exc = NULL;
+
 	// Get the function object and the prototype
-	ntValue *glb = nt_value_get_global(ctx);
-	ntValue *fnc = nt_value_get_utf8(glb, "Function");
-	nt_value_decref(glb);
-	if (!fnc)
-		return NULL;
-	ntValue *prt = nt_value_get_utf8(fnc, "prototype");
-	if (!prt) {
-		nt_value_decref(fnc);
-		return NULL;
-	}
+	JSObjectRef global = JSContextGetGlobalObject(ctx);
+	checkerrorval(global);
+
+	stmp = JSStringCreateWithUTF8CString("Function");
+	checkerrorval(stmp);
+	JSValueRef function = JSObjectGetProperty(ctx, global, stmp, &exc);
+	JSStringRelease(stmp);
+	checkerrorval(function);
+
+	JSObjectRef funcobj = JSValueToObject(ctx, function, &exc);
+	checkerrorval(funcobj);
+	stmp = JSStringCreateWithUTF8CString("prototype");
+	checkerrorval(stmp);
+	JSValueRef prototype = JSObjectGetProperty(ctx, funcobj, stmp, &exc);
+	JSStringRelease(stmp);
+	checkerrorval(prototype);
 
 	// Make our new function (which is really an object we will convert to emulate a function)
-	JSObjectRef obj = JSObjectMake (CTX(ctx), ENG(ctx)->function, priv);
-	if (!obj) {
-		nt_value_decref(prt);
-		return NULL;
-	}
+	JSObjectRef obj = JSObjectMake (ctx, fnccls, priv);
+	checkerrorval(obj);
 
 	// Convert the object to emulate a function
-	JSObjectSetPrototype(CTX(ctx), obj, VAL(prt));
-	nt_value_decref(prt);
+	JSObjectSetPrototype(ctx, obj, prototype);
 
 	// Add a proper toString() function
 	JSStringRef fname = JSStringCreateWithUTF8CString("toString");
-	JSStringRef stmp = JSStringCreateWithUTF8CString("return 'function ' + this.name + '() {\\n    [native code]\\n}';");
-	JSObjectRef toString = JSObjectMakeFunction(CTX(ctx), fname, 0, NULL, stmp, NULL, 0, NULL);
+	checkerrorval(fname);
+	stmp = JSStringCreateWithUTF8CString("return 'function ' + this.name + '() {\\n    [native code]\\n}';");
+	if (!stmp) {
+		JSStringRelease(fname);
+		return NULL;
+	}
+	JSObjectRef toString = JSObjectMakeFunction(ctx, fname, 0, NULL, stmp, NULL, 0, &exc);
 	JSStringRelease(stmp);
-	JSObjectSetProperty(CTX(ctx), obj, fname, toString, kJSPropertyAttributeNone, NULL);
+	if (exc) {
+		JSStringRelease(fname);
+		*flags |= ntEngValFlagException;
+		return exc;
+	}
+	JSObjectSetProperty(ctx, obj, fname, toString, kJSPropertyAttributeNone, &exc);
 	JSStringRelease(fname);
+	checkerror();
 
 	// Set the name
 	fname = JSStringCreateWithUTF8CString(name ? name : "anonymous");
+	checkerrorval(fname);
 	stmp  = JSStringCreateWithUTF8CString("name");
-	JSObjectSetProperty(CTX(ctx), obj, stmp, JSValueMakeString(CTX(ctx), fname), kJSPropertyAttributeNone, NULL);
+	if (!stmp) {
+		JSStringRelease(fname);
+		return NULL;
+	}
+	JSObjectSetProperty(ctx, obj, stmp, JSValueMakeString(ctx, fname), kJSPropertyAttributeNone, &exc);
 	JSStringRelease(stmp);
 	JSStringRelease(fname);
+	checkerror();
 
-	ntValue *func = get_instance (ctx, obj, false);
-	nt_value_decref(nt_value_set_utf8(func, "constructor", fnc, ntPropAttrNone));
-	nt_value_decref(fnc);
-	return func;
+	stmp = JSStringCreateWithUTF8CString("constructor");
+	checkerrorval(stmp);
+	JSObjectSetProperty(ctx, obj, stmp, function, kJSPropertyAttributeNone, &exc);
+	JSStringRelease(stmp);
+	checkerror();
+
+	return obj;
 }
 
-static ntValue* jsc_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivate *priv) {
+static ntEngVal jsc_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *flags) {
 	// Fill in our functions
-	JSClassRef jscls = ENG(ctx)->object;
+	JSClassRef jscls = objcls;
 	if (cls) {
 		JavaScriptCoreClass *jscc = malloc (sizeof(JavaScriptCoreClass));
 		if (!jscc)
@@ -462,7 +419,7 @@ static ntValue* jsc_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivat
 		jscc->def.callAsFunction = cls->call ? obj_call : NULL;
 		jscc->def.callAsConstructor = cls->call ? obj_new : NULL;
 
-		if (!nt_private_set (priv, "natus.JavaScriptCore.JSClass", jscc, (ntFreeFunction) class_free))
+		if (!nt_private_set (priv, NATUS_PRIV_JSC_CLASS, jscc, (ntFreeFunction) class_free))
 			return NULL;
 
 		jscc->ref = jscls = JSClassCreate (&jscc->def);
@@ -471,32 +428,32 @@ static ntValue* jsc_value_new_object (const ntValue *ctx, ntClass *cls, ntPrivat
 	}
 
 	// Build the object
-	JSObjectRef obj = JSObjectMake (CTX(ctx), jscls, priv);
+	JSObjectRef obj = JSObjectMake (ctx, jscls, priv);
 	if (!obj)
 		return NULL;
 
 	// Do the return
-	return get_instance (ctx, obj, false);
+	return obj;
 }
 
-static ntValue* jsc_value_new_null (const ntValue *ctx) {
-	return get_instance (ctx, JSValueMakeNull (CTX(ctx)), false);
+static ntEngVal jsc_new_null(const ntEngCtx ctx, ntEngValFlags *flags) {
+	return JSValueMakeNull(ctx);
 }
 
-static ntValue* jsc_value_new_undefined (const ntValue *ctx) {
-	return get_instance (ctx, JSValueMakeUndefined (CTX(ctx)), false);
+static ntEngVal jsc_new_undefined(const ntEngCtx ctx, ntEngValFlags *flags) {
+	return JSValueMakeUndefined(ctx);
 }
 
-static bool jsc_value_to_bool (const ntValue *val) {
-	return JSValueToBoolean (CTX(val), VAL(val));
+static bool jsc_to_bool(const ntEngCtx ctx, const ntEngVal val) {
+	return JSValueToBoolean(ctx, val);
 }
 
-static double jsc_value_to_double (const ntValue *val) {
-	return JSValueToNumber (CTX(val), VAL(val), NULL);
+static double jsc_to_double(const ntEngCtx ctx, const ntEngVal val) {
+	return JSValueToNumber(ctx, val, NULL);
 }
 
-static char *jsc_value_to_string_utf8 (const ntValue *val, size_t *len) {
-	JSStringRef str = JSValueToStringCopy (CTX(val), VAL(val), NULL);
+static char *jsc_to_string_utf8(const ntEngCtx ctx, const ntEngVal val, size_t *len) {
+	JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
 	if (!str)
 		return NULL;
 
@@ -514,8 +471,8 @@ static char *jsc_value_to_string_utf8 (const ntValue *val, size_t *len) {
 	return buff;
 }
 
-static ntChar *jsc_value_to_string_utf16 (const ntValue *val, size_t *len) {
-	JSStringRef str = JSValueToStringCopy (CTX(val), VAL(val), NULL);
+static ntChar *jsc_to_string_utf16(const ntEngCtx ctx, const ntEngVal val, size_t *len) {
+	JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
 	if (!str)
 		return NULL;
 
@@ -532,63 +489,75 @@ static ntChar *jsc_value_to_string_utf16 (const ntValue *val, size_t *len) {
 	return buff;
 }
 
-static ntValue *jsc_value_del (ntValue *obj, const ntValue *id) {
+static ntEngVal jsc_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags) {
 	JSValueRef exc = NULL;
-	JSStringRef sidx = JSValueToStringCopy (CTX(obj), VAL(id), &exc);
-	if (!sidx)
-		return get_instance (obj, exc, true);
 
-	JSObjectDeleteProperty (CTX(obj), OBJ(obj), sidx, &exc);
+	JSObjectRef obj = JSValueToObject(ctx, val, &exc);
+	checkerrorval(obj);
+
+	JSStringRef sidx = JSValueToStringCopy (ctx, id, &exc);
+	checkerrorval(sidx);
+
+	JSObjectDeleteProperty (ctx, obj, sidx, &exc);
 	JSStringRelease (sidx);
-	if (exc)
-		return get_instance (obj, exc, true);
-	return get_instance (obj, JSValueMakeBoolean (CTX(obj), true), false);
+	checkerror();
+
+	return JSValueMakeBoolean (ctx, true);
 }
 
-static ntValue *jsc_value_get (const ntValue *obj, const ntValue *id) {
+static ntEngVal jsc_get(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags) {
 	JSValueRef exc = NULL;
-	JSValueRef val = NULL;
+	JSValueRef rslt = NULL;
 
-	if (nt_value_is_number (id)) {
-		val = JSObjectGetPropertyAtIndex (CTX(obj), OBJ(obj), nt_value_to_long (id), &exc);
+	JSObjectRef obj = JSValueToObject(ctx, val, &exc);
+	checkerrorval(obj);
+
+	if (JSValueIsNumber(ctx, id)) {
+		double idx = JSValueToNumber(ctx, id, &exc);
+		checkerror();
+		rslt = JSObjectGetPropertyAtIndex (ctx, obj, idx, &exc);
 	} else {
-		JSStringRef sidx = JSValueToStringCopy (CTX(obj), VAL(id), NULL);
-		if (!sidx)
-			return NULL;
-		val = JSObjectGetProperty (CTX(obj), OBJ(obj), sidx, &exc);
-		JSStringRelease (sidx);
+		JSStringRef idx = JSValueToStringCopy (ctx, id, &exc);
+		checkerrorval(idx);
+		rslt = JSObjectGetProperty (ctx, obj, idx, &exc);
+		JSStringRelease (idx);
 	}
-
-	if (exc)
-		return get_instance (obj, exc, true);
-	if (!val)
-		return jsc_value_new_undefined (obj);
-	ntValue *v = get_instance (obj, val, false);
-	return v;
+	checkerrorval(rslt);
+	return rslt;
 }
 
-static ntValue *jsc_value_set (ntValue *obj, const ntValue *id, const ntValue *value, ntPropAttr attrs) {
+static ntEngVal jsc_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value, ntPropAttr attrs, ntEngValFlags *flags) {
 	JSValueRef exc = NULL;
-	if (nt_value_is_number (id)) {
-		JSObjectSetPropertyAtIndex (CTX(obj), OBJ(obj), nt_value_to_long (id), VAL(value), &exc);
+
+	JSObjectRef obj = JSValueToObject(ctx, val, &exc);
+	checkerrorval(obj);
+
+	if (JSValueIsNumber(ctx, id)) {
+		double idx = JSValueToNumber(ctx, id, &exc);
+		if (!exc)
+			JSObjectSetPropertyAtIndex(ctx, obj, idx, value, &exc);
 	} else {
-		JSStringRef sidx = JSValueToStringCopy (CTX(obj), VAL(id), &exc);
-		if (sidx) {
+		JSStringRef idx = JSValueToStringCopy (ctx, id, &exc);
+		if (idx) {
 			JSPropertyAttributes flags = attrs == ntPropAttrNone ? ntPropAttrNone : attrs << 1;
-			JSObjectSetProperty (CTX(obj), OBJ(obj), sidx, VAL(value), flags, &exc);
-			JSStringRelease (sidx);
+			JSObjectSetProperty (ctx, obj, idx, value, flags, &exc);
+			JSStringRelease (idx);
 		}
 	}
-	return get_instance (obj, exc ? exc : JSValueMakeBoolean (CTX(obj), true), exc != NULL);
+	checkerror();
+	return JSValueMakeBoolean (ctx, true);
 }
 
-static ntValue *jsc_value_enumerate (const ntValue *obj) {
+static ntEngVal jsc_enumerate(const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags) {
 	size_t i;
+	JSValueRef exc = NULL;
+
+	JSObjectRef obj = JSValueToObject(ctx, val, &exc);
+	checkerrorval(obj);
 
 	// Get the names
-	JSPropertyNameArrayRef na = JSObjectCopyPropertyNames (CTX(obj), OBJ(obj));
-	if (!na)
-		return NULL;
+	JSPropertyNameArrayRef na = JSObjectCopyPropertyNames (ctx, obj);
+	checkerrorval(na);
 
 	size_t c = JSPropertyNameArrayGetCount (na);
 	JSValueRef *items = malloc (sizeof(JSValueRef *) * c);
@@ -600,7 +569,7 @@ static ntValue *jsc_value_enumerate (const ntValue *obj) {
 	for (i = 0; i < c ; i++) {
 		JSStringRef name = JSPropertyNameArrayGetNameAtIndex (na, i);
 		if (name) {
-			items[i] = JSValueMakeString (CTX(obj), name);
+			items[i] = JSValueMakeString (ctx, name);
 			if (items[i])
 				continue;
 		}
@@ -610,128 +579,170 @@ static ntValue *jsc_value_enumerate (const ntValue *obj) {
 	}
 	JSPropertyNameArrayRelease (na);
 
-	JSValueRef exc = NULL;
-	JSObjectRef array = JSObjectMakeArray (CTX(obj), c, items, &exc);
+	JSObjectRef array = JSObjectMakeArray (ctx, c, items, &exc);
 	free (items);
-	if (array)
-		return get_instance (obj, array, false);
-	return get_instance (obj, exc, true);
+	checkerror();
+	return array;
 }
 
-static ntValue *jsc_value_call (ntValue *func, ntValue *ths, ntValue *args) {
+static ntEngVal jsc_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngValFlags *flags) {
+	JSValueRef exc = NULL;
+
+	JSObjectRef funcobj = JSValueToObject(ctx, func, &exc);
+	checkerrorval(funcobj);
+
+	JSObjectRef argsobj = JSValueToObject(ctx, args, &exc);
+	checkerrorval(argsobj);
+
 	// Convert to jsval array
-	ntValue *length = nt_value_get_utf8 (args, "length");
-	long i, len = nt_value_to_long (length);
-	nt_value_decref (length);
+	JSStringRef name = JSStringCreateWithUTF8CString("length");
+	checkerrorval(name);
+	JSValueRef length = JSObjectGetProperty(ctx, argsobj, name, &exc);
+	checkerrorval(length);
+	long i, len = JSValueToNumber(ctx, length, &exc);
+	checkerror();
 
 	JSValueRef *argv = calloc (len, sizeof(JSValueRef *));
 	if (!argv)
 		return NULL;
 	for (i = 0; i < len ; i++) {
-		ntValue *item = nt_value_get_index (args, i);
-		argv[i] = VAL(item);
-		nt_value_decref (item);
+		argv[i] = JSObjectGetPropertyAtIndex(ctx, argsobj, i, &exc);
+		if (!argv[i] || exc) {
+			free(argv);
+			*flags |= ntEngValFlagException;
+			return exc;
+		}
 	}
 
 	// Call the function
 	JSValueRef rval;
-	JSValueRef exc = NULL;
-	if (nt_value_get_type (ths) == ntValueTypeUndefined)
-		rval = JSObjectCallAsConstructor (CTX(func), OBJ(func), i, argv, &exc);
-	else
-		rval = JSObjectCallAsFunction (CTX(func), OBJ(func), OBJ(ths), i, argv, &exc);
+	if (JSValueIsUndefined(ctx, ths))
+		rval = JSObjectCallAsConstructor (ctx, funcobj, i, argv, &exc);
+	else {
+		JSObjectRef thsobj = JSValueToObject(ctx, ths, &exc);
+		checkerrorval(thsobj);
+		rval = JSObjectCallAsFunction (ctx, funcobj, thsobj, i, argv, &exc);
+	}
 	free (argv);
-
-	// Return the result
-	return get_instance (func, exc == NULL ? rval : exc, exc != NULL);
+	checkerror();
+	return rval;
 }
 
-static ntValue *jsc_value_evaluate (ntValue *ths, const ntValue *jscript, const ntValue *filename, unsigned int lineno) {
+static ntEngVal jsc_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEngVal filename, unsigned int lineno, ntEngValFlags *flags) {
 	JSValueRef exc = NULL;
 
-	JSStringRef strjscript = JSValueToStringCopy (CTX(jscript), VAL(jscript), &exc);
-	if (!strjscript)
-		return get_instance (ths, exc, true);
+	JSObjectRef thsobj = JSValueToObject(ctx, ths, &exc);
+	checkerrorval(thsobj);
 
-	JSStringRef strfilename = JSValueToStringCopy (CTX(filename), VAL(filename), &exc);
-	if (!strfilename) {
+	JSStringRef strjscript = JSValueToStringCopy (ctx, jscript, &exc);
+	checkerrorval(strjscript);
+
+	JSStringRef strfilename = JSValueToStringCopy (ctx, filename, &exc);
+	if (!strfilename || exc)
 		JSStringRelease (strjscript);
-		return get_instance (ths, exc, true);
-	}
+	checkerrorval(strfilename);
 
-	JSValueRef rval = JSEvaluateScript (CTX(ths), strjscript, OBJ(ths), strfilename, lineno, &exc);
+	JSValueRef rval = JSEvaluateScript (ctx, strjscript, thsobj, strfilename, lineno, &exc);
 	JSStringRelease (strjscript);
 	JSStringRelease (strfilename);
-
-	return get_instance (ths, exc == NULL ? rval : exc, exc != NULL);
+	checkerror();
+	return rval;
 }
 
-static bool jsc_value_equal (ntValue *val1, ntValue *val2, bool strict) {
-	if (strict)
-		return JSValueIsStrictEqual (CTX(val1), VAL(val1), VAL(val2));
-	return JSValueIsEqual (CTX(val1), VAL(val1), VAL(val2), NULL);
+static ntPrivate *jsc_get_private(const ntEngCtx ctx, const ntEngVal val) {
+	JSObjectRef obj = JSValueToObject(ctx, val, NULL);
+	if (!obj)
+		return NULL;
+	return JSObjectGetPrivate (obj);
 }
 
-static ntValue* jsc_engine_newg (void *engine, ntValue *global) {
-	if (!engine)
-		return NULL;
+static ntEngVal jsc_get_global(const ntEngCtx ctx, const ntEngVal val) {
+	return JSContextGetGlobalObject (ctx);
+}
 
-	JSContextGroupRef grp = NULL;
-	if (global)
-		grp = JSContextGetGroup (CTX(global));
-
-	ntValue *self = malloc (sizeof(JavaScriptCoreValue));
-	if (!self)
-		return NULL;
-	memset (self, 0, sizeof(JavaScriptCoreValue));
-
-	CTX(self) = JSGlobalContextCreateInGroup (grp, ((JavaScriptCoreEngine *) engine)->global);
-	if (!CTX(self)) {
-		free (self);
-		return NULL;
+static ntValueType jsc_get_type(const ntEngCtx ctx, const ntEngVal val) {
+	JSType type = JSValueGetType (ctx, val);
+	switch (type) {
+		case kJSTypeBoolean:
+			return ntValueTypeBoolean;
+		case kJSTypeNull:
+			return ntValueTypeNull;
+		case kJSTypeNumber:
+			return ntValueTypeNumber;
+		case kJSTypeString:
+			return ntValueTypeString;
+		case kJSTypeObject:
+			break;
+		default:
+			return ntValueTypeUndefined;
 	}
-	VAL(self) = JSContextGetGlobalObject (CTX(self));
-	if (!VAL(self)) {
-		free (self);
-		JSGlobalContextRelease ((JSGlobalContextRef) CTX(self));
-		return NULL;
-	}
-	JSValueProtect (CTX(self), VAL(self));
-	JSObjectSetPrivate (OBJ(self), nt_private_init ());
-	return self;
-}
 
-static void jsc_engine_free (void *engine) {
-	if (!engine)
-		return;
-	JSClassRelease (((JavaScriptCoreEngine *) engine)->global);
-	JSClassRelease (((JavaScriptCoreEngine *) engine)->object);
-	JSClassRelease (((JavaScriptCoreEngine *) engine)->function);
-	free (engine);
-}
+	JSObjectRef obj = JSValueToObject(ctx, val, NULL);
+	assert(obj);
 
-static void* jsc_engine_init () {
-	// Make sure the enum values don't get changed on us
-	assert(kJSPropertyAttributeNone == (JSPropertyAttributes) ntPropAttrNone);
-	assert(kJSPropertyAttributeReadOnly == (JSPropertyAttributes) ntPropAttrReadOnly << 1);
-	assert(kJSPropertyAttributeDontEnum == (JSPropertyAttributes) ntPropAttrDontEnum << 1);
-	assert(kJSPropertyAttributeDontDelete == (JSPropertyAttributes) ntPropAttrDontDelete << 1);
+	ntPrivate *priv = JSObjectGetPrivate(obj);
 
-	JavaScriptCoreEngine *eng = malloc (sizeof(JavaScriptCoreEngine));
-	if (eng) {
-		eng->global = JSClassCreate (&glbclassdef);
-		eng->object = JSClassCreate (&objclassdef);
-		eng->function = JSClassCreate (&fncclassdef);
-		if (!eng->global || !eng->object || !eng->function) {
-			JSClassRelease (eng->global);
-			JSClassRelease (eng->object);
-			JSClassRelease (eng->function);
-			free (eng);
-			return NULL;
+	// FUNCTION
+	if (JSObjectIsFunction(ctx, obj) && (!priv || JSValueIsObjectOfClass(ctx, val, fnccls)))
+		return ntValueTypeFunction;
+
+	// Bypass infinite loops for objects defined by natus
+	// (otherwise, the JSObjectGetProperty() calls below will
+	//  call the natus defined property handler, which may call
+	//  get_type(), etc)
+	if (JSObjectGetPrivate (obj))
+		return ntValueTypeObject;
+
+	// ARRAY
+	/* Yes, this is really ugly. But unfortunately JavaScriptCore is missing JSValueIsArray().
+	 * We also can't check the constructor directly for identity with the Array object because
+	 * we can't get the global object associated with this value (the global for this context
+	 * may not be the global for this value).
+	 * Dear JSC, please add JSValueIsArray() (and also JSValueGetGlobal())... */
+	JSStringRef str = JSStringCreateWithUTF8CString("constructor");
+	if (!str)
+		return ntValueTypeObject;
+	JSValueRef prp = JSObjectGetProperty(ctx, obj, str, NULL);
+	JSStringRelease(str);
+	JSObjectRef prpobj = JSValueIsObject(ctx, prp) ? JSValueToObject(ctx, prp, NULL) : NULL;
+	str = JSStringCreateWithUTF8CString("name");
+	if (!str)
+		return ntValueTypeObject;
+	if (prpobj && (prp = JSObjectGetProperty(ctx, prpobj, str, NULL))
+			&& JSValueIsString(ctx, prp)) {
+		JSStringRelease(str);
+		str = JSValueToStringCopy(ctx, prp, NULL);
+		if (!str)
+			return ntValueTypeObject;
+		if (JSStringIsEqualToUTF8CString(str, "Array")) {
+			JSStringRelease(str);
+			return ntValueTypeArray;
 		}
 	}
+	JSStringRelease(str);
 
-	return eng;
+	// OBJECT
+	return ntValueTypeObject;
 }
+
+static bool jsc_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value) {
+	*context = (void*) ctx;
+	*value = (void*) val;
+	return true;
+}
+
+static bool jsc_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict) {
+	switch (strict) {
+		case ntEqualityStrictnessLoose:
+			return JSValueIsEqual (ctx, val1, val2, NULL);
+		case ntEqualityStrictnessStrict:
+			return JSValueIsStrictEqual (ctx, val1, val2);
+		case ntEqualityStrictnessIdentity:
+			return val1 == val2;
+		default:
+			assert(false);
+	}
+}
+
 NATUS_ENGINE("JavaScriptCore", "JSObjectMakeFunctionWithCallback", jsc);
 

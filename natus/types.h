@@ -32,11 +32,6 @@
 typedef struct _ntValue ntValue;
 #endif
 
-#ifndef _HAVE_NT_ENGINE
-#define _HAVE_NT_ENGINE
-typedef struct _ntEngine ntEngine;
-#endif
-
 #ifdef WIN32
 typedef wchar_t ntChar;
 #else

@@ -3,7 +3,7 @@
 #define settest(fmt, v, val) assert(convertArguments(array, fmt, &v, 0).to<int>() == 1 && v == val);
 #define deftest(fmt, v, val) assert(convertArguments(array, fmt, &v, val).to<int>() == 1 && v == val);
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	Value array = global.newArray ();
 
 	Value obj = global.newObject ();

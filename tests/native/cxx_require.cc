@@ -17,7 +17,7 @@ Value hook (Value& ctx, Require::HookStep step, char* name, void* misc) {
 	return NULL;
 }
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	Value config = global.newObject ();
 	Value path = arrayBuilder (global, "./");
 	config.setRecursive ("natus.require.path", path, Value::PropAttrNone, true);

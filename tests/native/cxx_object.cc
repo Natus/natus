@@ -1,4 +1,5 @@
 #include "test.hh"
+#include <natus/value.h>
 
 class TestClass: public Class {
 	virtual Value del (Value& obj, Value& name) {
@@ -38,7 +39,7 @@ class TestClass: public Class {
 		assert (args.borrowCValue ());
 		assert (obj.isObject ());
 		assert (args.isArray ());
-		if (strcmp (obj.getEngine ().getName (), "v8")) // Work around a bug in v8
+		if (strcmp (obj.getEngineName (), "v8")) // Work around a bug in v8
 			assert (ths.isGlobal () || ths.isUndefined ());
 		if (args.get ("length").to<int> () == 0)
 			return obj.getPrivateName<Value> ("retval");
@@ -50,7 +51,7 @@ class TestClass: public Class {
 	}
 };
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	assert (!global.set ("x", global.newObject (new TestClass ())).isException ());
 	Value x = global.get ("x");
 	assert (x.isObject ());

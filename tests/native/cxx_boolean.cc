@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	// Test true
 	assert (!global.set ("x", global.newBoolean (true)).isException ());
 	assert (global.get ("x").to<bool> ());

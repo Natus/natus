@@ -4,14 +4,13 @@ enginedir = $(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 natincdir = $(includedir)/$(PACKAGE_NAME)
 
 # Variables
-CHEADERS   = engine.h  misc.h  value.h  require.h  private.h natus.h  types.h  backend.h 
-CSOURCES   = engine.c  misc.c  value.c  require.c  private.c
-CXXHEADERS = engine.hh misc.hh value.hh require.hh           natus.hh types.hh
-CXXSOURCES = engine.cc misc.cc value.cc require.cc
+CHEADERS   = misc.h  value.h  require.h  private.h natus.h  types.h  backend.h 
+CSOURCES   = misc.c  value.c  require.c  private.c
+CXXHEADERS = misc.hh value.hh require.hh           natus.hh types.hh
+CXXSOURCES = misc.cc value.cc require.cc
 
 # Handle the headers
 natinc_HEADERS = $(CHEADERS) $(CXXHEADERS)
-noinst_HEADERS = vsprintf.h
 
 # Build our internal C library
 noinst_LTLIBRARIES   = libnatusc.la

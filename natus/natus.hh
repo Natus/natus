@@ -28,7 +28,6 @@
 #error Natus is not stable, go look elsewhere...
 #endif
 
-#include "engine.hh"
 #include "value.hh"
 #include "require.hh"
 #include "misc.hh"

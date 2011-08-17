@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	assert (!global.set ("x", global.newString ("hello")).isException ());
 	assert (global.get ("x").isString ());
 	assert (global.get ("x").to<UTF8> () == "hello");

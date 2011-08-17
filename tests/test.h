@@ -36,7 +36,7 @@ int main (int argc, const char **argv) {
 		strcat (tmp, ent->d_name);
 
 		retval = onEngine (tmp, argc, argv);
-		free( tmp);
+		free(tmp);
 	}
 
 	closedir( dir);

@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	assert (!global.setRecursive ("step.step.value", 3L, Value::PropAttrNone, true).isException ());
 
 	assert (!global.getRecursive ("step").isException ());

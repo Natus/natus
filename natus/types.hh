@@ -27,7 +27,6 @@
 
 namespace natus {
 class Value;
-class Engine;
 
 #ifdef WIN32
 typedef wchar_t Char;

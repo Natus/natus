@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	Value exc = throwException (global, NULL, "Error", "Foo %d", 23);
 	assert (exc.to<UTF8> () == "Error: Foo 23");
 

@@ -42,15 +42,14 @@ typedef ntValue *(*ntNativeFunction) (ntValue *fnc, ntValue *ths, ntValue *arg);
 
 typedef enum {
 	ntValueTypeUnknown = 0 << 0,
-	ntValueTypeException = 1 << 0, // Internal use only
-	ntValueTypeArray = 1 << 1,
-	ntValueTypeBoolean = 1 << 2,
-	ntValueTypeFunction = 1 << 3,
-	ntValueTypeNull = 1 << 4,
-	ntValueTypeNumber = 1 << 5,
-	ntValueTypeObject = 1 << 6,
-	ntValueTypeString = 1 << 7,
-	ntValueTypeUndefined = 1 << 8,
+	ntValueTypeArray = 1 << 0,
+	ntValueTypeBoolean = 1 << 1,
+	ntValueTypeFunction = 1 << 2,
+	ntValueTypeNull = 1 << 3,
+	ntValueTypeNumber = 1 << 4,
+	ntValueTypeObject = 1 << 5,
+	ntValueTypeString = 1 << 6,
+	ntValueTypeUndefined = 1 << 7,
 	ntValueTypeSupportsPrivate = ntValueTypeFunction | ntValueTypeObject,
 } ntValueType;
 
@@ -80,6 +79,8 @@ extern "C" {
 ntValue *nt_value_incref (ntValue *val);
 ntValue *nt_value_decref (ntValue *val);
 
+ntValue *nt_value_new_global (const char *name_or_path);
+ntValue *nt_value_new_global_shared (const ntValue *global);
 ntValue *nt_value_new_boolean (const ntValue *ctx, bool b);
 ntValue *nt_value_new_number (const ntValue *ctx, double n);
 ntValue *nt_value_new_string (const ntValue *ctx, const char *fmt, ...);
@@ -94,7 +95,7 @@ ntValue *nt_value_new_object (const ntValue *ctx, ntClass* cls);
 ntValue *nt_value_new_null (const ntValue *ctx);
 ntValue *nt_value_new_undefined (const ntValue *ctx);
 ntValue *nt_value_get_global (const ntValue *ctx);
-ntEngine *nt_value_get_engine (const ntValue *ctx);
+const char *nt_value_get_engine_name(const ntValue *ctx);
 ntValueType nt_value_get_type (const ntValue *ctx);
 const char *nt_value_get_type_name (const ntValue *ctx);
 bool nt_value_borrow_context (const ntValue *ctx, void **context, void **value);
@@ -154,8 +155,10 @@ ntValue *nt_value_call_utf8 (ntValue *ths, const char *name, ntValue *args);
 ntValue *nt_value_call_new (ntValue *func, ntValue *args);
 ntValue *nt_value_call_new_utf8 (ntValue *obj, const char *name, ntValue *args);
 
-bool nt_value_equals (ntValue *val1, ntValue *val2);
-bool nt_value_equals_strict (ntValue *val1, ntValue *val2);
+bool nt_value_equals (const ntValue *val1, const ntValue *val2);
+bool nt_value_equals_strict (const ntValue *val1, const ntValue *val2);
+
+void *nt_value_get_valuep(ntValue *v);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -104,7 +104,7 @@ void nt_private_free (ntPrivate *self) {
 	free (self);
 }
 
-void *nt_private_get (ntPrivate *self, const char *name) {
+void *nt_private_get (const ntPrivate *self, const char *name) {
 	size_t i;
 	if (!self || !name)
 		return NULL;
@@ -159,7 +159,7 @@ bool nt_private_push (ntPrivate *self, void *priv, ntFreeFunction free) {
 	return _private_push (self, NULL, priv, free);
 }
 
-void nt_private_foreach (ntPrivate *self, bool rev, void(*foreach) (const char *name, void *priv, void *misc), void *misc) {
+void nt_private_foreach (const ntPrivate *self, bool rev, void(*foreach) (const char *name, void *priv, void *misc), void *misc) {
 	ssize_t i;
 	for (i = rev ? self->used - 1 : 0; rev ? i >= 0 : i < self->used ; i += rev ? -1 : 1)
 		foreach (self->priv[i].name, self->priv[i].priv, misc);

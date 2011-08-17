@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	assert (!global.set ("x", global.newNumber (3)).isException ());
 	assert (3 == global.get ("x").to<int> ());
 	assert (3.0 == global.get ("x").to<double> ());

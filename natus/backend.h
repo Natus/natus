@@ -23,7 +23,6 @@
 
 #ifndef ENGINEMOD_H_
 #define ENGINEMOD_H_
-#include "engine.h"
 #include "value.h"
 #include "private.h"
 
@@ -42,97 +41,95 @@ extern "C" {
 		NATUS_ENGINE_VERSION, \
 		name, \
 		symb, \
-		{ \
-			prfx ## _engine_init, \
-			prfx ## _engine_newg, \
-			prfx ## _engine_free \
-		}, \
-		{ \
-			prfx ## _value_private_get, \
-			prfx ## _value_borrow_context, \
-			prfx ## _value_get_global, \
-			prfx ## _value_get_type, \
-			prfx ## _value_free, \
-			prfx ## _value_new_bool, \
-			prfx ## _value_new_number, \
-			prfx ## _value_new_string_utf8, \
-			prfx ## _value_new_string_utf16, \
-			prfx ## _value_new_array, \
-			prfx ## _value_new_function, \
-			prfx ## _value_new_object, \
-			prfx ## _value_new_null, \
-			prfx ## _value_new_undefined, \
-			prfx ## _value_to_bool, \
-			prfx ## _value_to_double, \
-			prfx ## _value_to_string_utf8, \
-			prfx ## _value_to_string_utf16, \
-			prfx ## _value_del, \
-			prfx ## _value_get, \
-			prfx ## _value_set, \
-			prfx ## _value_enumerate, \
-			prfx ## _value_call, \
-			prfx ## _value_evaluate, \
-			prfx ## _value_equal \
-		} \
+		prfx ## _ctx_free, \
+		prfx ## _val_free, \
+		prfx ## _new_global, \
+		prfx ## _new_bool, \
+		prfx ## _new_number, \
+		prfx ## _new_string_utf8, \
+		prfx ## _new_string_utf16, \
+		prfx ## _new_array, \
+		prfx ## _new_function, \
+		prfx ## _new_object, \
+		prfx ## _new_null, \
+		prfx ## _new_undefined, \
+		prfx ## _to_bool, \
+		prfx ## _to_double, \
+		prfx ## _to_string_utf8, \
+		prfx ## _to_string_utf16, \
+		prfx ## _del, \
+		prfx ## _get, \
+		prfx ## _set, \
+		prfx ## _enumerate, \
+		prfx ## _call, \
+		prfx ## _evaluate, \
+		prfx ## _get_private, \
+		prfx ## _get_global, \
+		prfx ## _get_type, \
+		prfx ## _borrow_context, \
+		prfx ## _equal \
 	}
-#define NATUS_PRIV_CLASS     "natus::Class"
-#define NATUS_PRIV_FUNCTION  "natus::Function"
-#define NATUS_PRIV_GLOBAL    "natus::Global"
 
-typedef struct {
-	void* (*init) ();
-	ntValue *(*newg) (void *, ntValue *);
-	void (*free) (void *);
-} ntEngineTable;
+typedef enum {
+	ntEqualityStrictnessLoose,
+	ntEqualityStrictnessStrict,
+	ntEqualityStrictnessIdentity
+} ntEqualityStrictness;
 
-typedef struct {
-	ntPrivate *(*private_get) (const ntValue *val);
-	bool (*borrow_context) (const ntValue *ctx, void **context, void **value);
-	ntValue *(*get_global) (const ntValue *val);
-	ntValueType (*get_type) (const ntValue *val);
-	void (*free) (ntValue *val);
-	ntValue *(*new_bool) (const ntValue *ctx, bool b);
-	ntValue *(*new_number) (const ntValue *ctx, double n);
-	ntValue *(*new_string_utf8) (const ntValue *ctx, const char *str, size_t len);
-	ntValue *(*new_string_utf16) (const ntValue *ctx, const ntChar *str, size_t len);
-	ntValue *(*new_array) (const ntValue *ctx, const ntValue **array);
-	ntValue *(*new_function) (const ntValue *ctx, const char *name, ntPrivate *priv);
-	ntValue *(*new_object) (const ntValue *ctx, ntClass *cls, ntPrivate *priv);
-	ntValue *(*new_null) (const ntValue *ctx);
-	ntValue *(*new_undefined) (const ntValue *ctx);
-	bool (*to_bool) (const ntValue *val);
-	double (*to_double) (const ntValue *val);
-	char *(*to_string_utf8) (const ntValue *val, size_t *len);
-	ntChar *(*to_string_utf16) (const ntValue *val, size_t *len);
-	ntValue *(*del) (ntValue *obj, const ntValue *id);
-	ntValue *(*get) (const ntValue *obj, const ntValue *id);
-	ntValue *(*set) (ntValue *obj, const ntValue *id, const ntValue *value, ntPropAttr attrs);
-	ntValue *(*enumerate) (const ntValue *obj);
-	ntValue *(*call) (ntValue *func, ntValue *ths, ntValue *args);
-	ntValue *(*evaluate) (ntValue *ths, const ntValue *jscript, const ntValue *filename, unsigned int lineno);
-	bool (*equal) (ntValue *val1, ntValue *val2, bool strict);
-} ntValueTable;
+typedef enum {
+	ntPropertyActionDelete    = 1,
+	ntPropertyActionGet       = 1 << 1,
+	ntPropertyActionSet       = 1 << 2,
+	ntPropertyActionEnumerate = 1 << 3
+} ntPropertyAction;
+
+typedef enum {
+	ntEngValFlagNone      = 0,
+	ntEngValFlagException = 1,
+	ntEngValFlagMustFree  = 1 << 1
+} ntEngValFlags;
 
 typedef struct {
 	unsigned int version;
 	const char *name;
 	const char *symbol;
-	ntEngineTable engine;
-	ntValueTable value;
+
+	void        (*ctx_free)         (ntEngCtx ctx);
+	void        (*val_free)         (ntEngCtx ctx, ntEngVal val);
+
+	ntEngVal    (*new_global)       (ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags);
+	ntEngVal    (*new_bool)         (const ntEngCtx ctx, bool b, ntEngValFlags *flags);
+	ntEngVal    (*new_number)       (const ntEngCtx ctx, double n, ntEngValFlags *flags);
+	ntEngVal    (*new_string_utf8)  (const ntEngCtx ctx, const char *str, size_t len, ntEngValFlags *flags);
+	ntEngVal    (*new_string_utf16) (const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValFlags *flags);
+	ntEngVal    (*new_array)        (const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlags *flags);
+	ntEngVal    (*new_function)     (const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValFlags *flags);
+	ntEngVal    (*new_object)       (const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *flags);
+	ntEngVal    (*new_null)         (const ntEngCtx ctx, ntEngValFlags *flags);
+	ntEngVal    (*new_undefined)    (const ntEngCtx ctx, ntEngValFlags *flags);
+
+	bool        (*to_bool)          (const ntEngCtx ctx, const ntEngVal val);
+	double      (*to_double)        (const ntEngCtx ctx, const ntEngVal val);
+	char       *(*to_string_utf8)   (const ntEngCtx ctx, const ntEngVal val, size_t *len);
+	ntChar     *(*to_string_utf16)  (const ntEngCtx ctx, const ntEngVal val, size_t *len);
+
+	ntEngVal    (*del)              (const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags);
+	ntEngVal    (*get)              (const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags);
+	ntEngVal    (*set)              (const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value, ntPropAttr attrs, ntEngValFlags *flags);
+	ntEngVal    (*enumerate)        (const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags);
+
+	ntEngVal    (*call)             (const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngValFlags *flags);
+	ntEngVal    (*evaluate)         (const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEngVal filename, unsigned int lineno, ntEngValFlags *flags);
+
+	ntPrivate  *(*get_private)      (const ntEngCtx ctx, const ntEngVal val);
+	ntEngVal    (*get_global)       (const ntEngCtx ctx, const ntEngVal val);
+	ntValueType (*get_type)         (const ntEngCtx ctx, const ntEngVal val);
+	bool        (*borrow_context)   (ntEngCtx ctx, ntEngVal val, void **context, void **value);
+	bool        (*equal)            (const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict);
 } ntEngineSpec;
 
-struct _ntEngine {
-	size_t ref;
-	ntEngineSpec *espec;
-	void *engine;
-	void *dll;
-};
-
-struct _ntValue {
-	size_t ref;
-	ntEngine *eng;
-	ntValueType typ;
-};
+ntEngVal nt_value_handle_property(ntPropertyAction act, ntEngVal obj, const ntPrivate *priv, ntEngVal idx, ntEngVal val, ntEngValFlags *flags);
+ntEngVal nt_value_handle_call    (ntEngVal obj, const ntPrivate *priv, ntEngVal ths, ntEngVal arg, ntEngValFlags *flags);
 
 #ifdef __cplusplus
 } /* extern "C" */

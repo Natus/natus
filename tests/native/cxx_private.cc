@@ -41,7 +41,7 @@ static void testExternal (Value& global, Value val, Value::Type type, bool works
 	assert (!global.del ("x").isException ());
 }
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	// Ensure we can store private on the global
 	assert (global.setPrivateName ("test", (void *) 0x1234));
 	assert (0x1234 == global.getPrivateName<long> ("test"));

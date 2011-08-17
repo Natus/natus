@@ -1,6 +1,6 @@
 #include "test.hh"
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	global.set ("x", global.newNull ());
 	assert (global.get ("x").isNull ());
 

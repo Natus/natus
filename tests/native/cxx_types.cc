@@ -4,7 +4,7 @@ static Value function (Value& fnc, Value& ths, Value& arg) {
 	return fnc.newBoolean (true);
 }
 
-int doTest (Engine& engine, Value& global) {
+int doTest (Value& global) {
 	Value array = global.newArray ();
 	Value boolean = global.newBoolean (true);
 	Value func = global.newFunction (function);

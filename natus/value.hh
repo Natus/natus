@@ -79,15 +79,14 @@ class Value {
 public:
 	typedef enum {
 		TypeUnknown = 0,
-		TypeException = 1 << 0, // Internal use only
-		TypeArray = 1 << 1,
-		TypeBool = 1 << 2,
-		TypeFunction = 1 << 3,
-		TypeNull = 1 << 4,
-		TypeNumber = 1 << 5,
-		TypeObject = 1 << 6,
-		TypeString = 1 << 7,
-		TypeUndefined = 1 << 8,
+		TypeArray = 1 << 0,
+		TypeBool = 1 << 1,
+		TypeFunction = 1 << 2,
+		TypeNull = 1 << 3,
+		TypeNumber = 1 << 4,
+		TypeObject = 1 << 5,
+		TypeString = 1 << 6,
+		TypeUndefined = 1 << 7,
 		TypeSupportsPrivate = TypeFunction | TypeObject,
 	} Type;
 
@@ -99,6 +98,9 @@ public:
 		PropAttrConstant = PropAttrReadOnly | PropAttrDontDelete,
 		PropAttrProtected = PropAttrConstant | PropAttrDontEnumerate
 	} PropAttr;
+
+	static Value newGlobal(const Value global);
+	static Value newGlobal(const char *name_or_path=NULL);
 
 	Value ();
 	Value (ntValue *value, bool steal = true);
@@ -124,7 +126,7 @@ public:
 	Value newNull () const;
 	Value newUndefined () const;
 	Value getGlobal () const;
-	Engine getEngine () const;
+	const char* getEngineName () const;
 	Value::Type getType () const;
 	const char* getTypeName () const;
 	bool borrowContext (void **context, void **value) const;
