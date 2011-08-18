@@ -109,7 +109,7 @@ static ntEngine *do_load_file (const char *filename, bool reqsym) {
 	/* Open the file */
 	dll = dlopen (filename, RTLD_LAZY | RTLD_LOCAL);
 	if (!dll) {
-		//printf("%s -- %s\n", filename.c_str(), dlerror());
+		fprintf(stderr, "%s -- %s\n", filename, dlerror());
 		return NULL;
 	}
 
@@ -200,7 +200,8 @@ static ntValue *mkval(const ntValue *ctx, ntEngVal val, ntEngValFlags flags, ntV
 
 	ntValue *self = new0(ntValue);
 	if (!self) {
-		ctx->ctx->eng->spec->val_free(ctx->ctx->ctx, val);
+		ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, val);
+		ctx->ctx->eng->spec->val_free(val);
 		return NULL;
 	}
 
@@ -226,8 +227,10 @@ ntValue *nt_value_decref (ntValue *val) {
 	val->ref = val->ref > 0 ? val->ref - 1 : 0;
 	if (val->ref == 0) {
 		/* Free the value */
-		if (val->val && val->flg & ntEngValFlagMustFree)
-			val->ctx->eng->spec->val_free (val->ctx->ctx, val->val);
+		if (val->val && (val->flg & ntEngValFlagMustFree)) {
+			val->ctx->eng->spec->val_unlock(val->ctx->ctx, val->val);
+			val->ctx->eng->spec->val_free(val->val);
+		}
 
 		/* Decrement the context reference */
 		val->ctx->ref = val->ctx->ref > 0 ? val->ctx->ref - 1 : 0;
@@ -323,7 +326,8 @@ ntValue *nt_value_new_global_shared (const ntValue *global) {
 		self->ctx->ref--;
 		self->ctx = new0(ntEngineContext);
 		if (!self->ctx) {
-			global->ctx->eng->spec->val_free(ctx, self->val);
+			global->ctx->eng->spec->val_unlock(ctx, self->val);
+			global->ctx->eng->spec->val_free(self->val);
 			global->ctx->eng->spec->ctx_free(ctx);
 			free(self);
 			return NULL;
@@ -485,7 +489,8 @@ ntValue *nt_value_get_global (const ntValue *ctx) {
 		return NULL;
 
 	ntPrivate *priv = ctx->ctx->eng->spec->get_private(ctx->ctx->ctx, glb);
-	ctx->ctx->eng->spec->val_free(ctx->ctx->ctx, glb);
+	ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, glb);
+	ctx->ctx->eng->spec->val_free(glb);
 	if (!priv)
 		return NULL;
 
@@ -900,10 +905,44 @@ bool nt_value_set_private_name (ntValue *obj, const char *key, void *priv, ntFre
 	return nt_private_set (prv, key, priv, free);
 }
 
+static void free_private_value(ntValue *pv) {
+	if (!pv)
+		return;
+
+	/* If the refcount is 0 it means that we are in the process of teardown,
+	 * and the value has already been unlocked because we are dismantling ctx.
+	 * Thus, we only do unlock if we aren't in this teardown phase. */
+	if (pv->ctx->ref > 0)
+		pv->ctx->eng->spec->val_unlock(pv->ctx->ctx, pv->val);
+	pv->ctx->eng->spec->val_free(pv->val);
+	free(pv);
+}
+
 bool nt_value_set_private_name_value (ntValue *obj, const char *key, ntValue* priv) {
-	nt_value_incref (priv);
-	if (!nt_value_set_private_name (obj, key, priv, (ntFreeFunction) nt_value_decref)) {
-		nt_value_decref (priv);
+	ntEngVal v = NULL;
+	ntValue *val = NULL;
+
+	if (priv) {
+		/* NOTE: So we have this circular problem where if we hide just a normal
+		 *       ntValue* it keeps a reference to the ctx, but the hidden value
+		 *       won't be free'd until the ctx is destroyed, but that won't happen
+		 *       because we have a reference.
+		 *
+		 *       So the way around this is that we don't store the normal ntValue,
+		 *       but instead store a special one without a refcount on the ctx.
+		 *       This means that ctx will be properly freed. */
+		v = priv->ctx->eng->spec->val_duplicate(priv->ctx->ctx, priv->val);
+		if (!v)
+			return false;
+
+		val = mkval(priv, v, priv->flg, priv->typ);
+		if (!val)
+			return false;
+		val->ctx->ref--; /* Don't keep a copy of this reference around */
+	}
+
+	if (!nt_value_set_private_name(obj, key, val, (ntFreeFunction) free_private_value)) {
+		free_private_value(val);
 		return false;
 	}
 	return true;
@@ -919,7 +958,14 @@ void* nt_value_get_private_name (const ntValue *obj, const char *key) {
 }
 
 ntValue *nt_value_get_private_name_value (const ntValue *obj, const char *key) {
-	return nt_value_incref (nt_value_get_private_name (obj, key));
+	/* See note in nt_value_set_private_name_value() */
+	ntValue *val = nt_value_get_private_name (obj, key);
+	if (!val)
+		return NULL;
+	return mkval(val,
+			     val->ctx->eng->spec->val_duplicate(val->ctx->ctx, val->val),
+			     val->flg,
+			     val->typ);
 }
 
 ntValue *nt_value_evaluate (ntValue *ths, const ntValue *javascript, const ntValue *filename, unsigned int lineno) {

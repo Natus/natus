@@ -42,6 +42,8 @@ extern "C" {
 		name, \
 		symb, \
 		prfx ## _ctx_free, \
+		prfx ## _val_unlock, \
+		prfx ## _val_duplicate, \
 		prfx ## _val_free, \
 		prfx ## _new_global, \
 		prfx ## _new_bool, \
@@ -95,7 +97,9 @@ typedef struct {
 	const char *symbol;
 
 	void        (*ctx_free)         (ntEngCtx ctx);
-	void        (*val_free)         (ntEngCtx ctx, ntEngVal val);
+	void        (*val_unlock)       (ntEngCtx ctx, ntEngVal val);
+	ntEngVal    (*val_duplicate)    (ntEngCtx ctx, ntEngVal val);
+	void        (*val_free)         (ntEngVal val);
 
 	ntEngVal    (*new_global)       (ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags);
 	ntEngVal    (*new_bool)         (const ntEngCtx ctx, bool b, ntEngValFlags *flags);

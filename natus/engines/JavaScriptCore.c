@@ -266,9 +266,18 @@ static void jsc_ctx_free(ntEngCtx ctx) {
 	JSGlobalContextRelease ((JSGlobalContextRef) ctx);
 }
 
-static void jsc_val_free(ntEngCtx ctx, ntEngVal val) {
+static void jsc_val_unlock(ntEngCtx ctx, ntEngVal val) {
 	if (val != JSContextGetGlobalObject(ctx))
 		JSValueUnprotect(ctx, val);
+}
+
+static ntEngVal jsc_val_duplicate(ntEngCtx ctx, ntEngVal val) {
+	JSValueProtect(ctx, val);
+	return val;
+}
+
+static void jsc_val_free(ntEngVal val) {
+
 }
 
 static ntEngVal jsc_new_global (ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags) {

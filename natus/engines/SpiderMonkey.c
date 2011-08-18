@@ -31,7 +31,8 @@ typedef JSContext* ntEngCtx;
 typedef jsval* ntEngVal;
 #include <natus/backend.h>
 
-static void sm_val_free(ntEngCtx ctx, ntEngVal val);
+static void sm_val_unlock(ntEngCtx ctx, ntEngVal val);
+static void sm_val_free(ntEngVal val);
 static ntValueType sm_get_type(const ntEngCtx ctx, const ntEngVal val);
 
 static ntEngVal mkjsval(JSContext *ctx, jsval val) {
@@ -85,22 +86,28 @@ static JSBool property_handler (JSContext *ctx, JSObject *object, jsid id, jsval
 
 	if (flags & ntEngValFlagException) {
 		if (!res || JSVAL_IS_VOID(*res)) {
-			if (flags & ntEngValFlagMustFree && res)
-				sm_val_free(ctx, res);
+			if (flags & ntEngValFlagMustFree && res) {
+				sm_val_unlock(ctx, res);
+				sm_val_free(res);
+			}
 			return JS_TRUE;
 		}
 
 		JS_SetPendingException (ctx, *res);
-		if (flags & ntEngValFlagMustFree)
-			sm_val_free(ctx, res);
+		if (flags & ntEngValFlagMustFree) {
+			sm_val_unlock(ctx, res);
+			sm_val_free(res);
+		}
 		return JS_FALSE;
 	}
 
 	if (act == ntPropertyActionGet)
 		*vp = *res;
 
-	if (flags & ntEngValFlagMustFree)
-		sm_val_free(ctx, res);
+	if (flags & ntEngValFlagMustFree) {
+		sm_val_unlock(ctx, res);
+		sm_val_free(res);
+	}
 	return JS_TRUE;
 }
 
@@ -125,14 +132,18 @@ static inline JSBool call_handler (JSContext *ctx, uintN argc, jsval *vp, bool c
 	// Handle the results
 	if (flags & ntEngValFlagException) {
 		JS_SetPendingException(ctx, res ? *res : JSVAL_VOID);
-		if (flags & ntEngValFlagMustFree && res)
-			sm_val_free(ctx, res);
+		if ((flags & ntEngValFlagMustFree) && res) {
+			sm_val_unlock(ctx, res);
+			sm_val_free(res);
+		}
 		return JS_FALSE;
 	}
 
 	JS_SET_RVAL(ctx, vp, *res);
-	if (flags & ntEngValFlagMustFree)
-		sm_val_free(ctx, res);
+	if (flags & ntEngValFlagMustFree) {
+		sm_val_unlock(ctx, res);
+		sm_val_free(res);
+	}
 	return JS_TRUE;
 }
 
@@ -235,8 +246,15 @@ static void sm_ctx_free(ntEngCtx ctx) {
 	JS_DestroyRuntime (run);
 }
 
-static void sm_val_free(ntEngCtx ctx, ntEngVal val) {
+static void sm_val_unlock(ntEngCtx ctx, ntEngVal val) {
 	JSVAL_UNLOCK(ctx, *val);
+}
+
+static ntEngVal sm_val_duplicate(ntEngCtx ctx, ntEngVal val) {
+	return mkjsval(ctx, *val);
+}
+
+static void sm_val_free(ntEngVal val) {
 	free(val);
 }
 

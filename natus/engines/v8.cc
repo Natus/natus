@@ -173,20 +173,35 @@ static Handle<Value> fnc_call (const Arguments& args) {
 }
 
 static void v8_ctx_free(ntEngCtx ctx) {
+#define FORCE_GC() while(!V8::IdleNotification()) {}
 	HandleScope hs;
-	Context::Scope cs(*ctx);
+
+	FORCE_GC();
+	ntPrivate *priv = (ntPrivate*) (*ctx)->Global()
+                                         ->GetHiddenValue(V8_PRIV_STRING)
+                                         ->ToObject()
+                                         ->GetPointerFromInternalField(V8_PRIV_SLOT);
+	nt_private_free(priv);
+	FORCE_GC();
 
 	ctx->Dispose();
 	ctx->Clear();
 	delete ctx;
+	FORCE_GC();
 }
 
-static void v8_val_free(ntEngCtx ctx, ntEngVal val) {
-	HandleScope hs;
-	Context::Scope cs(*ctx);
+static void v8_val_unlock(ntEngCtx ctx, ntEngVal val) {
 
+}
+
+static ntEngVal v8_val_duplicate(ntEngCtx ctx, ntEngVal val) {
+	return makeval(*val);
+}
+
+static void v8_val_free(ntEngVal val) {
 	val->Dispose();
 	val->Clear();
+	V8::AdjustAmountOfExternalAllocatedMemory(((int) sizeof(Persistent<Context>)) * -1);
 	delete val;
 }
 
@@ -201,7 +216,6 @@ static ntEngVal v8_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEng
 
 	Handle<Object> prv = ot->NewInstance();
 	prv->SetPointerInInternalField(V8_PRIV_SLOT, priv);
-	Persistent<Value>::New(prv).MakeWeak(priv, on_free);
 
 	Handle<Object> global = context->Global();
 	global->SetHiddenValue(V8_PRIV_STRING, prv);
@@ -209,10 +223,7 @@ static ntEngVal v8_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEng
 	if (ctx)
 		context->SetSecurityToken((*ctx)->GetSecurityToken());
 
-	// TODO: ongc->free
-	// TODO: Alocation
-	//V8::AdjustAmountOfExternalAllocatedMemory
-
+	V8::AdjustAmountOfExternalAllocatedMemory(sizeof(Persistent<Context>));
 	*newctx = new Persistent<Context>();
 	**newctx = context;
 	return makeval(global);
