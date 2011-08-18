@@ -1,0 +1,95 @@
+{
+   dl-ignore-_dlerror_run
+   Memcheck:Leak
+   fun:calloc
+   fun:_dlerror_run
+   fun:dlopen*
+   ...
+}
+{
+   dl-ignore-_dl_catch_error
+   Memcheck:Leak
+   ...
+   fun:_dl_catch_error
+   ...
+}
+
+
+
+{
+   jsc-ignore-JSGlobalContextRelease
+   Memcheck:Cond
+   obj:*libwebkitgtk*
+   ...
+   fun:JSGlobalContextRelease
+   ...
+}
+{
+   jsc-ignore-JSGarbageCollect
+   Memcheck:Cond
+   obj:*libwebkitgtk*
+   ...
+   fun:JSGarbageCollect
+   ...
+}
+{
+   jsc-ignore-WebKitGTK-val8
+   Memcheck:Value8
+   obj:*libwebkitgtk*
+   ...
+}
+{
+   jsc-ignore-cond-in-gc
+   Memcheck:Cond
+   ...
+   fun:JSGarbageCollect
+   fun:jsc_ctx_free
+   fun:nt_value_decref
+   ...
+}
+{
+   jsc-ignore-class-create
+   Memcheck:Leak
+   fun:calloc
+   ...
+   fun:JSClassCreate
+   ...
+   fun:call_init.part.0
+}
+
+
+
+{
+   sm-ignore-JS_DefineFunctions
+   Memcheck:Leak
+   fun:?alloc
+   ...
+   fun:JS_DefineFunctions
+   ...
+}
+{
+   sm-ignore-JS_SetUCPropertyAttributes
+   Memcheck:Leak
+   fun:?alloc
+   ...
+   fun:JS_SetUCPropertyAttributes
+   ...
+}
+{
+   sm-ignore-JS_SetPropertyById
+   Memcheck:Leak
+   fun:?alloc
+   ...
+   fun:JS_SetPropertyById
+   ...
+}
+{
+   sm-ignore-internal-strdup
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   ...
+   fun:nt_value_new_global
+   ...
+}
+
