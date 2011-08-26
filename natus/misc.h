@@ -44,8 +44,6 @@ ntValue *nt_ensure_arguments (ntValue *arg, const char *fmt);
 ntValue *nt_convert_arguments (ntValue *arg, const char *fmt, ...);
 ntValue *nt_convert_arguments_varg (ntValue *arg, const char *fmt, va_list ap);
 
-ntValue *nt_array_builder (ntValue *array, ntValue *item);
-
 ntValue *nt_from_json (const ntValue *json);
 ntValue *nt_from_json_utf8 (const ntValue *ctx, const char *json, size_t len);
 ntValue *nt_from_json_utf16 (const ntValue *ctx, const ntChar *json, size_t len);

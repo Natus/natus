@@ -72,10 +72,12 @@ Value convertArguments (Value args, const char *fmt, ...) {
 }
 
 Value arrayBuilder (Value array, Value item) {
-	ntValue *tmp = nt_array_builder (array.borrowCValue (), nt_value_incref(item.borrowCValue ()));
-	if (!array.isArray ())
-		return tmp;
-	return Value (tmp, false);
+        const Value* const items[2] = { &item, NULL };
+        if (!array.isArray())
+                return array.newArray(items);
+
+        array.set(array.get("length").to<size_t>(), item);
+        return array;
 }
 
 Value arrayBuilder (Value array, bool item) {

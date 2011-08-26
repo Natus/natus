@@ -77,7 +77,7 @@ ntValue *nt_throw_exception_varg (const ntValue *ctx, const char *base, const ch
 	}
 
 	// Construct the exception
-	ntValue *argv = nt_array_builder (err, vmsg);
+	ntValue *argv = nt_value_new_array(err, vmsg, NULL);
 	ntValue *exc = nt_value_call_new (err, argv);
 	nt_value_decref (argv);
 	nt_value_decref (err);
@@ -943,31 +943,10 @@ ntValue *nt_convert_arguments_varg (ntValue *arg, const char *fmt, va_list ap) {
 	return nt_value_new_number (arg, i);
 }
 
-ntValue *nt_array_builder (ntValue *array, ntValue *item) {
-	if (!item)
-		return NULL;
-
-	ntValue *newarray = NULL;
-	if (!nt_value_is_array(array))
-		array = newarray = nt_value_new_array(array, NULL);
-
-	ntValue *len = nt_value_get_utf8(array, "length");
-	if (!nt_value_is_number(len)) {
-		nt_value_decref(newarray);
-		nt_value_decref(len);
-		return NULL;
-	}
-
-	nt_value_decref(nt_value_set(array, len, item, ntPropAttrNone));
-	nt_value_decref(len);
-	nt_value_decref(item);
-	return array;
-}
-
 ntValue *nt_from_json (const ntValue *json) {
 	ntValue *glbl = nt_value_get_global (json);
 	ntValue *JSON = nt_value_get_utf8 (glbl, "JSON");
-	ntValue *args = nt_array_builder (glbl, nt_value_incref ((ntValue*) json));
+	ntValue *args = nt_value_new_array(glbl, json, NULL);
 	ntValue *rslt = nt_value_call_utf8 (JSON, "parse", args);
 
 	nt_value_decref (args);
@@ -992,7 +971,7 @@ ntValue *nt_from_json_utf16 (const ntValue *ctx, const ntChar *json, size_t len)
 ntValue *nt_to_json (const ntValue *val) {
 	ntValue *glbl = nt_value_get_global (val);
 	ntValue *JSON = nt_value_get_utf8 (glbl, "JSON");
-	ntValue *args = nt_array_builder (glbl, nt_value_incref ((ntValue*) val));
+	ntValue *args = nt_value_new_array(glbl, val, NULL);
 	ntValue *rslt = nt_value_call_utf8 (JSON, "stringify", args);
 
 	nt_value_decref (args);

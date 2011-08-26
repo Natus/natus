@@ -153,7 +153,7 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 		}
 
 		const ntValue *items[2] = { prfx, NULL };
-		path = nt_value_new_array (ctx, items);
+		path = nt_value_new_array_vector (ctx, items);
 		nt_value_decref (prfx);
 
 		// Otherwise use the normal path
@@ -247,7 +247,7 @@ static ntValue* internal_require (ntValue *ctx, ntRequireHookStep step, char *na
 
 			// Convert arguments to an array
 			const ntValue *argv[] = { exports, require, module, NULL };
-			ntValue *args = nt_value_new_array (ctx, argv);
+			ntValue *args = nt_value_new_array_vector (ctx, argv);
 			nt_value_decref (require);
 			nt_value_decref (module);
 

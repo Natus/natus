@@ -242,23 +242,57 @@ Value Value::newString (const char* fmt, ...) {
 	return tmpv;
 }
 
-Value Value::newArray (const Value* const * array) const {
+Value Value::newArray (const Value* const* array) const {
 	long len;
 	for (len = 0; array && array[len] ; len++)
 		;
 
-	const ntValue **a = NULL;
-	if (array) {
-		a = new const ntValue*[len + 1];
-		for (len = 0; array && array[len] ; len++)
-			a[len] = array[len]->borrowCValue ();
-		a[len] = NULL;
-	}
+        const ntValue* a[len + 1];
+        for (len = 0; array && array[len] ; len++)
+                a[len] = array[len]->borrowCValue ();
+        a[len] = NULL;
 
-	Value v = nt_value_new_array (internal, a);
+	return nt_value_new_array_vector (internal, a);
+}
 
-	delete[] a;
-	return v;
+Value Value::newArray (va_list ap) const {
+        va_list apc;
+        size_t count = 0;
+
+        va_copy(apc, ap);
+        while (va_arg(apc, const Value*))
+                count++;
+        va_end(apc);
+
+        const Value* array[count + 1];
+        va_copy(apc, ap);
+        for (size_t i=0 ; i < count ; i++)
+                array[i] = va_arg(apc, const Value*);
+        va_end(apc);
+
+        return newArray(array);
+}
+
+Value Value::newArray (const Value* item, ...) const {
+        va_list ap;
+        size_t count = 1;
+
+        if (!item)
+                return newArray();
+
+        va_start(ap, item);
+        while (va_arg(ap, const Value*))
+                count++;
+        va_end(ap);
+
+        const Value* array[count + 1];
+        array[0] = item;
+        va_start(ap, item);
+        for (size_t i=1 ; i < count ; i++)
+                array[i] = va_arg(ap, const Value*);
+        va_end(ap);
+
+        return newArray(array);
 }
 
 Value Value::newFunction (NativeFunction func, const char* name) const {

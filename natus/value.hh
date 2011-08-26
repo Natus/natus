@@ -120,7 +120,9 @@ public:
 	Value newString (UTF16 string) const;
 	Value newString (const char* fmt, va_list arg);
 	Value newString (const char* fmt, ...);
-	Value newArray (const Value* const * array = NULL) const;
+	Value newArray (const Value* const* array=NULL) const;
+	Value newArray (va_list ap) const;
+	Value newArray (const Value* item, ...) const;
 	Value newFunction (NativeFunction func, const char* name=NULL) const;
 	Value newObject (Class* cls = NULL) const;
 	Value newNull () const;

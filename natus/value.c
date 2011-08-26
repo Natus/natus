@@ -400,7 +400,17 @@ ntValue *nt_value_new_string_utf16_length (const ntValue *ctx, const ntChar *str
 	callandreturn(ntValueTypeString, ctx, new_string_utf16, ctx->ctx->ctx, string, len);
 }
 
-ntValue *nt_value_new_array (const ntValue *ctx, const ntValue **array) {
+ntValue *nt_value_new_array (const ntValue *ctx, ...) {
+        va_list ap;
+
+        va_start(ap, ctx);
+        ntValue *ret = nt_value_new_array_varg(ctx, ap);
+        va_end(ap);
+
+        return ret;
+}
+
+ntValue *nt_value_new_array_vector (const ntValue *ctx, const ntValue **array) {
 	const ntValue *novals[1] = { NULL, };
 	size_t count = 0;
 	size_t i;
@@ -423,6 +433,32 @@ ntValue *nt_value_new_array (const ntValue *ctx, const ntValue **array) {
 	callandmkval(ntValue *val, ntValueTypeUnknown, ctx, new_array, ctx->ctx->ctx, vals, count);
 	free(vals);
 	return val;
+}
+
+ntValue *nt_value_new_array_varg (const ntValue *ctx, va_list ap) {
+        va_list apc;
+        size_t count=0, i=0;
+
+        va_copy(apc, ap);
+        while (va_arg(apc, ntValue*))
+                count++;
+        va_end(apc);
+
+        const ntValue **array = NULL;
+        if (count > 0) {
+                array = calloc(++count, sizeof(ntValue*));
+                if (!array)
+                        return NULL;
+                va_copy(apc, ap);
+                while (--count > 0)
+                        array[i++] = va_arg(apc, ntValue*);
+                array[i] = NULL;
+                va_end(apc);
+        }
+
+        ntValue *ret = nt_value_new_array_vector(ctx, array);
+        free(array);
+        return ret;
 }
 
 ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func, const char *name) {
