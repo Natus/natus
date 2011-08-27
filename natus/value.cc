@@ -181,11 +181,12 @@ Value::Value (const Value& value) {
 }
 
 Value::~Value () {
-	internal = nt_value_decref (internal);
+        nt_value_decref (internal);
+	internal = NULL;
 }
 
 Value& Value::operator= (const Value& value) {
-	internal = nt_value_decref (internal);
+        nt_value_decref (internal);
 	internal = nt_value_incref (value.internal);
 	return *this;
 }

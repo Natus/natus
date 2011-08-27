@@ -327,9 +327,9 @@ context_decref(ntEngineContext *ctx)
   }
 }
 
-ntValue *nt_value_decref (ntValue *val) {
+void nt_value_decref (ntValue *val) {
 	if (!val)
-		return NULL;
+		return;
 	val->ref = val->ref > 0 ? val->ref - 1 : 0;
 	if (val->ref == 0) {
 		/* Free the value */
@@ -339,9 +339,7 @@ ntValue *nt_value_decref (ntValue *val) {
 		}
 		context_decref(val->ctx);
 		free(val);
-		return NULL;
 	}
-	return val;
 }
 
 ntValue *nt_value_new_global (const char *name_or_path) {

@@ -77,7 +77,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 ntValue *nt_value_incref (ntValue *val);
-ntValue *nt_value_decref (ntValue *val);
+void     nt_value_decref (ntValue *val);
 
 ntValue *nt_value_new_global (const char *name_or_path);
 ntValue *nt_value_new_global_shared (const ntValue *global);
