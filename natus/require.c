@@ -351,10 +351,10 @@ bool nt_require_init_value (ntValue *ctx, ntValue *config) {
 		goto error;
 	memset (req, 0, sizeof(ntRequire));
 	req->config = nt_value_incref (config);
-	req->hooks = nt_private_init ();
-	req->matchers = nt_private_init ();
-	req->dll = nt_private_init ();
-	req->modules = nt_private_init ();
+	req->hooks = nt_private_init (NULL, NULL);
+	req->matchers = nt_private_init (NULL, NULL);
+	req->dll = nt_private_init (NULL, NULL);
+	req->modules = nt_private_init (NULL, NULL);
 	if (!req->hooks || !req->matchers || !req->dll || !req->modules)
 		goto error;
 

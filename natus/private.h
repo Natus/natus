@@ -31,7 +31,7 @@ extern "C" {
 typedef struct _ntPrivate ntPrivate;
 typedef void (*ntPrivateForeach) (const char *name, void *priv, void *misc);
 
-ntPrivate *nt_private_init ();
+ntPrivate *nt_private_init (void *misc, ntFreeFunction free);
 void nt_private_free (ntPrivate *priv);
 void *nt_private_get (const ntPrivate *self, const char *name);
 bool nt_private_set (ntPrivate *self, const char *name, void *priv, ntFreeFunction free);

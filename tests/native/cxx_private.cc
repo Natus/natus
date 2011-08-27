@@ -67,7 +67,7 @@ int doTest (Value& global) {
 	testInternal (global, "", Value::TypeUndefined);
 
 	// Test the private datastructure
-	ntPrivate *priv = nt_private_init ();
+	ntPrivate *priv = nt_private_init (NULL, NULL);
 	assert (priv);
 
 	// Test set and clear

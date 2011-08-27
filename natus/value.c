@@ -62,11 +62,22 @@ struct _ntEngine {
 	ntEngineSpec *spec;
 };
 
+typedef struct _ntPrivateWrapper ntPrivateWrapper;
+struct _ntPrivateWrapper {
+        ntPrivateWrapper  *next;
+        ntPrivateWrapper  *prev;
+        ntPrivateWrapper **head;
+        ntPrivate         *priv;
+};
+
 typedef struct _ntEngineContext ntEngineContext;
 struct _ntEngineContext {
 	size_t    ref;
 	ntEngine *eng;
 	ntEngCtx  ctx;
+	ntEngineContext  *next;
+	ntEngineContext  *prev;
+	ntPrivateWrapper *priv;
 };
 
 struct _ntValue {
@@ -194,6 +205,42 @@ static ntEngine *do_load_dir (const char *dirname, bool reqsym) {
 	return res;
 }
 
+static void onprivfree(ntPrivateWrapper *pw) {
+        if (pw->prev)
+                pw->prev->next = pw->next;
+        else if (pw->head)
+                *(pw->head) = pw->next;
+        if (pw->next)
+                pw->next->prev = pw->prev;
+        free(pw);
+}
+
+static ntPrivate *pushpriv(ntEngineContext *ctx, ntPrivateWrapper *pw) {
+        if (!ctx || !pw)
+                return NULL;
+
+        pw->head = &ctx->priv;
+        pw->next = ctx->priv;
+        if (pw->next)
+                pw->next->prev = pw;
+        ctx->priv = pw;
+        return pw->priv;
+}
+
+static ntPrivate *mkpriv(ntEngineContext *ctx) {
+        ntPrivateWrapper *pw = new0(ntPrivateWrapper);
+        if (!pw)
+                return NULL;
+
+        pw->priv = nt_private_init(pw, (ntFreeFunction) onprivfree);
+        if (!pw->priv) {
+                free(pw);
+                return NULL;
+        }
+
+        return pushpriv(ctx, pw);
+}
+
 static ntValue *mkval(const ntValue *ctx, ntEngVal val, ntEngValFlags flags, ntValueType type) {
 	if (!ctx || !val)
 		return NULL;
@@ -221,6 +268,65 @@ ntValue *nt_value_incref (ntValue *val) {
 	return val;
 }
 
+static bool
+free_all_ctx(ntEngineContext *ctx)
+{
+  ntEngineContext *tmp;
+
+  if (!ctx)
+    return false;
+
+  for (tmp = ctx; tmp; tmp = tmp->prev)
+    if (tmp->ref > 0)
+      return false;
+  for (tmp = ctx->next; tmp; tmp = tmp->next)
+    if (tmp->ref > 0)
+      return false;
+
+  return true;
+}
+
+static void
+context_decref(ntEngineContext *ctx)
+{
+  if (!ctx)
+    return;
+  /* Decrement the context reference */
+  ctx->ref = ctx->ref > 0 ? ctx->ref - 1 : 0;
+
+  /* If there are no more context references,
+   * free it if there are no other related contexts... */
+  if (free_all_ctx(ctx)) {
+    ntEngineContext *tmp, *head;
+
+    head = ctx;
+    while (head->prev)
+      head = head->prev;
+
+    /* First loop: free all the contexts */
+    for (tmp = head; tmp; tmp = tmp->next)
+      tmp->eng->spec->ctx_free(tmp->ctx);
+
+    /* Second loop: free everything else */
+    for (tmp = head; tmp; ) {
+      ntPrivateWrapper *ptmp = tmp->priv;
+      while (ptmp) {
+        ntPrivateWrapper *pw = ptmp->next;
+        nt_private_free(ptmp->priv);
+        ptmp = pw;
+      }
+
+      engine_decref(&engines, tmp->eng);
+
+      ntEngineContext *ntmp = tmp->next;
+      free(tmp);
+      tmp = ntmp;
+    }
+
+
+  }
+}
+
 ntValue *nt_value_decref (ntValue *val) {
 	if (!val)
 		return NULL;
@@ -231,16 +337,7 @@ ntValue *nt_value_decref (ntValue *val) {
 			val->ctx->eng->spec->val_unlock(val->ctx->ctx, val->val);
 			val->ctx->eng->spec->val_free(val->val);
 		}
-
-		/* Decrement the context reference */
-		val->ctx->ref = val->ctx->ref > 0 ? val->ctx->ref - 1 : 0;
-
-		/* If there are no more context references, free it */
-		if (val->ctx->ref == 0) {
-			val->ctx->eng->spec->ctx_free(val->ctx->ctx);
-			engine_decref(&engines, val->ctx->eng); /* decrement the engine ref */
-			free(val->ctx);
-		}
+		context_decref(val->ctx);
 		free(val);
 		return NULL;
 	}
@@ -282,7 +379,7 @@ ntValue *nt_value_new_global (const char *name_or_path) {
 	if (!self->ctx->eng)
 		goto error;
 
-	priv = nt_private_init();
+	priv = mkpriv(self->ctx);
 	if (!priv || !nt_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
 		nt_private_free(priv);
 		goto error;
@@ -312,7 +409,11 @@ ntValue *nt_value_new_global_shared (const ntValue *global) {
 	ntEngVal  val = NULL;
 	ntEngValFlags flags = ntEngValFlagMustFree;
 
-	ntPrivate *priv = nt_private_init();
+	ntPrivateWrapper *pw = new0(ntPrivateWrapper);
+	if (!pw)
+	        return NULL;
+
+	ntPrivate *priv = nt_private_init(pw, (ntFreeFunction) onprivfree);
 	if (!priv)
 		return NULL;
 
@@ -336,6 +437,9 @@ ntValue *nt_value_new_global_shared (const ntValue *global) {
 		self->ctx->ctx = ctx;
 		self->ctx->eng = global->ctx->eng;
 		self->ctx->eng->ref++;
+		self->ctx->prev = global->ctx;
+		self->ctx->next = global->ctx->next;
+		global->ctx->next = self->ctx;
 	}
 
 	if (!nt_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
@@ -343,6 +447,7 @@ ntValue *nt_value_new_global_shared (const ntValue *global) {
 		return NULL;
 	}
 
+	pushpriv(self->ctx, pw);
 	return self;
 }
 
@@ -465,7 +570,7 @@ ntValue *nt_value_new_function (const ntValue *ctx, ntNativeFunction func, const
 	if (!ctx || !func)
 		return NULL;
 
-	ntPrivate *priv = nt_private_init ();
+	ntPrivate *priv = mkpriv(ctx->ctx);
 	if (!priv)
 		goto error;
 	if (!nt_private_set (priv, NATUS_PRIV_GLOBAL, nt_value_get_global(ctx), NULL))
@@ -484,7 +589,7 @@ ntValue *nt_value_new_object (const ntValue *ctx, ntClass *cls) {
 	if (!ctx)
 		return NULL;
 
-	ntPrivate *priv = nt_private_init ();
+	ntPrivate *priv = mkpriv(ctx->ctx);
 	if (!priv)
 		goto error;
 	if (cls && !nt_private_set (priv, NATUS_PRIV_GLOBAL, nt_value_get_global(ctx), NULL))

@@ -37,6 +37,8 @@ struct _ntPrivate {
 	ntPrivateItem *priv;
 	size_t size;
 	size_t used;
+	void  *misc;
+	ntFreeFunction free;
 };
 
 static inline bool _private_push (ntPrivate *self, const char *name, void *priv, ntFreeFunction free) {
@@ -73,17 +75,25 @@ static inline bool _private_push (ntPrivate *self, const char *name, void *priv,
 	return true;
 }
 
-ntPrivate *nt_private_init () {
+ntPrivate *nt_private_init (void *misc, ntFreeFunction free) {
 	ntPrivate *self = malloc (sizeof(ntPrivate));
-	if (self) {
-		self->used = 0;
-		self->size = 8;
-		self->priv = calloc (self->size, sizeof(ntPrivateItem));
-		if (!self->priv) {
-			free (self);
-			return NULL;
-		}
+	if (!self) {
+          if (free)
+                  free(misc);
+          return NULL;
 	}
+
+        self->free = free;
+        self->misc = misc;
+        self->used = 0;
+        self->size = 8;
+        self->priv = calloc (self->size, sizeof(ntPrivateItem));
+        if (!self->priv) {
+                if (free)
+                        free(misc);
+                free (self);
+                return NULL;
+        }
 	return self;
 }
 
@@ -99,6 +109,10 @@ void nt_private_free (ntPrivate *self) {
 		free (self->priv[i].name);
 	}
 	free (self->priv);
+
+	// Call the callback
+	if (self->free)
+	        self->free(self->misc);
 
 	// Free the CFP
 	free (self);
