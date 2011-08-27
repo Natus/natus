@@ -743,19 +743,6 @@ nt_value_borrow_context(const ntValue *ctx, void **context, void **value)
 }
 
 bool
-nt_value_is_global(const ntValue *val)
-{
-  if (!nt_value_is_object(val))
-    return false;
-
-  ntValue *global = nt_value_get_global(val);
-  if (!global)
-    return false;
-
-  return val->ctx->eng->spec->equal(val->ctx->ctx, global->val, val->val, ntEqualityStrictnessIdentity);
-}
-
-bool
 nt_value_is_exception(const ntValue *val)
 {
   return !val || (val->flg & ntEngValFlagException);

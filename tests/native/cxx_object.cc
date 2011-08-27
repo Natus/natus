@@ -50,7 +50,7 @@ class TestClass : public Class {
     assert(obj.isObject ());
     assert(args.isArray ());
     if (strcmp(obj.getEngineName(), "v8")) // Work around a bug in v8
-      assert(ths.isGlobal () || ths.isUndefined ());
+      assert(ths.isObject () || ths.isUndefined ());
     if (args.get("length").to<int>() == 0)
       return obj.getPrivateName<Value>("retval");
     return args[0];

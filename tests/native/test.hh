@@ -31,8 +31,6 @@ int
 onEngine(const char *eng, int argc, const char **argv)
 {
   Value global = Value::newGlobal(eng);
-  assert(global.isObject());
-  assert(global.isGlobal());
   if (global.isException()) {
     fprintf(stderr, "Unable to init engine! %s\n", eng);
     return 1;
@@ -40,7 +38,5 @@ onEngine(const char *eng, int argc, const char **argv)
   printf("Engine: %s\n", global.getEngineName());
 
   global.set("alert", alert, Value::PropAttrProtected);
-  assert(global.isObject());
-  assert(global.isGlobal());
   return doTest(global);
 }

@@ -73,12 +73,6 @@ extern "C" {
   }
 
 typedef enum {
-  ntEqualityStrictnessLoose,
-  ntEqualityStrictnessStrict,
-  ntEqualityStrictnessIdentity
-} ntEqualityStrictness;
-
-typedef enum {
   ntPropertyActionDelete    = 1,
   ntPropertyActionGet       = 1 << 1,
   ntPropertyActionSet       = 1 << 2,
@@ -129,7 +123,7 @@ typedef struct {
   ntEngVal    (*get_global)       (const ntEngCtx ctx, const ntEngVal val);
   ntValueType (*get_type)         (const ntEngCtx ctx, const ntEngVal val);
   bool        (*borrow_context)   (ntEngCtx ctx, ntEngVal val, void **context, void **value);
-  bool        (*equal)            (const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict);
+  bool        (*equal)            (const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict);
 } ntEngineSpec;
 
 ntEngVal nt_value_handle_property(ntPropertyAction act, ntEngVal obj, const ntPrivate *priv, ntEngVal idx, ntEngVal val, ntEngValFlags *flags);

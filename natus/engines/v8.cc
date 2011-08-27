@@ -667,21 +667,14 @@ v8_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
 }
 
 static bool
-v8_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict)
+v8_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
 
-  switch (strict) {
-  case ntEqualityStrictnessLoose:
-    return (*val1)->Equals(*val2);
-  case ntEqualityStrictnessStrict:
+  if (strict)
     return (*val1)->StrictEquals(*val2);
-  case ntEqualityStrictnessIdentity:
-    return *val1 == *val2;
-  default:
-    assert(false);
-  }
+  return (*val1)->Equals(*val2);
 }
 
 __attribute__((constructor))

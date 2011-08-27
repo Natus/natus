@@ -8,7 +8,7 @@ firstarg_function(Value& fnc, Value& ths, Value& arg)
   assert(ths.borrowCValue ());
   assert(arg.borrowCValue ());
 
-  assert(ths.isGlobal () || ths.isUndefined ());
+  assert(ths.isObject () || ths.isUndefined ());
   assert(fnc.isFunction ());
   assert(arg.isArray ());
   assert(arg.get ("length").to<int> () > 0);

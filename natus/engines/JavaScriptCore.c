@@ -831,18 +831,11 @@ jsc_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
 }
 
 static bool
-jsc_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict)
+jsc_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict)
 {
-  switch (strict) {
-  case ntEqualityStrictnessLoose:
-    return JSValueIsEqual(ctx, val1, val2, NULL);
-  case ntEqualityStrictnessStrict:
+  if (strict)
     return JSValueIsStrictEqual(ctx, val1, val2);
-  case ntEqualityStrictnessIdentity:
-    return val1 == val2;
-  default:
-    assert(false);
-  }
+  return JSValueIsEqual(ctx, val1, val2, NULL);
 }
 
 NATUS_ENGINE("JavaScriptCore", "JSObjectMakeFunctionWithCallback", jsc);

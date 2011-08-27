@@ -162,9 +162,6 @@ bool
 nt_value_borrow_context(const ntValue *ctx, void **context, void **value);
 
 bool
-nt_value_is_global(const ntValue *val);
-
-bool
 nt_value_is_exception(const ntValue *val);
 
 bool

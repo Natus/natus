@@ -774,25 +774,20 @@ sm_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
 }
 
 static bool
-sm_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, ntEqualityStrictness strict)
+sm_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict)
 {
   JSBool eql = false;
 
-  switch (strict) {
-  default:
-    case ntEqualityStrictnessLoose:
-    #if 0
-    if (!JS_LooselyEqual (ctx, *val1, *val2, &eql))
-    return false;
-    break;
-#endif
-  case ntEqualityStrictnessStrict:
+  if (strict) {
     if (!JS_StrictlyEqual(ctx, *val1, *val2, &eql))
-      return false;
-    break;
-  case ntEqualityStrictnessIdentity:
-    eql = (!val1 && !val2) || (val1 && val2 && *val1 == *val2);
-    break;
+      eql = false;
+  } else {
+#if 1
+    if (!JS_StrictlyEqual(ctx, *val1, *val2, &eql))
+#else
+    if (!JS_LooselyEqual(ctx, *val1, *val2, &eql))
+#endif
+      eql = false;
   }
 
   return eql;

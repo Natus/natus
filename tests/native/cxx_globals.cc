@@ -4,10 +4,8 @@ int
 doTest(Value& global)
 {
   Value json = global.get("JSON");
-  assert(global.isGlobal ());
   assert(!json.isException ());
   assert(json.isObject ());
-  assert(!json.isGlobal ());
 
   // Test shared globals
   assert(!global.set ("array", global.newArray ()).isException ());
@@ -18,7 +16,7 @@ doTest(Value& global)
   assert(!global.set ("string", global.newString ("hi")).isException ());
 
   Value glb = Value::newGlobal(global);
-  assert(glb.isGlobal ());
+  assert(!glb.isException ());
   assert(!glb.set ("array", global.get ("array")).isException ());
   assert(!glb.set ("bool", global.get ("bool")).isException ());
   assert(!glb.set ("nill", global.get ("nill")).isException ());

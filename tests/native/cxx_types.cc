@@ -27,7 +27,6 @@ doTest(Value& global)
   assert(!array.isObject ());
   assert(!array.isString ());
   assert(!array.isUndefined ());
-  assert(!array.isGlobal ());
   assert(!array.isException ());
   assert(array.toException ().isException ());
 
@@ -39,7 +38,6 @@ doTest(Value& global)
   assert(!boolean.isObject ());
   assert(!boolean.isString ());
   assert(!boolean.isUndefined ());
-  assert(!boolean.isGlobal ());
   assert(!boolean.isException ());
   assert(boolean.toException ().isException ());
 
@@ -51,7 +49,6 @@ doTest(Value& global)
   assert(!func.isObject ());
   assert(!func.isString ());
   assert(!func.isUndefined ());
-  assert(!func.isGlobal ());
   assert(!func.isException ());
   assert(func.toException ().isException ());
 
@@ -63,7 +60,6 @@ doTest(Value& global)
   assert(!null.isObject ());
   assert(!null.isString ());
   assert(!null.isUndefined ());
-  assert(!null.isGlobal ());
   assert(!null.isException ());
   assert(null.toException ().isException ());
 
@@ -75,7 +71,6 @@ doTest(Value& global)
   assert(!number.isObject ());
   assert(!number.isString ());
   assert(!number.isUndefined ());
-  assert(!number.isGlobal ());
   assert(!number.isException ());
   assert(number.toException ().isException ());
 
@@ -87,7 +82,6 @@ doTest(Value& global)
   assert(object.isObject ());
   assert(!object.isString ());
   assert(!object.isUndefined ());
-  assert(!object.isGlobal ());
   assert(!object.isException ());
   assert(object.toException ().isException ());
 
@@ -99,7 +93,6 @@ doTest(Value& global)
   assert(!string.isObject ());
   assert(string.isString ());
   assert(!string.isUndefined ());
-  assert(!string.isGlobal ());
   assert(!string.isException ());
   assert(string.toException ().isException ());
 
@@ -111,7 +104,6 @@ doTest(Value& global)
   assert(!undefined.isObject ());
   assert(!undefined.isString ());
   assert(undefined.isUndefined ());
-  assert(!undefined.isGlobal ());
   assert(!undefined.isException ());
   assert(undefined.toException ().isException ());
 
@@ -123,7 +115,6 @@ doTest(Value& global)
   assert(!nullv.isObject ());
   assert(!nullv.isString ());
   assert(nullv.isUndefined ());
-  assert(!nullv.isGlobal ());
   assert(nullv.isException ());
 
   return 0;

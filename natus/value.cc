@@ -430,12 +430,6 @@ Value::borrowCValue() const
 }
 
 bool
-Value::isGlobal() const
-{
-  return nt_value_is_global(internal);
-}
-
-bool
 Value::isException() const
 {
   return nt_value_is_exception(internal);

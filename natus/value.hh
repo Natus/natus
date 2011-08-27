@@ -207,9 +207,6 @@ namespace natus
     borrowCValue() const;
 
     bool
-    isGlobal() const;
-
-    bool
     isException() const;
 
     bool
