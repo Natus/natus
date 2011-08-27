@@ -28,36 +28,76 @@
 #include <cstdarg>
 
 #define NATUS_CHECK_ARGUMENTS(arg, fmt) { \
-	Value _exc = ensureArguments(arg, fmt); \
-	if (_exc.isException()) return _exc; }
+  Value _exc = ensureArguments(arg, fmt); \
+  if (_exc.isException()) return _exc; }
 
-namespace natus {
-Value throwException (Value ctx, const char* base, const char* type, const char* format, va_list ap);
-Value throwException (Value ctx, const char* base, const char* type, const char* format, ...);
-Value throwException (Value ctx, const char* base, const char* type, int code, const char* format, va_list ap);
-Value throwException (Value ctx, const char* base, const char* type, int code, const char* format, ...);
-Value throwException (Value ctx, int errorno);
+namespace natus
+{
+  Value
+  throwException(Value ctx, const char* base, const char* type, const char* format, va_list ap);
 
-Value ensureArguments (Value args, const char* fmt);
-Value convertArguments (Value args, const char *fmt, va_list ap);
-Value convertArguments (Value args, const char *fmt, ...);
+  Value
+  throwException(Value ctx, const char* base, const char* type, const char* format, ...);
 
-Value arrayBuilder (Value array, Value item);
-Value arrayBuilder (Value array, bool item);
-Value arrayBuilder (Value array, int item);
-Value arrayBuilder (Value array, long item);
-Value arrayBuilder (Value array, double item);
-Value arrayBuilder (Value array, const char* item);
-Value arrayBuilder (Value array, const Char* item);
-Value arrayBuilder (Value array, UTF8 item);
-Value arrayBuilder (Value array, UTF16 item);
-Value arrayBuilder (Value array, NativeFunction item);
+  Value
+  throwException(Value ctx, const char* base, const char* type, int code, const char* format, va_list ap);
 
-Value fromJSON (Value json);
-Value fromJSON (Value ctx, UTF8 json);
-Value fromJSON (Value ctx, UTF16 json);
-Value toJSON (Value val);
+  Value
+  throwException(Value ctx, const char* base, const char* type, int code, const char* format, ...);
 
+  Value
+  throwException(Value ctx, int errorno);
+
+  Value
+  ensureArguments(Value args, const char* fmt);
+
+  Value
+  convertArguments(Value args, const char *fmt, va_list ap);
+
+  Value
+  convertArguments(Value args, const char *fmt, ...);
+
+  Value
+  arrayBuilder(Value array, Value item);
+
+  Value
+  arrayBuilder(Value array, bool item);
+
+  Value
+  arrayBuilder(Value array, int item);
+
+  Value
+  arrayBuilder(Value array, long item);
+
+  Value
+  arrayBuilder(Value array, double item);
+
+  Value
+  arrayBuilder(Value array, const char* item);
+
+  Value
+  arrayBuilder(Value array, const Char* item);
+
+  Value
+  arrayBuilder(Value array, UTF8 item);
+
+  Value
+  arrayBuilder(Value array, UTF16 item);
+
+  Value
+  arrayBuilder(Value array, NativeFunction item);
+
+  Value
+  fromJSON(Value json);
+
+  Value
+  fromJSON(Value ctx, UTF8 json);
+
+  Value
+  fromJSON(Value ctx, UTF16 json);
+
+  Value
+  toJSON(Value val);
 }
 #endif /* MISCXX_HPP_ */
 

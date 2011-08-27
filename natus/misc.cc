@@ -26,110 +26,152 @@
 #include "value.hh"
 using namespace natus;
 
-namespace natus {
-Value throwException (Value ctx, const char* base, const char* type, const char* format, va_list ap) {
-	return nt_throw_exception_varg (ctx.borrowCValue (), base, type, format, ap);
-}
+namespace natus
+{
+  Value
+  throwException(Value ctx, const char* base, const char* type, const char* format, va_list ap)
+  {
+    return nt_throw_exception_varg(ctx.borrowCValue(), base, type, format, ap);
+  }
 
-Value throwException (Value ctx, const char* base, const char* type, const char* format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	Value exc = throwException (ctx, base, type, format, ap);
-	va_end(ap);
-	return exc;
-}
+  Value
+  throwException(Value ctx, const char* base, const char* type, const char* format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    Value exc = throwException (ctx, base, type, format, ap);
+    va_end(ap);
+    return exc;
+  }
 
-Value throwException (Value ctx, const char* base, const char* type, int code, const char* format, va_list ap) {
-	return nt_throw_exception_code_varg (ctx.borrowCValue (), base, type, code, format, ap);
-}
+  Value
+  throwException(Value ctx, const char* base, const char* type, int code, const char* format, va_list ap)
+  {
+    return nt_throw_exception_code_varg(ctx.borrowCValue(), base, type, code, format, ap);
+  }
 
-Value throwException (Value ctx, const char* base, const char* type, int code, const char* format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	Value exc = throwException (ctx, base, type, code, format, ap);
-	va_end(ap);
-	return exc;
-}
+  Value
+  throwException(Value ctx, const char* base, const char* type, int code, const char* format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    Value exc = throwException (ctx, base, type, code, format, ap);
+    va_end(ap);
+    return exc;
+  }
 
-Value throwException (Value ctx, int errorno) {
-	return nt_throw_exception_errno (ctx.borrowCValue (), errorno);
-}
+  Value
+  throwException(Value ctx, int errorno)
+  {
+    return nt_throw_exception_errno(ctx.borrowCValue(), errorno);
+  }
 
-Value ensureArguments (Value args, const char* fmt) {
-	return nt_ensure_arguments (args.borrowCValue (), fmt);
-}
+  Value
+  ensureArguments(Value args, const char* fmt)
+  {
+    return nt_ensure_arguments(args.borrowCValue(), fmt);
+  }
 
-Value convertArguments (Value args, const char *fmt, va_list ap) {
-	return nt_convert_arguments_varg (args.borrowCValue (), fmt, ap);
-}
+  Value
+  convertArguments(Value args, const char *fmt, va_list ap)
+  {
+    return nt_convert_arguments_varg(args.borrowCValue(), fmt, ap);
+  }
 
-Value convertArguments (Value args, const char *fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	Value ret = convertArguments (args, fmt, ap);
-	va_end(ap);
-	return ret;
-}
+  Value
+  convertArguments(Value args, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    Value ret = convertArguments (args, fmt, ap);
+    va_end(ap);
+    return ret;
+  }
 
-Value arrayBuilder (Value array, Value item) {
-        const Value* const items[2] = { &item, NULL };
-        if (!array.isArray())
-                return array.newArray(items);
+  Value
+  arrayBuilder(Value array, Value item)
+  {
+    const Value* const items[2] =
+      { &item, NULL };
+    if (!array.isArray())
+      return array.newArray(items);
 
-        array.set(array.get("length").to<size_t>(), item);
-        return array;
-}
+    array.set(array.get("length").to<size_t>(), item);
+    return array;
+  }
 
-Value arrayBuilder (Value array, bool item) {
-	return arrayBuilder (array, array.newBoolean (item));
-}
+  Value
+  arrayBuilder(Value array, bool item)
+  {
+    return arrayBuilder(array, array.newBoolean(item));
+  }
 
-Value arrayBuilder (Value array, int item) {
-	return arrayBuilder (array, array.newNumber (item));
-}
+  Value
+  arrayBuilder(Value array, int item)
+  {
+    return arrayBuilder(array, array.newNumber(item));
+  }
 
-Value arrayBuilder (Value array, long item) {
-	return arrayBuilder (array, array.newNumber (item));
-}
+  Value
+  arrayBuilder(Value array, long item)
+  {
+    return arrayBuilder(array, array.newNumber(item));
+  }
 
-Value arrayBuilder (Value array, double item) {
-	return arrayBuilder (array, array.newNumber (item));
-}
+  Value
+  arrayBuilder(Value array, double item)
+  {
+    return arrayBuilder(array, array.newNumber(item));
+  }
 
-Value arrayBuilder (Value array, const char* item) {
-	return arrayBuilder (array, array.newString (item));
-}
+  Value
+  arrayBuilder(Value array, const char* item)
+  {
+    return arrayBuilder(array, array.newString(item));
+  }
 
-Value arrayBuilder (Value array, const Char* item) {
-	return arrayBuilder (array, array.newString (item));
-}
+  Value
+  arrayBuilder(Value array, const Char* item)
+  {
+    return arrayBuilder(array, array.newString(item));
+  }
 
-Value arrayBuilder (Value array, UTF8 item) {
-	return arrayBuilder (array, array.newString (item));
-}
+  Value
+  arrayBuilder(Value array, UTF8 item)
+  {
+    return arrayBuilder(array, array.newString(item));
+  }
 
-Value arrayBuilder (Value array, UTF16 item) {
-	return arrayBuilder (array, array.newString (item));
-}
+  Value
+  arrayBuilder(Value array, UTF16 item)
+  {
+    return arrayBuilder(array, array.newString(item));
+  }
 
-Value arrayBuilder (Value array, NativeFunction item) {
-	return arrayBuilder (array, array.newFunction (item));
-}
+  Value
+  arrayBuilder(Value array, NativeFunction item)
+  {
+    return arrayBuilder(array, array.newFunction(item));
+  }
 
-Value fromJSON (Value json) {
-	return nt_from_json (json.borrowCValue ());
-}
+  Value
+  fromJSON(Value json)
+  {
+    return nt_from_json(json.borrowCValue());
+  }
 
-Value fromJSON (Value ctx, UTF8 json) {
-	return fromJSON (ctx.newString (json));
-}
+  Value
+  fromJSON(Value ctx, UTF8 json)
+  {
+    return fromJSON(ctx.newString(json));
+  }
 
-Value fromJSON (Value ctx, UTF16 json) {
-	return fromJSON (ctx.newString (json));
-}
+  Value
+  fromJSON(Value ctx, UTF16 json)
+  {
+    return fromJSON(ctx.newString(json));
+  }
 
-Value toJSON (Value val) {
-	return nt_to_json (val.borrowCValue ());
-}
-
+  Value
+  toJSON(Value val)
+  {
+    return nt_to_json(val.borrowCValue());
+  }
 }

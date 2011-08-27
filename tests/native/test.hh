@@ -15,27 +15,32 @@ using namespace natus;
 
 #include "../test.h"
 
-int doTest (Value& global);
+int
+doTest(Value& global);
 
-static Value alert (Value& fnc, Value& ths, Value& args) {
-	NATUS_CHECK_ARGUMENTS(fnc, "s");
+static Value
+alert(Value& fnc, Value& ths, Value& args)
+{
+  NATUS_CHECK_ARGUMENTS(fnc, "s");
 
-	fprintf (stderr, "%s\n", args[0].to<UTF8> ().c_str ());
-	return ths.newUndefined ();
+  fprintf(stderr, "%s\n", args[0].to<UTF8>().c_str());
+  return ths.newUndefined();
 }
 
-int onEngine (const char *eng, int argc, const char **argv) {
-	Value global = Value::newGlobal (eng);
-	assert(global.isObject());
-	assert(global.isGlobal());
-	if (global.isException()) {
-		fprintf (stderr, "Unable to init engine! %s\n", eng);
-		return 1;
-	}
-	printf ("Engine: %s\n", global.getEngineName ());
+int
+onEngine(const char *eng, int argc, const char **argv)
+{
+  Value global = Value::newGlobal(eng);
+  assert(global.isObject());
+  assert(global.isGlobal());
+  if (global.isException()) {
+    fprintf(stderr, "Unable to init engine! %s\n", eng);
+    return 1;
+  }
+  printf("Engine: %s\n", global.getEngineName());
 
-	global.set ("alert", alert, Value::PropAttrProtected);
-	assert(global.isObject());
-	assert(global.isGlobal());
-	return doTest (global);
+  global.set("alert", alert, Value::PropAttrProtected);
+  assert(global.isObject());
+  assert(global.isGlobal());
+  return doTest(global);
 }

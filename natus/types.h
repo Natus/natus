@@ -44,6 +44,7 @@ typedef uint16_t ntChar;
  * Parameters:
  *     mem - The memory to free.
  */
-typedef void (*ntFreeFunction) (void *mem);
+typedef void
+(*ntFreeFunction)(void *mem);
 #endif /* TYPES_H_ */
 

@@ -28,7 +28,6 @@
 #error Natus is not stable, go look elsewhere...
 #endif
 
-#include "engine.h"
 #include "value.h"
 #include "misc.h"
 #include "require.h"

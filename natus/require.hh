@@ -28,45 +28,66 @@
 #include "misc.hh"
 
 #define NATUS_MODULE(modname) \
-	bool natus_module_init_cxx(Value& modname); \
-	extern "C" bool natus_module_init(ntValue *module) { \
-		Value mod(module, false); \
-		return natus_module_init_cxx(mod); \
-	} \
-	bool natus_module_init_cxx(Value& modname)
+  bool natus_module_init_cxx(Value& modname); \
+  extern "C" bool natus_module_init(ntValue *module) { \
+    Value mod(module, false); \
+    return natus_module_init_cxx(mod); \
+  } \
+  bool natus_module_init_cxx(Value& modname)
 #define NATUS_CHECK_ORIGIN(ctx, uri) \
-	if (!Require(ctx).originPermitted(uri)) \
-		return throwException(ctx, "SecurityError", "Permission denied!");
+  if (!Require(ctx).originPermitted(uri)) \
+    return throwException(ctx, "SecurityError", "Permission denied!");
 
-namespace natus {
+namespace natus
+{
 
-class Require {
-public:
-	typedef enum {
-		HookStepResolve, HookStepLoad, HookStepProcess
-	} HookStep;
+  class Require {
+  public:
+    typedef enum {
+      HookStepResolve, HookStepLoad, HookStepProcess
+    } HookStep;
 
-	typedef Value (*Hook) (Value& ctx, HookStep step, char* name, void* misc);
-	typedef bool (*OriginMatcher) (const char* pattern, const char* subject);
-	typedef bool (*ModuleInit) (ntValue* module);
+    typedef Value
+    (*Hook)(Value& ctx, HookStep step, char* name, void* misc);
 
-	Require (Value ctx);
-	bool initialize (Value config);
-	bool initialize (const char* config);
-	Value getConfig ();
+    typedef bool
+    (*OriginMatcher)(const char* pattern, const char* subject);
 
-	bool addHook (const char* name, Hook func, void* misc = NULL, FreeFunction free = NULL);
-	bool delHook (const char* name);
+    typedef bool
+    (*ModuleInit)(ntValue* module);
 
-	bool addOriginMatcher (const char* name, OriginMatcher func, void* misc = NULL, FreeFunction free = NULL);
-	bool delOriginMatcher (const char* name);
+    Require(Value ctx);
 
-	Value require (const char* name);
-	bool originPermitted (const char* name);
+    bool
+    initialize(Value config);
 
-private:
-	Value ctx;
-};
+    bool
+    initialize(const char* config);
+
+    Value
+    getConfig();
+
+    bool
+    addHook(const char* name, Hook func, void* misc = NULL, FreeFunction free = NULL);
+
+    bool
+    delHook(const char* name);
+
+    bool
+    addOriginMatcher(const char* name, OriginMatcher func, void* misc = NULL, FreeFunction free = NULL);
+
+    bool
+    delOriginMatcher(const char* name);
+
+    Value
+    require(const char* name);
+
+    bool
+    originPermitted(const char* name);
+
+  private:
+    Value ctx;
+  };
 
 }
 #endif /* MODULE_HPP_ */

@@ -29,30 +29,56 @@
 
 #define NT_MODULE(modname) bool natus_module_init(ntValue *modname)
 #define NT_CHECK_ORIGIN(ctx, uri) \
-	if (!nt_require_origin_permitted(ctx, uri)) \
-		return nt_throw_exception(ctx, "SecurityError", "Permission denied!");
+  if (!nt_require_origin_permitted(ctx, uri)) \
+    return nt_throw_exception(ctx, "SecurityError", "Permission denied!");
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif /* __cplusplus */
 
 typedef enum {
-	ntRequireHookStepResolve, ntRequireHookStepLoad, ntRequireHookStepProcess
+  ntRequireHookStepResolve, ntRequireHookStepLoad, ntRequireHookStepProcess
 } ntRequireHookStep;
 
-typedef ntValue* (*ntRequireHook) (ntValue *ctx, ntRequireHookStep step, char *name, void *misc);
-typedef bool (*ntRequireOriginMatcher) (const char *pattern, const char *subject);
-typedef bool (*ntRequireModuleInit) (ntValue *module);
+typedef ntValue*
+(*ntRequireHook)(ntValue *ctx, ntRequireHookStep step, char *name, void *misc);
 
-bool nt_require_init (ntValue *ctx, const char *config);
-bool nt_require_init_value (ntValue *ctx, ntValue *config);
-ntValue *nt_require_get_config (ntValue *ctx);
-bool nt_require_hook_add (ntValue *ctx, const char *name, ntRequireHook func, void *misc, ntFreeFunction free);
-bool nt_require_hook_del (ntValue *ctx, const char *name);
-bool nt_require_origin_matcher_add (ntValue *ctx, const char *name, ntRequireOriginMatcher func, void *misc, ntFreeFunction free);
-bool nt_require_origin_matcher_del (ntValue *ctx, const char *name);
-bool nt_require_origin_permitted (ntValue *ctx, const char *uri);
-ntValue *nt_require (ntValue *ctx, const char *name);
+typedef bool
+(*ntRequireOriginMatcher)(const char *pattern, const char *subject);
+
+typedef bool
+(*ntRequireModuleInit)(ntValue *module);
+
+bool
+nt_require_init(ntValue *ctx, const char *config);
+
+bool
+nt_require_init_value(ntValue *ctx, ntValue *config);
+
+ntValue *
+nt_require_get_config(ntValue *ctx);
+
+bool
+nt_require_hook_add(ntValue *ctx, const char *name, ntRequireHook func,
+                    void *misc, ntFreeFunction free);
+
+bool
+nt_require_hook_del(ntValue *ctx, const char *name);
+
+bool
+nt_require_origin_matcher_add(ntValue *ctx, const char *name,
+                              ntRequireOriginMatcher func,
+                              void *misc, ntFreeFunction free);
+
+bool
+nt_require_origin_matcher_del(ntValue *ctx, const char *name);
+
+bool
+nt_require_origin_permitted(ntValue *ctx, const char *uri);
+
+ntValue *
+nt_require(ntValue *ctx, const char *name);
 
 #ifdef __cplusplus
 } /* extern "C" */
