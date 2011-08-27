@@ -13,6 +13,24 @@
    fun:_dl_catch_error
    ...
 }
+{
+   ignore-creation-leaks-new
+   Memcheck:Leak
+   fun:_Zn?m
+   ...
+   fun:nt_value_new_global
+   ...
+}
+{
+   ignore-creation-alloc
+   Memcheck:Leak
+   fun:?alloc
+   ...
+   fun:nt_value_new_global
+   ...
+}
+
+
 
 
 
@@ -56,6 +74,15 @@
    ...
    fun:call_init.part.0
 }
+{
+   jsc-ignore-uninit-JSGarbageCollect
+   Memcheck:Value8
+   ...
+   fun:JSGarbageCollect
+   fun:jsc_ctx_free
+   ...
+}
+
 
 
 
