@@ -27,24 +27,24 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#ifndef _HAVE_NT_VALUE
-#define _HAVE_NT_VALUE
-typedef struct _ntValue ntValue;
+#ifndef _HAVE_NATUS_VALUE
+#define _HAVE_NATUS_VALUE
+typedef struct natusValue natusValue;
 #endif
 
 #ifdef WIN32
-typedef wchar_t ntChar;
+typedef wchar_t natusChar;
 #else
-typedef uint16_t ntChar;
+typedef uint16_t natusChar;
 #endif
 
-/* Type: ntFreeFunction
+/* Type: natusFreeFunction
  * Function type for calls made back to free a memory value allocated outside natus.
  *
  * Parameters:
  *     mem - The memory to free.
  */
 typedef void
-(*ntFreeFunction)(void *mem);
+(*natusFreeFunction)(void *mem);
 #endif /* TYPES_H_ */
 

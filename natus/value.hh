@@ -27,9 +27,9 @@
 #include <string>
 #include <cstdarg>
 
-#ifndef _HAVE_NT_VALUE
-#define _HAVE_NT_VALUE
-typedef struct _ntValue ntValue;
+#ifndef _HAVE_NATUS_VALUE
+#define _HAVE_NATUS_VALUE
+typedef struct natusValue natusValue;
 #endif
 
 namespace natus
@@ -122,7 +122,7 @@ namespace natus
 
     Value();
 
-    Value(ntValue *value, bool steal = true);
+    Value(natusValue *value, bool steal = true);
 
     Value(const Value& value);
 
@@ -203,7 +203,7 @@ namespace natus
     bool
     borrowContext(void **context, void **value) const;
 
-    ntValue*
+    natusValue*
     borrowCValue() const;
 
     bool
@@ -513,7 +513,7 @@ namespace natus
     equalsStrict(Value val);
 
   private:
-    ntValue *internal;
+    natusValue *internal;
   };
 
   template<>

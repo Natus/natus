@@ -27,6 +27,7 @@
 #include "value.hh"
 #include <cstdarg>
 
+#undef NATUS_CHECK_ARGUMENTS
 #define NATUS_CHECK_ARGUMENTS(arg, fmt) { \
   Value _exc = ensureArguments(arg, fmt); \
   if (_exc.isException()) return _exc; }

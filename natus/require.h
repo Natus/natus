@@ -27,10 +27,10 @@
 #include "value.h"
 #include "misc.h"
 
-#define NT_MODULE(modname) bool natus_module_init(ntValue *modname)
-#define NT_CHECK_ORIGIN(ctx, uri) \
-  if (!nt_require_origin_permitted(ctx, uri)) \
-    return nt_throw_exception(ctx, "SecurityError", "Permission denied!");
+#define NATUS_MODULE(modname) bool natus_module_init(natusValue *modname)
+#define NATUS_CHECK_ORIGIN(ctx, uri) \
+  if (!natus_require_origin_permitted(ctx, uri)) \
+    return natus_throw_exception(ctx, "SecurityError", "Permission denied!");
 
 #ifdef __cplusplus
 extern "C"
@@ -38,47 +38,47 @@ extern "C"
 #endif /* __cplusplus */
 
 typedef enum {
-  ntRequireHookStepResolve, ntRequireHookStepLoad, ntRequireHookStepProcess
-} ntRequireHookStep;
+  natusRequireHookStepResolve, natusRequireHookStepLoad, natusRequireHookStepProcess
+} natusRequireHookStep;
 
-typedef ntValue*
-(*ntRequireHook)(ntValue *ctx, ntRequireHookStep step, char *name, void *misc);
-
-typedef bool
-(*ntRequireOriginMatcher)(const char *pattern, const char *subject);
+typedef natusValue*
+(*natusRequireHook)(natusValue *ctx, natusRequireHookStep step, char *name, void *misc);
 
 typedef bool
-(*ntRequireModuleInit)(ntValue *module);
+(*natusRequireOriginMatcher)(const char *pattern, const char *subject);
+
+typedef bool
+(*natusRequireModuleInit)(natusValue *module);
 
 bool
-nt_require_init(ntValue *ctx, const char *config);
+natus_require_init(natusValue *ctx, const char *config);
 
 bool
-nt_require_init_value(ntValue *ctx, ntValue *config);
+natus_require_init_value(natusValue *ctx, natusValue *config);
 
-ntValue *
-nt_require_get_config(ntValue *ctx);
-
-bool
-nt_require_hook_add(ntValue *ctx, const char *name, ntRequireHook func,
-                    void *misc, ntFreeFunction free);
+natusValue *
+natus_require_get_config(natusValue *ctx);
 
 bool
-nt_require_hook_del(ntValue *ctx, const char *name);
+natus_require_hook_add(natusValue *ctx, const char *name, natusRequireHook func,
+                    void *misc, natusFreeFunction free);
 
 bool
-nt_require_origin_matcher_add(ntValue *ctx, const char *name,
-                              ntRequireOriginMatcher func,
-                              void *misc, ntFreeFunction free);
+natus_require_hook_del(natusValue *ctx, const char *name);
 
 bool
-nt_require_origin_matcher_del(ntValue *ctx, const char *name);
+natus_require_origin_matcher_add(natusValue *ctx, const char *name,
+                              natusRequireOriginMatcher func,
+                              void *misc, natusFreeFunction free);
 
 bool
-nt_require_origin_permitted(ntValue *ctx, const char *uri);
+natus_require_origin_matcher_del(natusValue *ctx, const char *name);
 
-ntValue *
-nt_require(ntValue *ctx, const char *name);
+bool
+natus_require_origin_permitted(natusValue *ctx, const char *uri);
+
+natusValue *
+natus_require(natusValue *ctx, const char *name);
 
 #ifdef __cplusplus
 } /* extern "C" */

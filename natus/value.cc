@@ -31,7 +31,7 @@
 using namespace natus;
 
 static inline Value**
-tx(ntValue **args)
+tx(natusValue **args)
 {
   if (!args)
     return NULL;
@@ -56,12 +56,12 @@ txFree(Value **args)
   delete[] args;
 }
 
-static ntValue *
-txFunction(ntValue *obj, ntValue *ths, ntValue *args)
+static natusValue *
+txFunction(natusValue *obj, natusValue *ths, natusValue *args)
 {
-  Value o = nt_value_incref(obj);
-  Value t = nt_value_incref(ths);
-  Value a = nt_value_incref(args);
+  Value o = natus_incref(obj);
+  Value t = natus_incref(ths);
+  Value a = natus_incref(args);
 
   NativeFunction f = o.getPrivate(NativeFunction);
   if (!f)
@@ -69,55 +69,55 @@ txFunction(ntValue *obj, ntValue *ths, ntValue *args)
 
   Value rslt = f(o, t, a);
 
-  return nt_value_incref(rslt.borrowCValue());
+  return natus_incref(rslt.borrowCValue());
 }
 
 struct txClass {
-  ntClass hdr;
+  natusClass hdr;
   Class *cls;
 
-  static ntValue *
-  del(ntClass *cls, ntValue *obj, const ntValue *prop)
+  static natusValue *
+  del(natusClass *cls, natusValue *obj, const natusValue *prop)
   {
     Value o(obj, false);
-    Value n((ntValue*) prop, false);
+    Value n((natusValue*) prop, false);
 
     Class *txcls = ((txClass *) cls)->cls;
-    return nt_value_incref(txcls->del(o, n).borrowCValue());
+    return natus_incref(txcls->del(o, n).borrowCValue());
   }
 
-  static ntValue *
-  get(ntClass *cls, ntValue *obj, const ntValue *prop)
+  static natusValue *
+  get(natusClass *cls, natusValue *obj, const natusValue *prop)
   {
     Value o(obj, false);
-    Value n((ntValue*) prop, false);
+    Value n((natusValue*) prop, false);
 
     Class *txcls = ((txClass *) cls)->cls;
-    return nt_value_incref(txcls->get(o, n).borrowCValue());
+    return natus_incref(txcls->get(o, n).borrowCValue());
   }
 
-  static ntValue *
-  set(ntClass *cls, ntValue *obj, const ntValue *prop, const ntValue *value)
+  static natusValue *
+  set(natusClass *cls, natusValue *obj, const natusValue *prop, const natusValue *value)
   {
     Value o(obj, false);
-    Value n((ntValue*) prop, false);
-    Value v((ntValue*) value, false);
+    Value n((natusValue*) prop, false);
+    Value v((natusValue*) value, false);
 
     Class *txcls = ((txClass *) cls)->cls;
-    return nt_value_incref(txcls->set(o, n, v).borrowCValue());
+    return natus_incref(txcls->set(o, n, v).borrowCValue());
   }
 
-  static ntValue *
-  enumerate(ntClass *cls, ntValue *obj)
+  static natusValue *
+  enumerate(natusClass *cls, natusValue *obj)
   {
     Value o(obj, false);
 
     Class *txcls = ((txClass *) cls)->cls;
-    return nt_value_incref(txcls->enumerate(o).borrowCValue());
+    return natus_incref(txcls->enumerate(o).borrowCValue());
   }
 
-  static ntValue *
-  call(ntClass *cls, ntValue *obj, ntValue *ths, ntValue* args)
+  static natusValue *
+  call(natusClass *cls, natusValue *obj, natusValue *ths, natusValue* args)
   {
     Value o(obj, false);
     Value t(ths, false);
@@ -126,11 +126,11 @@ struct txClass {
     Class *txcls = ((txClass *) cls)->cls;
     Value rslt = txcls->call(o, t, a);
 
-    return nt_value_incref(rslt.borrowCValue());
+    return natus_incref(rslt.borrowCValue());
   }
 
   static void
-  free(ntClass *cls)
+  free(natusClass *cls)
   {
     assert(cls && ((txClass *) cls)->cls);
     Class *txcls = ((txClass *) cls)->cls;
@@ -192,13 +192,13 @@ Class::call(Value& obj, Value& ths, Value& arg)
 Value
 Value::newGlobal(const Value global)
 {
-  return nt_value_new_global_shared(global.internal);
+  return natus_new_global_shared(global.internal);
 }
 
 Value
 Value::newGlobal(const char *name_or_path)
 {
-  return nt_value_new_global(name_or_path);
+  return natus_new_global(name_or_path);
 }
 
 Value::Value()
@@ -206,29 +206,29 @@ Value::Value()
   internal = NULL;
 }
 
-Value::Value(ntValue *value, bool steal)
+Value::Value(natusValue *value, bool steal)
 {
   if (!steal)
-    nt_value_incref(value);
+    natus_incref(value);
   internal = value;
 }
 
 Value::Value(const Value& value)
 {
-  internal = nt_value_incref(value.internal);
+  internal = natus_incref(value.internal);
 }
 
 Value::~Value()
 {
-  nt_value_decref(internal);
+  natus_decref(internal);
   internal = NULL;
 }
 
 Value&
 Value::operator=(const Value& value)
 {
-  nt_value_decref(internal);
-  internal = nt_value_incref(value.internal);
+  natus_decref(internal);
+  internal = natus_incref(value.internal);
   return *this;
 }
 
@@ -271,38 +271,38 @@ Value::operator[](UTF16 name)
 Value
 Value::newBoolean(bool b) const
 {
-  return nt_value_new_boolean(internal, b);
+  return natus_new_boolean(internal, b);
 }
 
 Value
 Value::newNumber(double n) const
 {
-  return nt_value_new_number(internal, n);
+  return natus_new_number(internal, n);
 }
 
 Value
 Value::newString(UTF8 string) const
 {
-  return nt_value_new_string_utf8_length(internal, string.data(), string.length());
+  return natus_new_string_utf8_length(internal, string.data(), string.length());
 }
 
 Value
 Value::newString(UTF16 string) const
 {
-  return nt_value_new_string_utf16_length(internal, string.data(), string.length());
+  return natus_new_string_utf16_length(internal, string.data(), string.length());
 }
 
 Value
 Value::newString(const char* fmt, va_list arg)
 {
-  return nt_value_new_string_varg(internal, fmt, arg);
+  return natus_new_string_varg(internal, fmt, arg);
 }
 
 Value
 Value::newString(const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  ntValue *tmpv = nt_value_new_string_varg(internal, fmt, ap);
+  natusValue *tmpv = natus_new_string_varg(internal, fmt, ap);
   va_end(ap);
   return tmpv;
 }
@@ -314,12 +314,12 @@ Value::newArray(const Value* const * array) const
   for (len = 0; array && array[len]; len++)
     ;
 
-  const ntValue* a[len + 1];
+  const natusValue* a[len + 1];
   for(len = 0; array && array[len]; len++)
   a[len] = array[len]->borrowCValue ();
   a[len] = NULL;
 
-  return nt_value_new_array_vector(internal, a);
+  return natus_new_array_vector(internal, a);
 }
 
 Value
@@ -379,7 +379,7 @@ Value::newArray(const Value* item, ...) const
 Value
 Value::newFunction(NativeFunction func, const char* name) const
 {
-  Value f = nt_value_new_function(internal, txFunction, name);
+  Value f = natus_new_function(internal, txFunction, name);
   f.setPrivate(NativeFunction, func);
   return f;
 }
@@ -388,53 +388,53 @@ Value
 Value::newObject(Class* cls) const
 {
   if (!cls)
-    return nt_value_new_object(internal, NULL);
-  return nt_value_new_object(internal, (ntClass*) new txClass(cls));
+    return natus_new_object(internal, NULL);
+  return natus_new_object(internal, (natusClass*) new txClass(cls));
 }
 
 Value
 Value::newNull() const
 {
-  return nt_value_new_null(internal);
+  return natus_new_null(internal);
 }
 
 Value
 Value::newUndefined() const
 {
-  return nt_value_new_undefined(internal);
+  return natus_new_undefined(internal);
 }
 
 Value
 Value::getGlobal() const
 {
-  return nt_value_incref(nt_value_get_global(internal));
+  return natus_incref(natus_get_global(internal));
 }
 
 const char*
 Value::getEngineName() const
 {
-  return nt_value_get_engine_name(internal);
+  return natus_get_engine_name(internal);
 }
 
 Value::Type
 Value::getType() const
 {
-  return (Value::Type) nt_value_get_type(internal);
+  return (Value::Type) natus_get_type(internal);
 }
 
 const char*
 Value::getTypeName() const
 {
-  return nt_value_get_type_name(internal);
+  return natus_get_type_name(internal);
 }
 
 bool
 Value::borrowContext(void **context, void **value) const
 {
-  return nt_value_borrow_context(internal, context, value);
+  return natus_borrow_context(internal, context, value);
 }
 
-ntValue*
+natusValue*
 Value::borrowCValue() const
 {
   return internal;
@@ -443,95 +443,95 @@ Value::borrowCValue() const
 bool
 Value::isException() const
 {
-  return nt_value_is_exception(internal);
+  return natus_is_exception(internal);
 }
 
 bool
 Value::isType(Value::Type types) const
 {
-  return nt_value_is_type(internal, (ntValueType) types);
+  return natus_is_type(internal, (natusValueType) types);
 }
 
 bool
 Value::isArray() const
 {
-  return nt_value_is_array(internal);
+  return natus_is_array(internal);
 }
 
 bool
 Value::isBoolean() const
 {
-  return nt_value_is_boolean(internal);
+  return natus_is_boolean(internal);
 }
 
 bool
 Value::isFunction() const
 {
-  return nt_value_is_function(internal);
+  return natus_is_function(internal);
 }
 
 bool
 Value::isNull() const
 {
-  return nt_value_is_null(internal);
+  return natus_is_null(internal);
 }
 
 bool
 Value::isNumber() const
 {
-  return nt_value_is_number(internal);
+  return natus_is_number(internal);
 }
 
 bool
 Value::isObject() const
 {
-  return nt_value_is_object(internal);
+  return natus_is_object(internal);
 }
 
 bool
 Value::isString() const
 {
-  return nt_value_is_string(internal);
+  return natus_is_string(internal);
 }
 
 bool
 Value::isUndefined() const
 {
-  return nt_value_is_undefined(internal);
+  return natus_is_undefined(internal);
 }
 
 Value
 Value::toException()
 {
-  return Value(nt_value_to_exception(internal), false);
+  return Value(natus_to_exception(internal), false);
 }
 
 template<>
   bool
   Value::to<bool>() const
   {
-    return nt_value_to_bool(internal);
+    return natus_to_bool(internal);
   }
 
 template<>
   double
   Value::to<double>() const
   {
-    return nt_value_to_double(internal);
+    return natus_to_double(internal);
   }
 
 template<>
   int
   Value::to<int>() const
   {
-    return nt_value_to_int(internal);
+    return natus_to_int(internal);
   }
 
 template<>
   long
   Value::to<long>() const
   {
-    return nt_value_to_long(internal);
+    return natus_to_long(internal);
   }
 
 template<>
@@ -539,7 +539,7 @@ template<>
   Value::to<UTF8>() const
   {
     size_t len;
-    char* tmp = nt_value_to_string_utf8(internal, &len);
+    char* tmp = natus_to_string_utf8(internal, &len);
     if (!tmp)
       return UTF8();
     UTF8 rslt(tmp, len);
@@ -552,7 +552,7 @@ template<>
   Value::to<UTF16>() const
   {
     size_t len;
-    Char* tmp = nt_value_to_string_utf16(internal, &len);
+    Char* tmp = natus_to_string_utf16(internal, &len);
     if (!tmp)
       return UTF16();
     UTF16 rslt(tmp, len);
@@ -563,141 +563,141 @@ template<>
 Value
 Value::del(Value idx)
 {
-  return nt_value_del(internal, idx.internal);
+  return natus_del(internal, idx.internal);
 }
 
 Value
 Value::del(UTF8 idx)
 {
   Value n = newString(idx);
-  return nt_value_del(internal, n.internal);
+  return natus_del(internal, n.internal);
 }
 
 Value
 Value::del(UTF16 idx)
 {
   Value n = newString(idx);
-  return nt_value_del(internal, n.internal);
+  return natus_del(internal, n.internal);
 }
 
 Value
 Value::del(size_t idx)
 {
-  return nt_value_del_index(internal, idx);
+  return natus_del_index(internal, idx);
 }
 
 Value
 Value::delRecursive(UTF8 path)
 {
-  return nt_value_del_recursive_utf8(internal, path.c_str());
+  return natus_del_recursive_utf8(internal, path.c_str());
 }
 
 Value
 Value::get(Value idx) const
 {
-  return nt_value_get(internal, idx.internal);
+  return natus_get(internal, idx.internal);
 }
 
 Value
 Value::get(UTF8 idx) const
 {
   Value n = newString(idx);
-  return nt_value_get(internal, n.internal);
+  return natus_get(internal, n.internal);
 }
 
 Value
 Value::get(UTF16 idx) const
 {
   Value n = newString(idx);
-  return nt_value_get(internal, n.internal);
+  return natus_get(internal, n.internal);
 }
 
 Value
 Value::get(size_t idx) const
 {
-  return nt_value_get_index(internal, idx);
+  return natus_get_index(internal, idx);
 }
 
 Value
 Value::getRecursive(UTF8 path)
 {
-  return nt_value_get_recursive_utf8(internal, path.c_str());
+  return natus_get_recursive_utf8(internal, path.c_str());
 }
 
 Value
 Value::set(Value idx, Value value, Value::PropAttr attrs)
 {
-  return nt_value_set(internal, idx.internal, value.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, value.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, bool value, Value::PropAttr attrs)
 {
   Value v = newBoolean(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, int value, Value::PropAttr attrs)
 {
   Value v = newNumber(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, long value, Value::PropAttr attrs)
 {
   Value v = newNumber(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, double value, Value::PropAttr attrs)
 {
   Value v = newNumber(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, const char* value, Value::PropAttr attrs)
 {
   Value v = newString(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, const Char* value, Value::PropAttr attrs)
 {
   Value v = newString(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, UTF8 value, Value::PropAttr attrs)
 {
   Value v = newString(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, UTF16 value, Value::PropAttr attrs)
 {
   Value v = newString(value);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(Value idx, NativeFunction value, Value::PropAttr attrs)
 {
   Value v = newFunction(value, idx.isString() ? idx.to<UTF8>().c_str() : NULL);
-  return nt_value_set(internal, idx.internal, v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(UTF8 idx, Value value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
-  return nt_value_set(internal, n.borrowCValue(), value.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), value.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -705,7 +705,7 @@ Value::set(UTF8 idx, bool value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newBoolean(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -713,7 +713,7 @@ Value::set(UTF8 idx, int value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newNumber(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -721,7 +721,7 @@ Value::set(UTF8 idx, long value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newNumber(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -729,7 +729,7 @@ Value::set(UTF8 idx, double value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newNumber(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -737,7 +737,7 @@ Value::set(UTF8 idx, const char* value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -745,7 +745,7 @@ Value::set(UTF8 idx, const Char* value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -753,7 +753,7 @@ Value::set(UTF8 idx, UTF8 value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -761,7 +761,7 @@ Value::set(UTF8 idx, UTF16 value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -769,14 +769,14 @@ Value::set(UTF8 idx, NativeFunction value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newFunction(value, idx.c_str());
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(UTF16 idx, Value value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
-  return nt_value_set(internal, n.borrowCValue(), value.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), value.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -784,7 +784,7 @@ Value::set(UTF16 idx, bool value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newBoolean(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -792,7 +792,7 @@ Value::set(UTF16 idx, int value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newNumber(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -800,7 +800,7 @@ Value::set(UTF16 idx, long value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newNumber(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -808,7 +808,7 @@ Value::set(UTF16 idx, double value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newNumber(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -816,7 +816,7 @@ Value::set(UTF16 idx, const char* value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -824,7 +824,7 @@ Value::set(UTF16 idx, const Char* value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -832,7 +832,7 @@ Value::set(UTF16 idx, UTF8 value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -840,7 +840,7 @@ Value::set(UTF16 idx, UTF16 value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newString(value);
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
@@ -848,82 +848,82 @@ Value::set(UTF16 idx, NativeFunction value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newFunction(value, n.to<UTF8>().c_str());
-  return nt_value_set(internal, n.borrowCValue(), v.internal, (ntPropAttr) attrs);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
 Value
 Value::set(size_t idx, Value value)
 {
-  return nt_value_set_index(internal, idx, value.internal);
+  return natus_set_index(internal, idx, value.internal);
 }
 
 Value
 Value::set(size_t idx, bool value)
 {
   Value v = newBoolean(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, int value)
 {
   Value v = newNumber(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, long value)
 {
   Value v = newNumber(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, double value)
 {
   Value v = newNumber(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, const char* value)
 {
   Value v = newString(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, const Char* value)
 {
   Value v = newString(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, UTF8 value)
 {
   Value v = newString(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, UTF16 value)
 {
   Value v = newString(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::set(size_t idx, NativeFunction value)
 {
   Value v = newFunction(value);
-  return nt_value_set_index(internal, idx, v.internal);
+  return natus_set_index(internal, idx, v.internal);
 }
 
 Value
 Value::setRecursive(UTF8 path, Value val, Value::PropAttr attrs, bool mkpath)
 {
-  return nt_value_set_recursive_utf8(internal, path.c_str(), val.internal, (ntPropAttr) attrs, mkpath);
+  return natus_set_recursive_utf8(internal, path.c_str(), val.internal, (natusPropAttr) attrs, mkpath);
 }
 
 Value
@@ -983,41 +983,41 @@ Value::setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs, bool m
 Value
 Value::enumerate() const
 {
-  return nt_value_enumerate(internal);
+  return natus_enumerate(internal);
 }
 
 template<>
   void*
   Value::getPrivateName<void*>(const char* key) const
   {
-    return nt_value_get_private_name(internal, key);
+    return natus_get_private_name(internal, key);
   }
 
 template<>
   Value
   Value::getPrivateName<Value>(const char* key) const
   {
-    return nt_value_get_private_name_value(internal, key);
+    return natus_get_private_name_value(internal, key);
   }
 
 template<>
   bool
   Value::setPrivateName<void*>(const char* key, void* priv, FreeFunction free)
   {
-    return nt_value_set_private_name(internal, key, priv, free);
+    return natus_set_private_name(internal, key, priv, free);
   }
 
 template<>
   bool
   Value::setPrivateName<Value>(const char* key, Value priv, FreeFunction free)
   {
-    return nt_value_set_private_name_value(internal, key, priv.internal);
+    return natus_set_private_name_value(internal, key, priv.internal);
   }
 
 Value
 Value::evaluate(Value javascript, Value filename, unsigned int lineno)
 {
-  return nt_value_evaluate(internal, javascript.internal, filename.internal, lineno);
+  return natus_evaluate(internal, javascript.internal, filename.internal, lineno);
 }
 
 Value
@@ -1025,7 +1025,7 @@ Value::evaluate(UTF8 javascript, UTF8 filename, unsigned int lineno)
 {
   Value js = newString(javascript);
   Value fn = newString(filename);
-  return nt_value_evaluate(internal, js.internal, fn.internal, lineno);
+  return natus_evaluate(internal, js.internal, fn.internal, lineno);
 }
 
 Value
@@ -1033,7 +1033,7 @@ Value::evaluate(UTF16 javascript, UTF16 filename, unsigned int lineno)
 {
   Value js = newString(javascript);
   Value fn = newString(filename);
-  return nt_value_evaluate(internal, js.internal, fn.internal, lineno);
+  return natus_evaluate(internal, js.internal, fn.internal, lineno);
 }
 
 Value
@@ -1048,7 +1048,7 @@ Value::call(Value ths, va_list ap)
 Value
 Value::call(Value ths, Value args)
 {
-  return nt_value_call_array(internal, ths.internal, args.internal);
+  return natus_call_array(internal, ths.internal, args.internal);
 }
 
 Value
@@ -1074,7 +1074,7 @@ Value
 Value::call(UTF8 name, Value args)
 {
   Value func = get(name);
-  return nt_value_call_array(func.internal, internal, args.internal);
+  return natus_call_array(func.internal, internal, args.internal);
 }
 
 Value
@@ -1100,7 +1100,7 @@ Value
 Value::call(UTF16 name, Value args)
 {
   Value func = get(name);
-  return nt_value_call_array(func.internal, internal, args.internal);
+  return natus_call_array(func.internal, internal, args.internal);
 }
 
 Value
@@ -1125,7 +1125,7 @@ Value::callNew(va_list ap)
 Value
 Value::callNew(Value args)
 {
-  return nt_value_call_new_array(internal, args.internal);
+  return natus_call_new_array(internal, args.internal);
 }
 
 Value
@@ -1151,7 +1151,7 @@ Value
 Value::callNew(UTF8 name, Value args)
 {
   Value fnc = get(name);
-  return nt_value_call_new_array(fnc.internal, args.internal);
+  return natus_call_new_array(fnc.internal, args.internal);
 }
 
 Value
@@ -1177,7 +1177,7 @@ Value
 Value::callNew(UTF16 name, Value args)
 {
   Value fnc = get(name);
-  return nt_value_call_new_array(fnc.internal, args.internal);
+  return natus_call_new_array(fnc.internal, args.internal);
 }
 
 Value
@@ -1193,11 +1193,11 @@ Value::callNew(UTF16 name, const Value *arg0, ...)
 bool
 Value::equals(Value val)
 {
-  return nt_value_equals(internal, val.internal);
+  return natus_equals(internal, val.internal);
 }
 
 bool
 Value::equalsStrict(Value val)
 {
-  return nt_value_equals_strict(internal, val.internal);
+  return natus_equals_strict(internal, val.internal);
 }

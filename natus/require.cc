@@ -13,8 +13,8 @@ struct HookMisc {
     delete (HookMisc*) hm;
   }
 
-  static ntValue*
-  translate(ntValue* ctx, ntRequireHookStep step, char* name, void* misc)
+  static natusValue*
+  translate(natusValue* ctx, natusRequireHookStep step, char* name, void* misc)
   {
     if (!misc)
       return NULL;
@@ -22,7 +22,7 @@ struct HookMisc {
 
     Value ctxt(ctx, false);
     Value rslt = hm->func(ctxt, (Require::HookStep) step, name, hm->misc);
-    return nt_value_incref(rslt.borrowCValue());
+    return natus_incref(rslt.borrowCValue());
   }
 
   HookMisc(Require::Hook fnc, void* m, FreeFunction f)
@@ -47,54 +47,54 @@ Require::Require(Value ctx)
 bool
 Require::initialize(Value config)
 {
-  return nt_require_init_value(ctx.borrowCValue(), config.borrowCValue());
+  return natus_require_init_value(ctx.borrowCValue(), config.borrowCValue());
 }
 
 bool
 Require::initialize(const char* config)
 {
-  return nt_require_init(ctx.borrowCValue(), config);
+  return natus_require_init(ctx.borrowCValue(), config);
 }
 
 Value
 Require::getConfig()
 {
-  return nt_require_get_config(ctx.borrowCValue());
+  return natus_require_get_config(ctx.borrowCValue());
 }
 
 bool
 Require::addHook(const char* key, Hook func, void* misc, FreeFunction free)
 {
-  return nt_require_hook_add(ctx.borrowCValue(), key, HookMisc::translate, new HookMisc(func, misc, free), HookMisc::freeit);
+  return natus_require_hook_add(ctx.borrowCValue(), key, HookMisc::translate, new HookMisc(func, misc, free), HookMisc::freeit);
 }
 
 bool
 Require::delHook(const char* key)
 {
-  return nt_require_hook_del(ctx.borrowCValue(), key);
+  return natus_require_hook_del(ctx.borrowCValue(), key);
 }
 
 bool
 Require::addOriginMatcher(const char* key, OriginMatcher func, void* misc, FreeFunction free)
 {
-  return nt_require_origin_matcher_add(ctx.borrowCValue(), key, func, misc, free);
+  return natus_require_origin_matcher_add(ctx.borrowCValue(), key, func, misc, free);
 }
 
 bool
 Require::delOriginMatcher(const char* key)
 {
-  return nt_require_origin_matcher_del(ctx.borrowCValue(), key);
+  return natus_require_origin_matcher_del(ctx.borrowCValue(), key);
 }
 
 Value
 Require::require(const char* name)
 {
-  return nt_require(ctx.borrowCValue(), name);
+  return natus_require(ctx.borrowCValue(), name);
 }
 
 bool
 Require::originPermitted(const char* uri)
 {
-  return nt_require_origin_permitted(ctx.borrowCValue(), uri);
+  return natus_require_origin_permitted(ctx.borrowCValue(), uri);
 }
 

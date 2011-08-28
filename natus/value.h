@@ -38,302 +38,302 @@
  * Returns:
  *     The return value, which may be an exception.
  */
-typedef ntValue *
-(*ntNativeFunction)(ntValue *fnc, ntValue *ths, ntValue *arg);
+typedef natusValue *
+(*natusNativeFunction)(natusValue *fnc, natusValue *ths, natusValue *arg);
 
 typedef enum {
-  ntValueTypeUnknown = 0 << 0,
-  ntValueTypeArray = 1 << 0,
-  ntValueTypeBoolean = 1 << 1,
-  ntValueTypeFunction = 1 << 2,
-  ntValueTypeNull = 1 << 3,
-  ntValueTypeNumber = 1 << 4,
-  ntValueTypeObject = 1 << 5,
-  ntValueTypeString = 1 << 6,
-  ntValueTypeUndefined = 1 << 7,
-  ntValueTypeSupportsPrivate = ntValueTypeFunction | ntValueTypeObject,
-} ntValueType;
+  natusValueTypeUnknown = 0 << 0,
+  natusValueTypeArray = 1 << 0,
+  natusValueTypeBoolean = 1 << 1,
+  natusValueTypeFunction = 1 << 2,
+  natusValueTypeNull = 1 << 3,
+  natusValueTypeNumber = 1 << 4,
+  natusValueTypeObject = 1 << 5,
+  natusValueTypeString = 1 << 6,
+  natusValueTypeUndefined = 1 << 7,
+  natusValueTypeSupportsPrivate = natusValueTypeFunction | natusValueTypeObject,
+} natusValueType;
 
 typedef enum {
-  ntPropAttrNone = 0,
-  ntPropAttrReadOnly = 1 << 0,
-  ntPropAttrDontEnum = 1 << 1,
-  ntPropAttrDontDelete = 1 << 2,
-  ntPropAttrConstant = ntPropAttrReadOnly | ntPropAttrDontDelete,
-  ntPropAttrProtected = ntPropAttrConstant | ntPropAttrDontEnum
-} ntPropAttr;
+  natusPropAttrNone = 0,
+  natusPropAttrReadOnly = 1 << 0,
+  natusPropAttrDontEnum = 1 << 1,
+  natusPropAttrDontDelete = 1 << 2,
+  natusPropAttrConstant = natusPropAttrReadOnly | natusPropAttrDontDelete,
+  natusPropAttrProtected = natusPropAttrConstant | natusPropAttrDontEnum
+} natusPropAttr;
 
-typedef struct _ntClass ntClass;
-struct _ntClass {
+typedef struct natusClass natusClass;
+struct natusClass {
 
-  ntValue *
-  (*del)(ntClass *cls, ntValue *obj, const ntValue *prop);
+  natusValue *
+  (*del)(natusClass *cls, natusValue *obj, const natusValue *prop);
 
-  ntValue *
-  (*get)(ntClass *cls, ntValue *obj, const ntValue *prop);
+  natusValue *
+  (*get)(natusClass *cls, natusValue *obj, const natusValue *prop);
 
-  ntValue *
-  (*set)(ntClass *cls, ntValue *obj, const ntValue *prop, const ntValue *value);
+  natusValue *
+  (*set)(natusClass *cls, natusValue *obj, const natusValue *prop, const natusValue *value);
 
-  ntValue *
-  (*enumerate)(ntClass *cls, ntValue *obj);
+  natusValue *
+  (*enumerate)(natusClass *cls, natusValue *obj);
 
-  ntValue *
-  (*call)(ntClass *cls, ntValue *obj, ntValue *ths, ntValue *args);
+  natusValue *
+  (*call)(natusClass *cls, natusValue *obj, natusValue *ths, natusValue *args);
 
   void
-  (*free)(ntClass *cls);
+  (*free)(natusClass *cls);
 };
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
-ntValue *
-nt_value_incref(ntValue *val);
+natusValue *
+natus_incref(natusValue *val);
 
 void
-nt_value_decref(ntValue *val);
+natus_decref(natusValue *val);
 
-ntValue *
-nt_value_new_global(const char *name_or_path);
+natusValue *
+natus_new_global(const char *name_or_path);
 
-ntValue *
-nt_value_new_global_shared(const ntValue *global);
+natusValue *
+natus_new_global_shared(const natusValue *global);
 
-ntValue *
-nt_value_new_boolean(const ntValue *ctx, bool b);
+natusValue *
+natus_new_boolean(const natusValue *ctx, bool b);
 
-ntValue *
-nt_value_new_number(const ntValue *ctx, double n);
+natusValue *
+natus_new_number(const natusValue *ctx, double n);
 
-ntValue *
-nt_value_new_string(const ntValue *ctx, const char *fmt, ...);
+natusValue *
+natus_new_string(const natusValue *ctx, const char *fmt, ...);
 
-ntValue *
-nt_value_new_string_varg(const ntValue *ctx, const char *fmt, va_list arg);
+natusValue *
+natus_new_string_varg(const natusValue *ctx, const char *fmt, va_list arg);
 
-ntValue *
-nt_value_new_string_utf8(const ntValue *ctx, const char *string);
+natusValue *
+natus_new_string_utf8(const natusValue *ctx, const char *string);
 
-ntValue *
-nt_value_new_string_utf8_length(const ntValue *ctx, const char *string, size_t len);
+natusValue *
+natus_new_string_utf8_length(const natusValue *ctx, const char *string, size_t len);
 
-ntValue *
-nt_value_new_string_utf16(const ntValue *ctx, const ntChar *string);
+natusValue *
+natus_new_string_utf16(const natusValue *ctx, const natusChar *string);
 
-ntValue *
-nt_value_new_string_utf16_length(const ntValue *ctx, const ntChar *string, size_t len);
+natusValue *
+natus_new_string_utf16_length(const natusValue *ctx, const natusChar *string, size_t len);
 
-ntValue *
-nt_value_new_array(const ntValue *ctx, ...);
+natusValue *
+natus_new_array(const natusValue *ctx, ...);
 
-ntValue *
-nt_value_new_array_vector(const ntValue *ctx, const ntValue **array);
+natusValue *
+natus_new_array_vector(const natusValue *ctx, const natusValue **array);
 
-ntValue *
-nt_value_new_array_varg(const ntValue *ctx, va_list ap);
+natusValue *
+natus_new_array_varg(const natusValue *ctx, va_list ap);
 
-ntValue *
-nt_value_new_function(const ntValue *ctx, ntNativeFunction func, const char *name);
+natusValue *
+natus_new_function(const natusValue *ctx, natusNativeFunction func, const char *name);
 
-ntValue *
-nt_value_new_object(const ntValue *ctx, ntClass* cls);
+natusValue *
+natus_new_object(const natusValue *ctx, natusClass* cls);
 
-ntValue *
-nt_value_new_null(const ntValue *ctx);
+natusValue *
+natus_new_null(const natusValue *ctx);
 
-ntValue *
-nt_value_new_undefined(const ntValue *ctx);
+natusValue *
+natus_new_undefined(const natusValue *ctx);
 
-ntValue *
-nt_value_get_global(const ntValue *ctx);
-
-const char *
-nt_value_get_engine_name(const ntValue *ctx);
-
-ntValueType
-nt_value_get_type(const ntValue *ctx);
+natusValue *
+natus_get_global(const natusValue *ctx);
 
 const char *
-nt_value_get_type_name(const ntValue *ctx);
+natus_get_engine_name(const natusValue *ctx);
+
+natusValueType
+natus_get_type(const natusValue *ctx);
+
+const char *
+natus_get_type_name(const natusValue *ctx);
 
 bool
-nt_value_borrow_context(const ntValue *ctx, void **context, void **value);
+natus_borrow_context(const natusValue *ctx, void **context, void **value);
 
 bool
-nt_value_is_exception(const ntValue *val);
+natus_is_exception(const natusValue *val);
 
 bool
-nt_value_is_type(const ntValue *val, ntValueType types);
+natus_is_type(const natusValue *val, natusValueType types);
 
 bool
-nt_value_is_array(const ntValue *val);
+natus_is_array(const natusValue *val);
 
 bool
-nt_value_is_boolean(const ntValue *val);
+natus_is_boolean(const natusValue *val);
 
 bool
-nt_value_is_function(const ntValue *val);
+natus_is_function(const natusValue *val);
 
 bool
-nt_value_is_null(const ntValue *val);
+natus_is_null(const natusValue *val);
 
 bool
-nt_value_is_number(const ntValue *val);
+natus_is_number(const natusValue *val);
 
 bool
-nt_value_is_object(const ntValue *val);
+natus_is_object(const natusValue *val);
 
 bool
-nt_value_is_string(const ntValue *val);
+natus_is_string(const natusValue *val);
 
 bool
-nt_value_is_undefined(const ntValue *val);
+natus_is_undefined(const natusValue *val);
 
-ntValue *
-nt_value_to_exception(ntValue *val);
+natusValue *
+natus_to_exception(natusValue *val);
 
 bool
-nt_value_to_bool(const ntValue *val);
+natus_to_bool(const natusValue *val);
 
 double
-nt_value_to_double(const ntValue *val);
+natus_to_double(const natusValue *val);
 
 int
-nt_value_to_int(const ntValue *val);
+natus_to_int(const natusValue *val);
 
 long
-nt_value_to_long(const ntValue *val);
+natus_to_long(const natusValue *val);
 
 char *
-nt_value_to_string_utf8(const ntValue *val, size_t *len);
+natus_to_string_utf8(const natusValue *val, size_t *len);
 
-ntChar *
-nt_value_to_string_utf16(const ntValue *val, size_t *len);
+natusChar *
+natus_to_string_utf16(const natusValue *val, size_t *len);
 
 bool
-nt_value_as_bool(ntValue *val);
+natus_as_bool(natusValue *val);
 
 double
-nt_value_as_double(ntValue *val);
+natus_as_double(natusValue *val);
 
 int
-nt_value_as_int(ntValue *val);
+natus_as_int(natusValue *val);
 
 long
-nt_value_as_long(ntValue *val);
+natus_as_long(natusValue *val);
 
 char *
-nt_value_as_string_utf8(ntValue *val, size_t *len);
+natus_as_string_utf8(natusValue *val, size_t *len);
 
-ntChar *
-nt_value_as_string_utf16(ntValue *val, size_t *len);
+natusChar *
+natus_as_string_utf16(natusValue *val, size_t *len);
 
-ntValue *
-nt_value_del(ntValue *obj, const ntValue *id);
+natusValue *
+natus_del(natusValue *obj, const natusValue *id);
 
-ntValue *
-nt_value_del_utf8(ntValue *obj, const char *id);
+natusValue *
+natus_del_utf8(natusValue *obj, const char *id);
 
-ntValue *
-nt_value_del_index(ntValue *obj, const size_t id);
+natusValue *
+natus_del_index(natusValue *obj, const size_t id);
 
-ntValue *
-nt_value_del_recursive_utf8(ntValue *obj, const char *id);
+natusValue *
+natus_del_recursive_utf8(natusValue *obj, const char *id);
 
-ntValue *
-nt_value_get(ntValue *obj, const ntValue *id);
+natusValue *
+natus_get(natusValue *obj, const natusValue *id);
 
-ntValue *
-nt_value_get_utf8(ntValue *obj, const char *id);
+natusValue *
+natus_get_utf8(natusValue *obj, const char *id);
 
-ntValue *
-nt_value_get_index(ntValue *obj, const size_t id);
+natusValue *
+natus_get_index(natusValue *obj, const size_t id);
 
-ntValue *
-nt_value_get_recursive_utf8(ntValue *obj, const char *id);
+natusValue *
+natus_get_recursive_utf8(natusValue *obj, const char *id);
 
-ntValue *
-nt_value_set(ntValue *obj, const ntValue *id, const ntValue *value, ntPropAttr attrs);
+natusValue *
+natus_set(natusValue *obj, const natusValue *id, const natusValue *value, natusPropAttr attrs);
 
-ntValue *
-nt_value_set_utf8(ntValue *obj, const char *id, const ntValue *value, ntPropAttr attrs);
+natusValue *
+natus_set_utf8(natusValue *obj, const char *id, const natusValue *value, natusPropAttr attrs);
 
-ntValue *
-nt_value_set_index(ntValue *obj, const size_t id, const ntValue *value);
+natusValue *
+natus_set_index(natusValue *obj, const size_t id, const natusValue *value);
 
-ntValue *
-nt_value_set_recursive_utf8(ntValue *obj, const char *id, const ntValue *value, ntPropAttr attrs, bool mkpath);
+natusValue *
+natus_set_recursive_utf8(natusValue *obj, const char *id, const natusValue *value, natusPropAttr attrs, bool mkpath);
 
-ntValue *
-nt_value_enumerate(ntValue *obj);
+natusValue *
+natus_enumerate(natusValue *obj);
 
-#define nt_value_set_private(obj, type, priv, free) \
-  nt_value_set_private_name(obj, # type, priv, free)
-
-bool
-nt_value_set_private_name(ntValue *obj, const char *key, void *priv, ntFreeFunction free);
+#define natus_set_private(obj, type, priv, free) \
+  natus_set_private_name(obj, # type, priv, free)
 
 bool
-nt_value_set_private_name_value(ntValue *obj, const char *key, ntValue* priv);
+natus_set_private_name(natusValue *obj, const char *key, void *priv, natusFreeFunction free);
 
-#define nt_value_get_private(obj, type) \
-  ((type) nt_value_get_private_name(obj, # type))
+bool
+natus_set_private_name_value(natusValue *obj, const char *key, natusValue* priv);
+
+#define natus_get_private(obj, type) \
+  ((type) natus_get_private_name(obj, # type))
 
 void *
-nt_value_get_private_name(const ntValue *obj, const char *key);
+natus_get_private_name(const natusValue *obj, const char *key);
 
-ntValue *
-nt_value_get_private_name_value(const ntValue *obj, const char *key);
+natusValue *
+natus_get_private_name_value(const natusValue *obj, const char *key);
 
-ntValue *
-nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filename, unsigned int lineno);
+natusValue *
+natus_evaluate(natusValue *ths, const natusValue *javascript, const natusValue *filename, unsigned int lineno);
 
-ntValue *
-nt_value_evaluate_utf8(ntValue *ths, const char *javascript, const char *filename, unsigned int lineno);
+natusValue *
+natus_evaluate_utf8(natusValue *ths, const char *javascript, const char *filename, unsigned int lineno);
 
-ntValue *
-nt_value_call(ntValue *func, ntValue *ths, ...);
+natusValue *
+natus_call(natusValue *func, natusValue *ths, ...);
 
-ntValue *
-nt_value_call_varg(ntValue *func, ntValue *ths, va_list ap);
+natusValue *
+natus_call_varg(natusValue *func, natusValue *ths, va_list ap);
 
-ntValue *
-nt_value_call_array(ntValue *func, ntValue *ths, ntValue *args);
+natusValue *
+natus_call_array(natusValue *func, natusValue *ths, natusValue *args);
 
-ntValue *
-nt_value_call_utf8(ntValue *ths, const char *name, ...);
+natusValue *
+natus_call_utf8(natusValue *ths, const char *name, ...);
 
-ntValue *
-nt_value_call_utf8_varg(ntValue *ths, const char *name, va_list ap);
+natusValue *
+natus_call_utf8_varg(natusValue *ths, const char *name, va_list ap);
 
-ntValue *
-nt_value_call_utf8_array(ntValue *ths, const char *name, ntValue *args);
+natusValue *
+natus_call_utf8_array(natusValue *ths, const char *name, natusValue *args);
 
-ntValue *
-nt_value_call_new(ntValue *func, ...);
+natusValue *
+natus_call_new(natusValue *func, ...);
 
-ntValue *
-nt_value_call_new_varg(ntValue *func, va_list ap);
+natusValue *
+natus_call_new_varg(natusValue *func, va_list ap);
 
-ntValue *
-nt_value_call_new_array(ntValue *func, ntValue *args);
+natusValue *
+natus_call_new_array(natusValue *func, natusValue *args);
 
-ntValue *
-nt_value_call_new_utf8(ntValue *obj, const char *name, ...);
+natusValue *
+natus_call_new_utf8(natusValue *obj, const char *name, ...);
 
-ntValue *
-nt_value_call_new_utf8_varg(ntValue *obj, const char *name, va_list ap);
+natusValue *
+natus_call_new_utf8_varg(natusValue *obj, const char *name, va_list ap);
 
-ntValue *
-nt_value_call_new_utf8_array(ntValue *obj, const char *name, ntValue *args);
-
-bool
-nt_value_equals(const ntValue *val1, const ntValue *val2);
+natusValue *
+natus_call_new_utf8_array(natusValue *obj, const char *name, natusValue *args);
 
 bool
-nt_value_equals_strict(const ntValue *val1, const ntValue *val2);
+natus_equals(const natusValue *val1, const natusValue *val2);
+
+bool
+natus_equals_strict(const natusValue *val1, const natusValue *val2);
 
 #ifdef __cplusplus
 } /* extern "C" */

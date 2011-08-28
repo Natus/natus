@@ -30,19 +30,19 @@
 typedef struct {
   char *name;
   void *priv;
-  ntFreeFunction free;
-} ntPrivateItem;
+  natusFreeFunction free;
+} natusPrivateItem;
 
-struct _ntPrivate {
-  ntPrivateItem *priv;
+struct natusPrivate {
+  natusPrivateItem *priv;
   size_t size;
   size_t used;
   void *misc;
-  ntFreeFunction free;
+  natusFreeFunction free;
 };
 
 static inline bool
-_private_push(ntPrivate *self, const char *name, void *priv, ntFreeFunction free)
+_private_push(natusPrivate *self, const char *name, void *priv, natusFreeFunction free)
 {
   if (!self || !priv) {
     if (free && priv)
@@ -53,7 +53,7 @@ _private_push(ntPrivate *self, const char *name, void *priv, ntFreeFunction free
   // Expand the array if necessary
   if (self->used >= self->size) {
     self->size *= 2;
-    ntPrivateItem *tmp = realloc(self->priv, sizeof(ntPrivateItem) * self->size);
+    natusPrivateItem *tmp = realloc(self->priv, sizeof(natusPrivateItem) * self->size);
     if (!tmp) {
       self->size /= 2;
       if (free && priv)
@@ -77,10 +77,10 @@ _private_push(ntPrivate *self, const char *name, void *priv, ntFreeFunction free
   return true;
 }
 
-ntPrivate *
-nt_private_init(void *misc, ntFreeFunction free)
+natusPrivate *
+natus_private_init(void *misc, natusFreeFunction free)
 {
-  ntPrivate *self = malloc(sizeof(ntPrivate));
+  natusPrivate *self = malloc(sizeof(natusPrivate));
   if (!self) {
     if (free)
       free(misc);
@@ -91,7 +91,7 @@ nt_private_init(void *misc, ntFreeFunction free)
   self->misc = misc;
   self->used = 0;
   self->size = 8;
-  self->priv = calloc(self->size, sizeof(ntPrivateItem));
+  self->priv = calloc(self->size, sizeof(natusPrivateItem));
   if (!self->priv) {
     if (free)
       free(misc);
@@ -102,7 +102,7 @@ nt_private_init(void *misc, ntFreeFunction free)
 }
 
 void
-nt_private_free(ntPrivate *self)
+natus_private_free(natusPrivate *self)
 {
   if (!self)
     return;
@@ -125,7 +125,7 @@ nt_private_free(ntPrivate *self)
 }
 
 void *
-nt_private_get(const ntPrivate *self, const char *name)
+natus_private_get(const natusPrivate *self, const char *name)
 {
   size_t i;
   if (!self || !name)
@@ -139,7 +139,7 @@ nt_private_get(const ntPrivate *self, const char *name)
 }
 
 bool
-nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction freef)
+natus_private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction freef)
 {
   size_t i = 0;
   if (!self || !name) {
@@ -179,14 +179,14 @@ nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction fre
 }
 
 bool
-nt_private_push(ntPrivate *self, void *priv, ntFreeFunction free)
+natus_private_push(natusPrivate *self, void *priv, natusFreeFunction free)
 {
   // No existing match was found. We'll add a new item,
   return _private_push(self, NULL, priv, free);
 }
 
 void
-nt_private_foreach(const ntPrivate *self, bool rev, void
+natus_private_foreach(const natusPrivate *self, bool rev, void
 (*foreach)(const char *name, void *priv, void *misc), void *misc)
 {
   ssize_t i;

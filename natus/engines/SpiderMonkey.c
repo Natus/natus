@@ -27,18 +27,18 @@
 #include <jsapi.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-typedef JSContext* ntEngCtx;
-typedef jsval* ntEngVal;
+typedef JSContext* natusEngCtx;
+typedef jsval* natusEngVal;
 #include <natus/backend.h>
 
 static void
-sm_val_unlock(ntEngCtx ctx, ntEngVal val);
+sm_val_unlock(natusEngCtx ctx, natusEngVal val);
 static void
-sm_val_free(ntEngVal val);
-static ntValueType
-sm_get_type(const ntEngCtx ctx, const ntEngVal val);
+sm_val_free(natusEngVal val);
+static natusValueType
+sm_get_type(const natusEngCtx ctx, const natusEngVal val);
 
-static ntEngVal
+static natusEngVal
 mkjsval(JSContext *ctx, jsval val)
 {
   jsval *v = malloc(sizeof(jsval));
@@ -52,7 +52,7 @@ mkjsval(JSContext *ctx, jsval val)
 static void
 obj_finalize(JSContext *ctx, JSObject *obj);
 
-static ntPrivate *
+static natusPrivate *
 get_private(JSContext *ctx, JSObject *obj)
 {
   if (!ctx || !obj)
@@ -75,28 +75,28 @@ get_private(JSContext *ctx, JSObject *obj)
 }
 
 static JSBool
-property_handler(JSContext *ctx, JSObject *object, jsid id, jsval *vp, ntPropertyAction act)
+property_handler(JSContext *ctx, JSObject *object, jsid id, jsval *vp, natusPropertyAction act)
 {
-  ntPrivate *priv = get_private(ctx, object);
+  natusPrivate *priv = get_private(ctx, object);
   if (!priv)
     return JS_FALSE;
 
   jsval key;
-  if (act & ~ntPropertyActionEnumerate) {
+  if (act & ~natusPropertyActionEnumerate) {
     if (!JS_IdToValue(ctx, id, &key))
       return JS_FALSE;
     assert(JSVAL_IS_STRING(key) || JSVAL_IS_NUMBER(key));
   }
 
-  ntEngValFlags flags = ntEngValFlagNone;
-  ntEngVal obj = mkjsval(ctx, OBJECT_TO_JSVAL(object));
-  ntEngVal idx = (act & ~ntPropertyActionEnumerate) ? mkjsval(ctx, key) : NULL;
-  ntEngVal val = (act & ntPropertyActionSet) ? mkjsval(ctx, *vp) : NULL;
-  ntEngVal res = nt_value_handle_property(act, obj, priv, idx, val, &flags);
+  natusEngValFlags flags = natusEngValFlagNone;
+  natusEngVal obj = mkjsval(ctx, OBJECT_TO_JSVAL(object));
+  natusEngVal idx = (act & ~natusPropertyActionEnumerate) ? mkjsval(ctx, key) : NULL;
+  natusEngVal val = (act & natusPropertyActionSet) ? mkjsval(ctx, *vp) : NULL;
+  natusEngVal res = natus_handle_property(act, obj, priv, idx, val, &flags);
 
-  if (flags & ntEngValFlagException) {
+  if (flags & natusEngValFlagException) {
     if (!res || JSVAL_IS_VOID(*res)) {
-      if (flags & ntEngValFlagMustFree && res) {
+      if (flags & natusEngValFlagMustFree && res) {
         sm_val_unlock(ctx, res);
         sm_val_free(res);
       }
@@ -104,17 +104,17 @@ property_handler(JSContext *ctx, JSObject *object, jsid id, jsval *vp, ntPropert
     }
 
     JS_SetPendingException(ctx, *res);
-    if (flags & ntEngValFlagMustFree) {
+    if (flags & natusEngValFlagMustFree) {
       sm_val_unlock(ctx, res);
       sm_val_free(res);
     }
     return JS_FALSE;
   }
 
-  if (act == ntPropertyActionGet)
+  if (act == natusPropertyActionGet)
     *vp = *res;
 
-  if (flags & ntEngValFlagMustFree) {
+  if (flags & natusEngValFlagMustFree) {
     sm_val_unlock(ctx, res);
     sm_val_free(res);
   }
@@ -130,21 +130,21 @@ call_handler(JSContext *ctx, uintN argc, jsval *vp, bool constr)
     return JS_FALSE;
 
   // Get the private
-  ntPrivate *priv = get_private(ctx, JSVAL_TO_OBJECT(JS_CALLEE(ctx, vp)));
+  natusPrivate *priv = get_private(ctx, JSVAL_TO_OBJECT(JS_CALLEE(ctx, vp)));
   if (!priv)
     return JS_FALSE;
 
   // Do the call
-  ntEngValFlags flags;
-  ntEngVal obj = mkjsval(ctx, JS_CALLEE(ctx, vp));
-  ntEngVal ths = mkjsval(ctx, constr ? JSVAL_VOID : JS_THIS(ctx, vp));
-  ntEngVal arg = mkjsval(ctx, OBJECT_TO_JSVAL(arga));
-  ntEngVal res = nt_value_handle_call(obj, priv, ths, arg, &flags);
+  natusEngValFlags flags;
+  natusEngVal obj = mkjsval(ctx, JS_CALLEE(ctx, vp));
+  natusEngVal ths = mkjsval(ctx, constr ? JSVAL_VOID : JS_THIS(ctx, vp));
+  natusEngVal arg = mkjsval(ctx, OBJECT_TO_JSVAL(arga));
+  natusEngVal res = natus_handle_call(obj, priv, ths, arg, &flags);
 
   // Handle the results
-  if (flags & ntEngValFlagException) {
+  if (flags & natusEngValFlagException) {
     JS_SetPendingException(ctx, res ? *res : JSVAL_VOID);
-    if ((flags & ntEngValFlagMustFree) && res) {
+    if ((flags & natusEngValFlagMustFree) && res) {
       sm_val_unlock(ctx, res);
       sm_val_free(res);
     }
@@ -152,7 +152,7 @@ call_handler(JSContext *ctx, uintN argc, jsval *vp, bool constr)
   }
 
   JS_SET_RVAL(ctx, vp, *res);
-  if (flags & ntEngValFlagMustFree) {
+  if (flags & natusEngValFlagMustFree) {
     sm_val_unlock(ctx, res);
     sm_val_free(res);
   }
@@ -162,25 +162,25 @@ call_handler(JSContext *ctx, uintN argc, jsval *vp, bool constr)
 static void
 obj_finalize(JSContext *ctx, JSObject *obj)
 {
-  nt_private_free(get_private(ctx, obj));
+  natus_private_free(get_private(ctx, obj));
 }
 
 static JSBool
 obj_del(JSContext *ctx, JSObject *object, jsid id, jsval *vp)
 {
-  return property_handler(ctx, object, id, vp, ntPropertyActionDelete);
+  return property_handler(ctx, object, id, vp, natusPropertyActionDelete);
 }
 
 static JSBool
 obj_get(JSContext *ctx, JSObject *object, jsid id, jsval *vp)
 {
-  return property_handler(ctx, object, id, vp, ntPropertyActionGet);
+  return property_handler(ctx, object, id, vp, natusPropertyActionGet);
 }
 
 static JSBool
 obj_set(JSContext *ctx, JSObject *object, jsid id, JSBool strict, jsval *vp)
 {
-  return property_handler(ctx, object, id, vp, ntPropertyActionSet);
+  return property_handler(ctx, object, id, vp, natusPropertyActionSet);
 }
 
 static JSBool
@@ -225,8 +225,8 @@ obj_enum(JSContext *ctx, JSObject *object, JSIterateOp enum_op, jsval *statep, j
   // Handle the results
   jsval res = JSVAL_VOID;
   step = INT_TO_JSVAL(0);
-  if (!property_handler(ctx, object, 0, &res, ntPropertyActionEnumerate)
-      || sm_get_type(ctx, &res) != ntValueTypeArray
+  if (!property_handler(ctx, object, 0, &res, natusPropertyActionEnumerate)
+      || sm_get_type(ctx, &res) != natusValueTypeArray
       || !JS_GetArrayLength(ctx, JSVAL_TO_OBJECT(res), &len)
       || !JS_SetProperty(ctx, JSVAL_TO_OBJECT(res), "step", &step))
     return JS_FALSE;
@@ -273,7 +273,7 @@ report_error(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static void
-sm_ctx_free(ntEngCtx ctx)
+sm_ctx_free(natusEngCtx ctx)
 {
   JSRuntime *run = JS_GetRuntime(ctx);
   JS_GC(ctx);
@@ -282,25 +282,25 @@ sm_ctx_free(ntEngCtx ctx)
 }
 
 static void
-sm_val_unlock(ntEngCtx ctx, ntEngVal val)
+sm_val_unlock(natusEngCtx ctx, natusEngVal val)
 {
   JSVAL_UNLOCK(ctx, *val);
 }
 
-static ntEngVal
-sm_val_duplicate(ntEngCtx ctx, ntEngVal val)
+static natusEngVal
+sm_val_duplicate(natusEngCtx ctx, natusEngVal val)
 {
   return mkjsval(ctx, *val);
 }
 
 static void
-sm_val_free(ntEngVal val)
+sm_val_free(natusEngVal val)
 {
   free(val);
 }
 
-static ntEngVal
-sm_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags)
+static natusEngVal
+sm_new_global(natusEngCtx ctx, natusEngVal val, natusPrivate *priv, natusEngCtx *newctx, natusEngValFlags *flags)
 {
   bool freectx = false;
   JSObject *glb = NULL;
@@ -339,7 +339,7 @@ sm_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntE
   }
 
   if (!JS_SetPrivate(ctx, glb, priv)) {
-    nt_private_free(priv);
+    natus_private_free(priv);
     if (freectx && *newctx) {
       JSRuntime *run = JS_GetRuntime(*newctx);
       JS_DestroyContext(*newctx);
@@ -348,7 +348,7 @@ sm_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntE
     return NULL;
   }
 
-  ntEngVal v = mkjsval(*newctx, OBJECT_TO_JSVAL(glb));
+  natusEngVal v = mkjsval(*newctx, OBJECT_TO_JSVAL(glb));
   if (!v) {
     if (freectx && *newctx) {
       JSRuntime *run = JS_GetRuntime(*newctx);
@@ -360,26 +360,26 @@ sm_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntE
   return v;
 }
 
-static ntEngVal
-sm_new_bool(const ntEngCtx ctx, bool b, ntEngValFlags *flags)
+static natusEngVal
+sm_new_bool(const natusEngCtx ctx, bool b, natusEngValFlags *flags)
 {
   return mkjsval(ctx, BOOLEAN_TO_JSVAL(b));
 }
 
-static ntEngVal
-sm_new_number(const ntEngCtx ctx, double n, ntEngValFlags *flags)
+static natusEngVal
+sm_new_number(const natusEngCtx ctx, double n, natusEngValFlags *flags)
 {
   jsval v = JSVAL_VOID;
   if (!JS_NewNumberValue(ctx, n, &v)) {
     v = JSVAL_VOID;
     if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
-      *flags |= ntEngValFlagException;
+      *flags |= natusEngValFlagException;
   }
   return mkjsval(ctx, v);
 }
 
-static ntEngVal
-sm_new_string_utf8(const ntEngCtx ctx, const char *str, size_t len, ntEngValFlags *flags)
+static natusEngVal
+sm_new_string_utf8(const natusEngCtx ctx, const char *str, size_t len, natusEngValFlags *flags)
 {
   jsval v = JSVAL_VOID;
   JSString *s = JS_NewStringCopyN(ctx, str, len);
@@ -387,14 +387,14 @@ sm_new_string_utf8(const ntEngCtx ctx, const char *str, size_t len, ntEngValFlag
     v = STRING_TO_JSVAL(s);
   else {
     if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
-      *flags |= ntEngValFlagException;
+      *flags |= natusEngValFlagException;
   }
 
   return mkjsval(ctx, STRING_TO_JSVAL(s));
 }
 
-static ntEngVal
-sm_new_string_utf16(const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValFlags *flags)
+static natusEngVal
+sm_new_string_utf16(const natusEngCtx ctx, const natusChar *str, size_t len, natusEngValFlags *flags)
 {
   jsval v = JSVAL_VOID;
   JSString *s = JS_NewUCStringCopyN(ctx, str, len);
@@ -402,14 +402,14 @@ sm_new_string_utf16(const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValF
     v = STRING_TO_JSVAL(s);
   else {
     if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
-      *flags |= ntEngValFlagException;
+      *flags |= natusEngValFlagException;
   }
 
   return mkjsval(ctx, STRING_TO_JSVAL(s));
 }
 
-static ntEngVal
-sm_new_array(const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlags *flags)
+static natusEngVal
+sm_new_array(const natusEngCtx ctx, const natusEngVal *array, size_t len, natusEngValFlags *flags)
 {
   jsval *valv = calloc(len, sizeof(jsval));
   if (!valv)
@@ -426,13 +426,13 @@ sm_new_array(const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlag
   if (obj)
     v = OBJECT_TO_JSVAL(obj);
   else if (JS_IsExceptionPending(ctx) && JS_GetPendingException(ctx, &v))
-    *flags |= ntEngValFlagException;
+    *flags |= natusEngValFlagException;
 
   return mkjsval(ctx, v);
 }
 
-static ntEngVal
-sm_new_function(const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValFlags *flags)
+static natusEngVal
+sm_new_function(const natusEngCtx ctx, const char *name, natusPrivate *priv, natusEngValFlags *flags)
 {
   JSFunction *fnc = JS_NewFunction(ctx, fnc_call, 0, JSFUN_CONSTRUCTOR, NULL, name);
   JSObject *obj = JS_GetFunctionObject(fnc);
@@ -442,17 +442,17 @@ sm_new_function(const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValF
   if (fnc && obj && prv && JS_SetReservedSlot(ctx, obj, 0, OBJECT_TO_JSVAL(prv)) && JS_SetPrivate(ctx, prv, priv))
     v = OBJECT_TO_JSVAL(obj);
   else {
-    nt_private_free(priv);
+    natus_private_free(priv);
     if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &v))
       return NULL;
-    *flags |= ntEngValFlagException;
+    *flags |= natusEngValFlagException;
   }
 
   return mkjsval(ctx, v);
 }
 
-static ntEngVal
-sm_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *flags)
+static natusEngVal
+sm_new_object(const natusEngCtx ctx, natusClass *cls, natusPrivate *priv, natusEngValFlags *flags)
 {
   JSClass *jscls = NULL;
   if (cls) {
@@ -474,7 +474,7 @@ sm_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *
     jscls->call = cls->call ? obj_call : NULL;
     jscls->construct = cls->call ? obj_new : NULL;
 
-    if (!nt_private_set(priv, "natus::SpiderMonkey::JSClass", jscls, free))
+    if (!natus_private_set(priv, "natus::SpiderMonkey::JSClass", jscls, free))
       goto error;
   }
 
@@ -486,37 +486,37 @@ sm_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *
   else {
     if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &v))
       goto error;
-    *flags |= ntEngValFlagException;
-    nt_private_free(priv);
+    *flags |= natusEngValFlagException;
+    natus_private_free(priv);
   }
 
   return mkjsval(ctx, v);
 
 error:
-  nt_private_free(priv);
+  natus_private_free(priv);
   return NULL;
 }
 
-static ntEngVal
-sm_new_null(const ntEngCtx ctx, ntEngValFlags *flags)
+static natusEngVal
+sm_new_null(const natusEngCtx ctx, natusEngValFlags *flags)
 {
   return mkjsval(ctx, JSVAL_NULL);
 }
 
-static ntEngVal
-sm_new_undefined(const ntEngCtx ctx, ntEngValFlags *flags)
+static natusEngVal
+sm_new_undefined(const natusEngCtx ctx, natusEngValFlags *flags)
 {
   return mkjsval(ctx, JSVAL_VOID);
 }
 
 static bool
-sm_to_bool(const ntEngCtx ctx, const ntEngVal val)
+sm_to_bool(const natusEngCtx ctx, const natusEngVal val)
 {
   return JSVAL_TO_BOOLEAN(*val);
 }
 
 static double
-sm_to_double(const ntEngCtx ctx, const ntEngVal val)
+sm_to_double(const natusEngCtx ctx, const natusEngVal val)
 {
   double d;
   JS_ValueToNumber(ctx, *val, &d);
@@ -524,7 +524,7 @@ sm_to_double(const ntEngCtx ctx, const ntEngVal val)
 }
 
 static char *
-sm_to_string_utf8(const ntEngCtx ctx, const ntEngVal val, size_t *len)
+sm_to_string_utf8(const natusEngCtx ctx, const natusEngVal val, size_t *len)
 {
   JSString *str = JS_ValueToString(ctx, *val);
   *len = JS_GetStringLength(str);
@@ -542,17 +542,17 @@ sm_to_string_utf8(const ntEngCtx ctx, const ntEngVal val, size_t *len)
   return NULL;
 }
 
-static ntChar *
-sm_to_string_utf16(const ntEngCtx ctx, const ntEngVal val, size_t *len)
+static natusChar *
+sm_to_string_utf16(const natusEngCtx ctx, const natusEngVal val, size_t *len)
 {
   JSString *str = JS_ValueToString(ctx, *val);
   *len = JS_GetStringLength(str);
 
   const jschar *jschars = JS_GetStringCharsAndLength(ctx, str, len);
-  ntChar *ntchars = calloc(*len + 1, sizeof(ntChar));
+  natusChar *ntchars = calloc(*len + 1, sizeof(natusChar));
   if (jschars && ntchars) {
-    memset(ntchars, 0, sizeof(ntChar) * (*len + 1));
-    memcpy(ntchars, jschars, sizeof(ntChar) * *len);
+    memset(ntchars, 0, sizeof(natusChar) * (*len + 1));
+    memcpy(ntchars, jschars, sizeof(natusChar) * *len);
     return ntchars;
   }
 
@@ -560,8 +560,8 @@ sm_to_string_utf16(const ntEngCtx ctx, const ntEngVal val, size_t *len)
   return NULL;
 }
 
-ntEngVal
-sm_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags)
+natusEngVal
+sm_del(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngValFlags *flags)
 {
   jsid vid;
   jsval rval = JSVAL_VOID;
@@ -571,7 +571,7 @@ sm_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags
   if (JS_DeletePropertyById(ctx, JSVAL_TO_OBJECT(*val), vid))
     rval = BOOLEAN_TO_JSVAL(true);
   else {
-    *flags |= ntEngValFlagException;
+    *flags |= natusEngValFlagException;
     if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval))
       return NULL;
   }
@@ -579,15 +579,15 @@ sm_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags
   return mkjsval(ctx, rval);
 }
 
-ntEngVal
-sm_get(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags)
+natusEngVal
+sm_get(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngValFlags *flags)
 {
   jsid vid;
   JS_ValueToId(ctx, *id, &vid);
 
   jsval rval = JSVAL_VOID;
   if (!JS_GetPropertyById(ctx, JSVAL_TO_OBJECT(*val), vid, &rval)) {
-    *flags |= ntEngValFlagException;
+    *flags |= natusEngValFlagException;
     if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval))
       return NULL;
   }
@@ -595,12 +595,12 @@ sm_get(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags
   return mkjsval(ctx, rval);
 }
 
-ntEngVal
-sm_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value, ntPropAttr attrs, ntEngValFlags *flags)
+natusEngVal
+sm_set(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, const natusEngVal value, natusPropAttr attrs, natusEngValFlags *flags)
 {
-  jsint attr = (attrs & ntPropAttrDontEnum) ? 0 : JSPROP_ENUMERATE;
-  attr |= (attrs & ntPropAttrReadOnly) ? JSPROP_READONLY : 0;
-  attr |= (attrs & ntPropAttrDontDelete) ? JSPROP_PERMANENT : 0;
+  jsint attr = (attrs & natusPropAttrDontEnum) ? 0 : JSPROP_ENUMERATE;
+  attr |= (attrs & natusPropAttrReadOnly) ? JSPROP_READONLY : 0;
+  attr |= (attrs & natusPropAttrDontDelete) ? JSPROP_PERMANENT : 0;
 
   jsid vid;
   JS_ValueToId(ctx, *id, &vid);
@@ -617,7 +617,7 @@ sm_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value
       JS_SetUCPropertyAttributes(ctx, JSVAL_TO_OBJECT(*val), chars, len, attr, &found);
     }
   } else {
-    *flags |= ntEngValFlagException;
+    *flags |= natusEngValFlagException;
     if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval))
       return NULL;
   }
@@ -625,8 +625,8 @@ sm_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value
   return mkjsval(ctx, rval);
 }
 
-ntEngVal
-sm_enumerate(const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags)
+natusEngVal
+sm_enumerate(const natusEngCtx ctx, natusEngVal val, natusEngValFlags *flags)
 {
   jsint i;
 
@@ -652,8 +652,8 @@ sm_enumerate(const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags)
   return mkjsval(ctx, OBJECT_TO_JSVAL(array));
 }
 
-static ntEngVal
-sm_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngValFlags *flags)
+static natusEngVal
+sm_call(const natusEngCtx ctx, natusEngVal func, natusEngVal ths, natusEngVal args, natusEngValFlags *flags)
 {
   // Convert to jsval array
   jsuint i, len;
@@ -681,7 +681,7 @@ sm_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngVal
     if (obj)
       rval = OBJECT_TO_JSVAL(obj);
     else {
-      *flags |= ntEngValFlagException;
+      *flags |= natusEngValFlagException;
       if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval)) {
         free(argv);
         return NULL;
@@ -689,7 +689,7 @@ sm_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngVal
     }
   } else {
     if (!JS_CallFunctionValue(ctx, JSVAL_TO_OBJECT(*ths), *func, len, argv, &rval)) {
-      *flags |= ntEngValFlagException;
+      *flags |= natusEngValFlagException;
       if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval)) {
         free(argv);
         return NULL;
@@ -701,8 +701,8 @@ sm_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngVal
   return mkjsval(ctx, rval);
 }
 
-static ntEngVal
-sm_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEngVal filename, unsigned int lineno, ntEngValFlags *flags)
+static natusEngVal
+sm_evaluate(const natusEngCtx ctx, natusEngVal ths, const natusEngVal jscript, const natusEngVal filename, unsigned int lineno, natusEngValFlags *flags)
 {
   size_t jslen = 0, fnlen = 0;
   const jschar *jschars = JS_GetStringCharsAndLength(ctx, JS_ValueToString(ctx, *jscript), &jslen);
@@ -710,7 +710,7 @@ sm_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEn
 
   jsval rval;
   if (!JS_EvaluateUCScript(ctx, JSVAL_TO_OBJECT(*ths), jschars, jslen, fnchars, lineno, &rval)) {
-    *flags |= ntEngValFlagException;
+    *flags |= natusEngValFlagException;
     if (!JS_IsExceptionPending(ctx) || !JS_GetPendingException(ctx, &rval)) {
       free(fnchars);
       return NULL;
@@ -721,14 +721,14 @@ sm_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEn
   return mkjsval(ctx, rval);
 }
 
-static ntPrivate *
-sm_get_private(const ntEngCtx ctx, const ntEngVal val)
+static natusPrivate *
+sm_get_private(const natusEngCtx ctx, const natusEngVal val)
 {
   return get_private(ctx, JSVAL_TO_OBJECT(*val));
 }
 
-static ntEngVal
-sm_get_global(const ntEngCtx ctx, const ntEngVal val)
+static natusEngVal
+sm_get_global(const natusEngCtx ctx, const natusEngVal val)
 {
   JSObject *obj = NULL;
   JS_ValueToObject(ctx, *val, &obj);
@@ -741,32 +741,32 @@ sm_get_global(const ntEngCtx ctx, const ntEngVal val)
   return mkjsval(ctx, OBJECT_TO_JSVAL(obj));
 }
 
-static ntValueType
-sm_get_type(const ntEngCtx ctx, const ntEngVal val)
+static natusValueType
+sm_get_type(const natusEngCtx ctx, const natusEngVal val)
 {
   if (JSVAL_IS_BOOLEAN(*val))
-    return ntValueTypeBoolean;
+    return natusValueTypeBoolean;
   else if (JSVAL_IS_NULL(*val))
-    return ntValueTypeNull;
+    return natusValueTypeNull;
   else if (JSVAL_IS_NUMBER(*val))
-    return ntValueTypeNumber;
+    return natusValueTypeNumber;
   else if (JSVAL_IS_STRING(*val))
-    return ntValueTypeString;
+    return natusValueTypeString;
   else if (JSVAL_IS_VOID(*val))
-    return ntValueTypeUndefined;
+    return natusValueTypeUndefined;
   else if (JSVAL_IS_OBJECT(*val)) {
     if (JS_IsArrayObject(ctx, JSVAL_TO_OBJECT(*val)))
-      return ntValueTypeArray;
+      return natusValueTypeArray;
     else if (JS_ObjectIsFunction(ctx, JSVAL_TO_OBJECT(*val)))
-      return ntValueTypeFunction;
+      return natusValueTypeFunction;
     else
-      return ntValueTypeObject;
+      return natusValueTypeObject;
   }
-  return ntValueTypeUnknown;
+  return natusValueTypeUnknown;
 }
 
 static bool
-sm_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
+sm_borrow_context(natusEngCtx ctx, natusEngVal val, void **context, void **value)
 {
   *context = ctx;
   *value = val;
@@ -774,7 +774,7 @@ sm_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
 }
 
 static bool
-sm_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict)
+sm_equal(const natusEngCtx ctx, const natusEngVal val1, const natusEngVal val2, bool strict)
 {
   JSBool eql = false;
 

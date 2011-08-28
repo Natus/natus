@@ -18,7 +18,7 @@
    Memcheck:Leak
    fun:_Zn?m
    ...
-   fun:nt_value_new_global
+   fun:natus_value_new_global
    ...
 }
 {
@@ -26,7 +26,7 @@
    Memcheck:Leak
    fun:?alloc
    ...
-   fun:nt_value_new_global
+   fun:natus_value_new_global
    ...
 }
 
@@ -62,7 +62,7 @@
    ...
    fun:JSGarbageCollect
    fun:jsc_ctx_free
-   fun:nt_value_decref
+   fun:natus_value_decref
    ...
 }
 {
@@ -116,7 +116,7 @@
    fun:malloc
    fun:strdup
    ...
-   fun:nt_value_new_global
+   fun:natus_value_new_global
    ...
 }
 

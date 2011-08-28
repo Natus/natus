@@ -27,13 +27,16 @@
 #include "value.hh"
 #include "misc.hh"
 
+#undef NATUS_MODULE
 #define NATUS_MODULE(modname) \
   bool natus_module_init_cxx(Value& modname); \
-  extern "C" bool natus_module_init(ntValue *module) { \
+  extern "C" bool natus_module_init(natusValue *module) { \
     Value mod(module, false); \
     return natus_module_init_cxx(mod); \
   } \
   bool natus_module_init_cxx(Value& modname)
+
+#undef NATUS_CHECK_ORIGIN
 #define NATUS_CHECK_ORIGIN(ctx, uri) \
   if (!Require(ctx).originPermitted(uri)) \
     return throwException(ctx, "SecurityError", "Permission denied!");
@@ -54,7 +57,7 @@ namespace natus
     (*OriginMatcher)(const char* pattern, const char* subject);
 
     typedef bool
-    (*ModuleInit)(ntValue* module);
+    (*ModuleInit)(natusValue* module);
 
     Require(Value ctx);
 

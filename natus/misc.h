@@ -26,45 +26,45 @@
 #include "types.h"
 #include <stdarg.h>
 
-#define NT_CHECK_ARGUMENTS(arg, fmt) \
+#define NATUS_CHECK_ARGUMENTS(arg, fmt) \
 { \
-  ntValue *_exc = nt_ensure_arguments(arg, fmt); \
-  if (nt_value_is_exception(_exc)) return _exc; \
-  nt_value_decref(_exc); \
+  natusValue *_exc = natus_ensure_arguments(arg, fmt); \
+  if (natus_is_exception(_exc)) return _exc; \
+  natus_decref(_exc); \
 }
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-ntValue *
-nt_throw_exception(const ntValue *ctx, const char *base,
-                   const char *type, const char *format, ...);
+natusValue *
+natus_throw_exception(const natusValue *ctx, const char *base,
+                      const char *type, const char *format, ...);
 
-ntValue *
-nt_throw_exception_varg(const ntValue *ctx, const char *base,
-                        const char *type, const char *format, va_list ap);
+natusValue *
+natus_throw_exception_varg(const natusValue *ctx, const char *base,
+                           const char *type, const char *format, va_list ap);
 
-ntValue *
-nt_throw_exception_code(const ntValue *ctx, const char *base,
-                        const char *type, int code, const char *format,
-                        ...);
+natusValue *
+natus_throw_exception_code(const natusValue *ctx, const char *base,
+                           const char *type, int code, const char *format,
+                           ...);
 
-ntValue *
-nt_throw_exception_code_varg(const ntValue *ctx, const char *base,
-                             const char *type, int code, const char *format,
-                             va_list ap);
+natusValue *
+natus_throw_exception_code_varg(const natusValue *ctx, const char *base,
+                                const char *type, int code, const char *format,
+                                va_list ap);
 
-ntValue *
-nt_throw_exception_errno(const ntValue *ctx, int errorno);
+natusValue *
+natus_throw_exception_errno(const natusValue *ctx, int errorno);
 
-ntValue *
-nt_ensure_arguments(ntValue *arg, const char *fmt);
+natusValue *
+natus_ensure_arguments(natusValue *arg, const char *fmt);
 
-ntValue *
-nt_convert_arguments(ntValue *arg, const char *fmt, ...);
+natusValue *
+natus_convert_arguments(natusValue *arg, const char *fmt, ...);
 
-ntValue *
-nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap);
+natusValue *
+natus_convert_arguments_varg(natusValue *arg, const char *fmt, va_list ap);
 
 #ifdef __cplusplus
 } /* extern "C" */

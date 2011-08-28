@@ -31,7 +31,7 @@ namespace natus
   Value
   throwException(Value ctx, const char* base, const char* type, const char* format, va_list ap)
   {
-    return nt_throw_exception_varg(ctx.borrowCValue(), base, type, format, ap);
+    return natus_throw_exception_varg(ctx.borrowCValue(), base, type, format, ap);
   }
 
   Value
@@ -46,7 +46,7 @@ namespace natus
   Value
   throwException(Value ctx, const char* base, const char* type, int code, const char* format, va_list ap)
   {
-    return nt_throw_exception_code_varg(ctx.borrowCValue(), base, type, code, format, ap);
+    return natus_throw_exception_code_varg(ctx.borrowCValue(), base, type, code, format, ap);
   }
 
   Value
@@ -61,19 +61,19 @@ namespace natus
   Value
   throwException(Value ctx, int errorno)
   {
-    return nt_throw_exception_errno(ctx.borrowCValue(), errorno);
+    return natus_throw_exception_errno(ctx.borrowCValue(), errorno);
   }
 
   Value
   ensureArguments(Value args, const char* fmt)
   {
-    return nt_ensure_arguments(args.borrowCValue(), fmt);
+    return natus_ensure_arguments(args.borrowCValue(), fmt);
   }
 
   Value
   convertArguments(Value args, const char *fmt, va_list ap)
   {
-    return nt_convert_arguments_varg(args.borrowCValue(), fmt, ap);
+    return natus_convert_arguments_varg(args.borrowCValue(), fmt, ap);
   }
 
   Value

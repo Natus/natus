@@ -33,8 +33,8 @@
 #include <libgen.h>
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-typedef void* ntEngCtx;
-typedef void* ntEngVal;
+typedef void* natusEngCtx;
+typedef void* natusEngVal;
 #include "backend.h"
 
 #define  _str(s) # s
@@ -45,50 +45,50 @@ typedef void* ntEngVal;
 #define NATUS_PRIV_GLOBAL    "natus::Global"
 
 #define callandmkval(n, t, c, f, ...) \
-  ntEngValFlags _flags = ntEngValFlagMustFree; \
-  ntEngVal _val = c->ctx->eng->spec->f(__VA_ARGS__, &_flags); \
+  natusEngValFlags _flags = natusEngValFlagMustFree; \
+  natusEngVal _val = c->ctx->eng->spec->f(__VA_ARGS__, &_flags); \
   n = mkval(c, _val, _flags, t);
 
 #define callandreturn(t, c, f, ...) \
-  callandmkval(ntValue *_value, t, c, f, __VA_ARGS__); \
+  callandmkval(natusValue *_value, t, c, f, __VA_ARGS__); \
   return _value
 
-typedef struct _ntEngine ntEngine;
-struct _ntEngine {
+typedef struct engine engine;
+struct engine {
   size_t ref;
-  ntEngine *next;
-  ntEngine *prev;
+  engine *next;
+  engine *prev;
   void *dll;
-  ntEngineSpec *spec;
+  natusEngineSpec *spec;
 };
 
-typedef struct _ntPrivateWrapper ntPrivateWrapper;
-struct _ntPrivateWrapper {
-  ntPrivateWrapper *next;
-  ntPrivateWrapper *prev;
-  ntPrivateWrapper **head;
-  ntPrivate *priv;
+typedef struct privWrap privWrap;
+struct privWrap {
+  privWrap *next;
+  privWrap *prev;
+  privWrap **head;
+  natusPrivate *priv;
 };
 
-typedef struct _ntEngineContext ntEngineContext;
-struct _ntEngineContext {
+typedef struct engCtx engCtx;
+struct engCtx {
   size_t ref;
-  ntEngine *eng;
-  ntEngCtx ctx;
-  ntEngineContext *next;
-  ntEngineContext *prev;
-  ntPrivateWrapper *priv;
+  engine *eng;
+  natusEngCtx ctx;
+  engCtx *next;
+  engCtx *prev;
+  privWrap *priv;
 };
 
-struct _ntValue {
+struct natusValue {
   size_t ref;
-  ntEngineContext *ctx;
-  ntValueType typ;
-  ntEngVal val;
-  ntEngValFlags flg;
+  engCtx *ctx;
+  natusValueType typ;
+  natusEngVal val;
+  natusEngValFlags flg;
 };
 
-static ntEngine *engines;
+static engine *engines;
 
 #define new0(type) ((type*) malloc0(sizeof(type)))
 static void *
@@ -101,7 +101,7 @@ malloc0(size_t size)
 }
 
 static void
-engine_decref(ntEngine **head, ntEngine *eng)
+engine_decref(engine **head, engine *eng)
 {
   if (!eng)
     return;
@@ -117,10 +117,10 @@ engine_decref(ntEngine **head, ntEngine *eng)
   }
 }
 
-static ntEngine *
+static engine *
 do_load_file(const char *filename, bool reqsym)
 {
-  ntEngine *eng;
+  engine *eng;
   void *dll;
 
   /* Open the file */
@@ -140,14 +140,14 @@ do_load_file(const char *filename, bool reqsym)
   }
 
   /* Create a new engine */
-  eng = new0(ntEngine);
+  eng = new0(engine);
   if (!eng) {
     dlclose(dll);
     return NULL;
   }
 
   /* Get the engine spec */
-  eng->spec = (ntEngineSpec*) dlsym(dll, __str(NATUS_ENGINE_));
+  eng->spec = (natusEngineSpec*) dlsym(dll, __str(NATUS_ENGINE_));
   if (!eng->spec || eng->spec->version != NATUS_ENGINE_VERSION) {
     dlclose(dll);
     free(eng);
@@ -176,10 +176,10 @@ do_load_file(const char *filename, bool reqsym)
   return engines = eng;
 }
 
-static ntEngine *
+static engine *
 do_load_dir(const char *dirname, bool reqsym)
 {
-  ntEngine *res = NULL;
+  engine *res = NULL;
   DIR *dir = opendir(dirname);
   if (!dir)
     return NULL;
@@ -214,7 +214,7 @@ do_load_dir(const char *dirname, bool reqsym)
 }
 
 static void
-onprivfree(ntPrivateWrapper *pw)
+onprivfree(privWrap *pw)
 {
   if (pw->prev)
     pw->prev->next = pw->next;
@@ -225,8 +225,8 @@ onprivfree(ntPrivateWrapper *pw)
   free(pw);
 }
 
-static ntPrivate *
-pushpriv(ntEngineContext *ctx, ntPrivateWrapper *pw)
+static natusPrivate *
+pushpriv(engCtx *ctx, privWrap *pw)
 {
   if (!ctx || !pw)
     return NULL;
@@ -239,14 +239,14 @@ pushpriv(ntEngineContext *ctx, ntPrivateWrapper *pw)
   return pw->priv;
 }
 
-static ntPrivate *
-mkpriv(ntEngineContext *ctx)
+static natusPrivate *
+mkpriv(engCtx *ctx)
 {
-  ntPrivateWrapper *pw = new0(ntPrivateWrapper);
+  privWrap *pw = new0(privWrap);
   if (!pw)
     return NULL;
 
-  pw->priv = nt_private_init(pw, (ntFreeFunction) onprivfree);
+  pw->priv = natus_private_init(pw, (natusFreeFunction) onprivfree);
   if (!pw->priv) {
     free(pw);
     return NULL;
@@ -255,13 +255,13 @@ mkpriv(ntEngineContext *ctx)
   return pushpriv(ctx, pw);
 }
 
-static ntValue *
-mkval(const ntValue *ctx, ntEngVal val, ntEngValFlags flags, ntValueType type)
+static natusValue *
+mkval(const natusValue *ctx, natusEngVal val, natusEngValFlags flags, natusValueType type)
 {
   if (!ctx || !val)
     return NULL;
 
-  ntValue *self = new0(ntValue);
+  natusValue *self = new0(natusValue);
   if (!self) {
     ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, val);
     ctx->ctx->eng->spec->val_free(val);
@@ -273,12 +273,12 @@ mkval(const ntValue *ctx, ntEngVal val, ntEngValFlags flags, ntValueType type)
   self->ctx->ref++;
   self->val = val;
   self->flg = flags;
-  self->typ = flags & ntEngValFlagException ? ntValueTypeUnknown : type;
+  self->typ = flags & natusEngValFlagException ? natusValueTypeUnknown : type;
   return self;
 }
 
-ntValue *
-nt_value_incref(ntValue *val)
+natusValue *
+natus_incref(natusValue *val)
 {
   if (!val)
     return NULL;
@@ -287,9 +287,9 @@ nt_value_incref(ntValue *val)
 }
 
 static bool
-free_all_ctx(ntEngineContext *ctx)
+free_all_ctx(engCtx *ctx)
 {
-  ntEngineContext *tmp;
+  engCtx *tmp;
 
   if (!ctx)
     return false;
@@ -305,7 +305,7 @@ free_all_ctx(ntEngineContext *ctx)
 }
 
 static void
-context_decref(ntEngineContext *ctx)
+context_decref(engCtx *ctx)
 {
   if (!ctx)
     return;
@@ -315,7 +315,7 @@ context_decref(ntEngineContext *ctx)
   /* If there are no more context references,
    * free it if there are no other related contexts... */
   if (free_all_ctx(ctx)) {
-    ntEngineContext *tmp, *head;
+    engCtx *tmp, *head;
 
     head = ctx;
     while (head->prev)
@@ -327,16 +327,16 @@ context_decref(ntEngineContext *ctx)
 
     /* Second loop: free everything else */
     for (tmp = head; tmp;) {
-      ntPrivateWrapper *ptmp = tmp->priv;
+      privWrap *ptmp = tmp->priv;
       while (ptmp) {
-        ntPrivateWrapper *pw = ptmp->next;
-        nt_private_free(ptmp->priv);
+        privWrap *pw = ptmp->next;
+        natus_private_free(ptmp->priv);
         ptmp = pw;
       }
 
       engine_decref(&engines, tmp->eng);
 
-      ntEngineContext *ntmp = tmp->next;
+      engCtx *ntmp = tmp->next;
       free(tmp);
       tmp = ntmp;
     }
@@ -345,14 +345,14 @@ context_decref(ntEngineContext *ctx)
 }
 
 void
-nt_value_decref(ntValue *val)
+natus_decref(natusValue *val)
 {
   if (!val)
     return;
   val->ref = val->ref > 0 ? val->ref - 1 : 0;
   if (val->ref == 0) {
     /* Free the value */
-    if (val->val && (val->flg & ntEngValFlagMustFree)) {
+    if (val->val && (val->flg & natusEngValFlagMustFree)) {
       val->ctx->eng->spec->val_unlock(val->ctx->ctx, val->val);
       val->ctx->eng->spec->val_free(val->val);
     }
@@ -361,18 +361,18 @@ nt_value_decref(ntValue *val)
   }
 }
 
-ntValue *
-nt_value_new_global(const char *name_or_path)
+natusValue *
+natus_new_global(const char *name_or_path)
 {
-  ntValue *self = NULL;
-  ntPrivate *priv = NULL;
+  natusValue *self = NULL;
+  natusPrivate *priv = NULL;
 
   /* Create the value */
-  self = new0(ntValue);
+  self = new0(natusValue);
   if (!self)
     goto error;
   self->ref++;
-  self->ctx = new0(ntEngineContext);
+  self->ctx = new0(engCtx);
   if (!self->ctx)
     goto error;
   self->ctx->ref++;
@@ -399,12 +399,12 @@ nt_value_new_global(const char *name_or_path)
     goto error;
 
   priv = mkpriv(self->ctx);
-  if (!priv || !nt_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
-    nt_private_free(priv);
+  if (!priv || !natus_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
+    natus_private_free(priv);
     goto error;
   }
 
-  self->flg = ntEngValFlagMustFree;
+  self->flg = natusEngValFlagMustFree;
   if (!(self->val = self->ctx->eng->spec->new_global(NULL, NULL, priv, &self->ctx->ctx, &self->flg)))
     goto error;
 
@@ -422,31 +422,31 @@ error:
   return NULL;
 }
 
-ntValue *
-nt_value_new_global_shared(const ntValue *global)
+natusValue *
+natus_new_global_shared(const natusValue *global)
 {
-  ntValue *self = NULL;
-  ntEngCtx ctx = NULL;
-  ntEngVal val = NULL;
-  ntEngValFlags flags = ntEngValFlagMustFree;
+  natusValue *self = NULL;
+  natusEngCtx ctx = NULL;
+  natusEngVal val = NULL;
+  natusEngValFlags flags = natusEngValFlagMustFree;
 
-  ntPrivateWrapper *pw = new0(ntPrivateWrapper);
+  privWrap *pw = new0(privWrap);
   if (!pw)
     return NULL;
 
-  ntPrivate *priv = nt_private_init(pw, (ntFreeFunction) onprivfree);
+  natusPrivate *priv = natus_private_init(pw, (natusFreeFunction) onprivfree);
   if (!priv)
     return NULL;
 
   val = global->ctx->eng->spec->new_global(global->ctx->ctx, global->val, priv, &ctx, &flags);
-  self = mkval(global, val, flags, ntValueTypeObject);
+  self = mkval(global, val, flags, natusValueTypeObject);
   if (!self)
     return NULL;
 
   /* If a new context was created, wrap it */
   if (global->ctx->ctx != ctx) {
     self->ctx->ref--;
-    self->ctx = new0(ntEngineContext);
+    self->ctx = new0(engCtx);
     if (!self->ctx) {
       global->ctx->eng->spec->val_unlock(ctx, self->val);
       global->ctx->eng->spec->val_free(self->val);
@@ -463,8 +463,8 @@ nt_value_new_global_shared(const ntValue *global)
     global->ctx->next = self->ctx;
   }
 
-  if (!nt_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
-    nt_value_decref(self);
+  if (!natus_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
+    natus_decref(self);
     return NULL;
   }
 
@@ -472,90 +472,90 @@ nt_value_new_global_shared(const ntValue *global)
   return self;
 }
 
-ntValue *
-nt_value_new_boolean(const ntValue *ctx, bool b)
+natusValue *
+natus_new_boolean(const natusValue *ctx, bool b)
 {
   if (!ctx)
     return NULL;
-  callandreturn(ntValueTypeBoolean, ctx, new_bool, ctx->ctx->ctx, b);
+  callandreturn(natusValueTypeBoolean, ctx, new_bool, ctx->ctx->ctx, b);
 }
 
-ntValue *
-nt_value_new_number(const ntValue *ctx, double n)
+natusValue *
+natus_new_number(const natusValue *ctx, double n)
 {
   if (!ctx)
     return NULL;
-  callandreturn(ntValueTypeNumber, ctx, new_number, ctx->ctx->ctx, n);
+  callandreturn(natusValueTypeNumber, ctx, new_number, ctx->ctx->ctx, n);
 }
 
-ntValue *
-nt_value_new_string(const ntValue *ctx, const char *fmt, ...) {
+natusValue *
+natus_new_string(const natusValue *ctx, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  ntValue *tmpv = nt_value_new_string_varg(ctx, fmt, ap);
+  natusValue *tmpv = natus_new_string_varg(ctx, fmt, ap);
   va_end(ap);
   return tmpv;
 }
 
-ntValue *
-nt_value_new_string_varg(const ntValue *ctx, const char *fmt, va_list arg)
+natusValue *
+natus_new_string_varg(const natusValue *ctx, const char *fmt, va_list arg)
 {
   char *tmp = NULL;
   if (vasprintf(&tmp, fmt, arg) < 0)
     return NULL;
-  ntValue *tmpv = nt_value_new_string_utf8(ctx, tmp);
+  natusValue *tmpv = natus_new_string_utf8(ctx, tmp);
   free(tmp);
   return tmpv;
 }
 
-ntValue *
-nt_value_new_string_utf8(const ntValue *ctx, const char *string)
+natusValue *
+natus_new_string_utf8(const natusValue *ctx, const char *string)
 {
   if (!string)
     return NULL;
-  return nt_value_new_string_utf8_length(ctx, string, strlen(string));
+  return natus_new_string_utf8_length(ctx, string, strlen(string));
 }
 
-ntValue *
-nt_value_new_string_utf8_length(const ntValue *ctx, const char *string, size_t len)
+natusValue *
+natus_new_string_utf8_length(const natusValue *ctx, const char *string, size_t len)
 {
   if (!ctx || !string)
     return NULL;
-  callandreturn(ntValueTypeString, ctx, new_string_utf8, ctx->ctx->ctx, string, len);
+  callandreturn(natusValueTypeString, ctx, new_string_utf8, ctx->ctx->ctx, string, len);
 }
 
-ntValue *
-nt_value_new_string_utf16(const ntValue *ctx, const ntChar *string)
+natusValue *
+natus_new_string_utf16(const natusValue *ctx, const natusChar *string)
 {
   size_t len;
   for (len = 0; string && string[len] != L'\0'; len++)
     ;
-  return nt_value_new_string_utf16_length(ctx, string, len);
+  return natus_new_string_utf16_length(ctx, string, len);
 }
 
-ntValue *
-nt_value_new_string_utf16_length(const ntValue *ctx, const ntChar *string, size_t len)
+natusValue *
+natus_new_string_utf16_length(const natusValue *ctx, const natusChar *string, size_t len)
 {
   if (!ctx || !string)
     return NULL;
-  callandreturn(ntValueTypeString, ctx, new_string_utf16, ctx->ctx->ctx, string, len);
+  callandreturn(natusValueTypeString, ctx, new_string_utf16, ctx->ctx->ctx, string, len);
 }
 
-ntValue *
-nt_value_new_array(const ntValue *ctx, ...) {
+natusValue *
+natus_new_array(const natusValue *ctx, ...) {
   va_list ap;
 
   va_start(ap, ctx);
-  ntValue *ret = nt_value_new_array_varg(ctx, ap);
+  natusValue *ret = natus_new_array_varg(ctx, ap);
   va_end(ap);
 
   return ret;
 }
 
-ntValue *
-nt_value_new_array_vector(const ntValue *ctx, const ntValue **array)
+natusValue *
+natus_new_array_vector(const natusValue *ctx, const natusValue **array)
 {
-  const ntValue *novals[1] =
+  const natusValue *novals[1] =
     { NULL, };
   size_t count = 0;
   size_t i;
@@ -568,166 +568,166 @@ nt_value_new_array_vector(const ntValue *ctx, const ntValue **array)
   for (count = 0; array[count]; count++)
     ;
 
-  ntEngVal *vals = (ntEngVal*) malloc(sizeof(ntEngVal) * (count + 1));
+  natusEngVal *vals = (natusEngVal*) malloc(sizeof(natusEngVal) * (count + 1));
   if (!vals)
     return NULL;
 
   for (i = 0; i < count; i++)
     vals[i] = array[i]->val;
 
-  callandmkval(ntValue *val, ntValueTypeUnknown, ctx, new_array, ctx->ctx->ctx, vals, count);
+  callandmkval(natusValue *val, natusValueTypeUnknown, ctx, new_array, ctx->ctx->ctx, vals, count);
   free(vals);
   return val;
 }
 
-ntValue *
-nt_value_new_array_varg(const ntValue *ctx, va_list ap)
+natusValue *
+natus_new_array_varg(const natusValue *ctx, va_list ap)
 {
   va_list apc;
   size_t count = 0, i = 0;
 
   va_copy(apc, ap);
   while (
-    va_arg(apc, ntValue*))
+    va_arg(apc, natusValue*))
     count++;
   va_end(apc);
 
-  const ntValue **array = NULL;
+  const natusValue **array = NULL;
   if (count > 0) {
-    array = calloc(++count, sizeof(ntValue*));
+    array = calloc(++count, sizeof(natusValue*));
     if (!array)
       return NULL;
     va_copy(apc, ap);
     while (--count > 0)
-    array[i++] = va_arg(apc, ntValue*);
+    array[i++] = va_arg(apc, natusValue*);
     array[i] = NULL;
     va_end(apc);
   }
 
-  ntValue *ret = nt_value_new_array_vector(ctx, array);
+  natusValue *ret = natus_new_array_vector(ctx, array);
   free(array);
   return ret;
 }
 
-ntValue *
-nt_value_new_function(const ntValue *ctx, ntNativeFunction func, const char *name)
+natusValue *
+natus_new_function(const natusValue *ctx, natusNativeFunction func, const char *name)
 {
   if (!ctx || !func)
     return NULL;
 
-  ntPrivate *priv = mkpriv(ctx->ctx);
+  natusPrivate *priv = mkpriv(ctx->ctx);
   if (!priv)
     goto error;
-  if (!nt_private_set(priv, NATUS_PRIV_GLOBAL, nt_value_get_global(ctx), NULL))
+  if (!natus_private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
     goto error;
-  if (!nt_private_set(priv, NATUS_PRIV_FUNCTION, func, NULL))
+  if (!natus_private_set(priv, NATUS_PRIV_FUNCTION, func, NULL))
     goto error;
 
-  callandreturn(ntValueTypeFunction, ctx, new_function, ctx->ctx->ctx, name, priv);
+  callandreturn(natusValueTypeFunction, ctx, new_function, ctx->ctx->ctx, name, priv);
 
 error:
-  nt_private_free(priv);
+  natus_private_free(priv);
   return NULL;
 }
 
-ntValue *
-nt_value_new_object(const ntValue *ctx, ntClass *cls)
+natusValue *
+natus_new_object(const natusValue *ctx, natusClass *cls)
 {
   if (!ctx)
     return NULL;
 
-  ntPrivate *priv = mkpriv(ctx->ctx);
+  natusPrivate *priv = mkpriv(ctx->ctx);
   if (!priv)
     goto error;
-  if (cls && !nt_private_set(priv, NATUS_PRIV_GLOBAL, nt_value_get_global(ctx), NULL))
+  if (cls && !natus_private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
     goto error;
-  if (cls && !nt_private_set(priv, NATUS_PRIV_CLASS, cls, (ntFreeFunction) cls->free))
+  if (cls && !natus_private_set(priv, NATUS_PRIV_CLASS, cls, (natusFreeFunction) cls->free))
     goto error;
 
-  callandreturn(ntValueTypeObject, ctx, new_object, ctx->ctx->ctx, cls, priv);
+  callandreturn(natusValueTypeObject, ctx, new_object, ctx->ctx->ctx, cls, priv);
 
 error:
-  nt_private_free(priv);
+  natus_private_free(priv);
   return NULL;
 }
 
-ntValue *
-nt_value_new_null(const ntValue *ctx)
+natusValue *
+natus_new_null(const natusValue *ctx)
 {
   if (!ctx)
     return NULL;
 
-  callandreturn(ntValueTypeNull, ctx, new_null, ctx->ctx->ctx);
+  callandreturn(natusValueTypeNull, ctx, new_null, ctx->ctx->ctx);
 }
 
-ntValue *
-nt_value_new_undefined(const ntValue *ctx)
+natusValue *
+natus_new_undefined(const natusValue *ctx)
 {
   if (!ctx)
     return NULL;
-  callandreturn(ntValueTypeUndefined, ctx, new_undefined, ctx->ctx->ctx);
+  callandreturn(natusValueTypeUndefined, ctx, new_undefined, ctx->ctx->ctx);
 }
 
-ntValue *
-nt_value_get_global(const ntValue *ctx)
+natusValue *
+natus_get_global(const natusValue *ctx)
 {
   if (!ctx)
     return NULL;
 
-  ntValue *global = nt_value_get_private_name(ctx, NATUS_PRIV_GLOBAL);
+  natusValue *global = natus_get_private_name(ctx, NATUS_PRIV_GLOBAL);
   if (global)
     return global;
 
-  ntEngVal glb = ctx->ctx->eng->spec->get_global(ctx->ctx->ctx, ctx->val);
+  natusEngVal glb = ctx->ctx->eng->spec->get_global(ctx->ctx->ctx, ctx->val);
   if (!glb)
     return NULL;
 
-  ntPrivate *priv = ctx->ctx->eng->spec->get_private(ctx->ctx->ctx, glb);
+  natusPrivate *priv = ctx->ctx->eng->spec->get_private(ctx->ctx->ctx, glb);
   ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, glb);
   ctx->ctx->eng->spec->val_free(glb);
   if (!priv)
     return NULL;
 
-  return nt_private_get(priv, NATUS_PRIV_GLOBAL);
+  return natus_private_get(priv, NATUS_PRIV_GLOBAL);
 }
 
 const char *
-nt_value_get_engine_name(const ntValue *ctx)
+natus_get_engine_name(const natusValue *ctx)
 {
   if (!ctx)
     return NULL;
   return ctx->ctx->eng->spec->name;
 }
 
-ntValueType
-nt_value_get_type(const ntValue *ctx)
+natusValueType
+natus_get_type(const natusValue *ctx)
 {
   if (!ctx)
-    return ntValueTypeUndefined;
-  if (ctx->typ == ntValueTypeUnknown)
-    ((ntValue*) ctx)->typ = ctx->ctx->eng->spec->get_type(ctx->ctx->ctx, ctx->val);
+    return natusValueTypeUndefined;
+  if (ctx->typ == natusValueTypeUnknown)
+    ((natusValue*) ctx)->typ = ctx->ctx->eng->spec->get_type(ctx->ctx->ctx, ctx->val);
   return ctx->typ;
 }
 
 const char *
-nt_value_get_type_name(const ntValue *ctx)
+natus_get_type_name(const natusValue *ctx)
 {
-  switch (nt_value_get_type(ctx)) {
-  case ntValueTypeArray:
+  switch (natus_get_type(ctx)) {
+  case natusValueTypeArray:
     return "array";
-  case ntValueTypeBoolean:
+  case natusValueTypeBoolean:
     return "boolean";
-  case ntValueTypeFunction:
+  case natusValueTypeFunction:
     return "function";
-  case ntValueTypeNull:
+  case natusValueTypeNull:
     return "null";
-  case ntValueTypeNumber:
+  case natusValueTypeNumber:
     return "number";
-  case ntValueTypeObject:
+  case natusValueTypeObject:
     return "object";
-  case ntValueTypeString:
+  case natusValueTypeString:
     return "string";
-  case ntValueTypeUndefined:
+  case natusValueTypeUndefined:
     return "undefined";
   default:
     return "unknown";
@@ -735,7 +735,7 @@ nt_value_get_type_name(const ntValue *ctx)
 }
 
 bool
-nt_value_borrow_context(const ntValue *ctx, void **context, void **value)
+natus_borrow_context(const natusValue *ctx, void **context, void **value)
 {
   if (!ctx)
     return false;
@@ -743,111 +743,111 @@ nt_value_borrow_context(const ntValue *ctx, void **context, void **value)
 }
 
 bool
-nt_value_is_exception(const ntValue *val)
+natus_is_exception(const natusValue *val)
 {
-  return !val || (val->flg & ntEngValFlagException);
+  return !val || (val->flg & natusEngValFlagException);
 }
 
 bool
-nt_value_is_type(const ntValue *val, ntValueType types)
+natus_is_type(const natusValue *val, natusValueType types)
 {
-  return nt_value_get_type(val) & types;
+  return natus_get_type(val) & types;
 }
 
 bool
-nt_value_is_array(const ntValue *val)
+natus_is_array(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeArray);
+  return natus_is_type(val, natusValueTypeArray);
 }
 
 bool
-nt_value_is_boolean(const ntValue *val)
+natus_is_boolean(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeBoolean);
+  return natus_is_type(val, natusValueTypeBoolean);
 }
 
 bool
-nt_value_is_function(const ntValue *val)
+natus_is_function(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeFunction);
+  return natus_is_type(val, natusValueTypeFunction);
 }
 
 bool
-nt_value_is_null(const ntValue *val)
+natus_is_null(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeNull);
+  return natus_is_type(val, natusValueTypeNull);
 }
 
 bool
-nt_value_is_number(const ntValue *val)
+natus_is_number(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeNumber);
+  return natus_is_type(val, natusValueTypeNumber);
 }
 
 bool
-nt_value_is_object(const ntValue *val)
+natus_is_object(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeObject);
+  return natus_is_type(val, natusValueTypeObject);
 }
 
 bool
-nt_value_is_string(const ntValue *val)
+natus_is_string(const natusValue *val)
 {
-  return nt_value_is_type(val, ntValueTypeString);
+  return natus_is_type(val, natusValueTypeString);
 }
 
 bool
-nt_value_is_undefined(const ntValue *val)
+natus_is_undefined(const natusValue *val)
 {
-  return !val || nt_value_is_type(val, ntValueTypeUndefined);
+  return !val || natus_is_type(val, natusValueTypeUndefined);
 }
 
 bool
-nt_value_to_bool(const ntValue *val)
+natus_to_bool(const natusValue *val)
 {
   if (!val)
     return false;
-  if (nt_value_is_exception(val))
+  if (natus_is_exception(val))
     return false;
 
   return val->ctx->eng->spec->to_bool(val->ctx->ctx, val->val);
 }
 
 double
-nt_value_to_double(const ntValue *val)
+natus_to_double(const natusValue *val)
 {
   if (!val)
     return 0;
   return val->ctx->eng->spec->to_double(val->ctx->ctx, val->val);
 }
 
-ntValue *
-nt_value_to_exception(ntValue *val)
+natusValue *
+natus_to_exception(natusValue *val)
 {
   if (!val)
     return NULL;
-  val->flg |= ntEngValFlagException;
+  val->flg |= natusEngValFlagException;
   return val;
 }
 
 int
-nt_value_to_int(const ntValue *val)
+natus_to_int(const natusValue *val)
 {
   if (!val)
     return 0;
-  return (int) nt_value_to_double(val);
+  return (int) natus_to_double(val);
 }
 
 long
-nt_value_to_long(const ntValue *val)
+natus_to_long(const natusValue *val)
 {
   if (!val)
     return 0;
-  return (long) nt_value_to_double(val);
+  return (long) natus_to_double(val);
 }
 
 char *
-nt_value_to_string_utf8(const ntValue *val, size_t *len)
+natus_to_string_utf8(const natusValue *val, size_t *len)
 {
   if (!val)
     return 0;
@@ -855,21 +855,21 @@ nt_value_to_string_utf8(const ntValue *val, size_t *len)
   if (!len)
     len = &intlen;
 
-  if (!nt_value_is_string(val)) {
-    ntValue *str = nt_value_call_utf8_array((ntValue*) val, "toString", NULL);
-    if (nt_value_is_string(str)) {
+  if (!natus_is_string(val)) {
+    natusValue *str = natus_call_utf8_array((natusValue*) val, "toString", NULL);
+    if (natus_is_string(str)) {
       char *tmp = val->ctx->eng->spec->to_string_utf8(str->ctx->ctx, str->val, len);
-      nt_value_decref(str);
+      natus_decref(str);
       return tmp;
     }
-    nt_value_decref(str);
+    natus_decref(str);
   }
 
   return val->ctx->eng->spec->to_string_utf8(val->ctx->ctx, val->val, len);
 }
 
-ntChar *
-nt_value_to_string_utf16(const ntValue *val, size_t *len)
+natusChar *
+natus_to_string_utf16(const natusValue *val, size_t *len)
 {
   if (!val)
     return 0;
@@ -877,110 +877,110 @@ nt_value_to_string_utf16(const ntValue *val, size_t *len)
   if (!len)
     len = &intlen;
 
-  if (!nt_value_is_string(val)) {
-    ntValue *str = nt_value_call_utf8_array((ntValue*) val, "toString", NULL);
-    if (nt_value_is_string(str)) {
-      ntChar *tmp = val->ctx->eng->spec->to_string_utf16(str->ctx->ctx, str->val, len);
-      nt_value_decref(str);
+  if (!natus_is_string(val)) {
+    natusValue *str = natus_call_utf8_array((natusValue*) val, "toString", NULL);
+    if (natus_is_string(str)) {
+      natusChar *tmp = val->ctx->eng->spec->to_string_utf16(str->ctx->ctx, str->val, len);
+      natus_decref(str);
       return tmp;
     }
-    nt_value_decref(str);
+    natus_decref(str);
   }
 
   return val->ctx->eng->spec->to_string_utf16(val->ctx->ctx, val->val, len);
 }
 
 bool
-nt_value_as_bool(ntValue *val)
+natus_as_bool(natusValue *val)
 {
-  bool b = nt_value_to_bool(val);
-  nt_value_decref(val);
+  bool b = natus_to_bool(val);
+  natus_decref(val);
   return b;
 }
 
 double
-nt_value_as_double(ntValue *val)
+natus_as_double(natusValue *val)
 {
-  double d = nt_value_to_double(val);
-  nt_value_decref(val);
+  double d = natus_to_double(val);
+  natus_decref(val);
   return d;
 }
 
 int
-nt_value_as_int(ntValue *val)
+natus_as_int(natusValue *val)
 {
-  int i = nt_value_to_int(val);
-  nt_value_decref(val);
+  int i = natus_to_int(val);
+  natus_decref(val);
   return i;
 }
 
 long
-nt_value_as_long(ntValue *val)
+natus_as_long(natusValue *val)
 {
-  long l = nt_value_to_long(val);
-  nt_value_decref(val);
+  long l = natus_to_long(val);
+  natus_decref(val);
   return l;
 }
 
 char *
-nt_value_as_string_utf8(ntValue *val, size_t *len)
+natus_as_string_utf8(natusValue *val, size_t *len)
 {
-  char *s = nt_value_to_string_utf8(val, len);
-  nt_value_decref(val);
+  char *s = natus_to_string_utf8(val, len);
+  natus_decref(val);
   return s;
 }
 
-ntChar *
-nt_value_as_string_utf16(ntValue *val, size_t *len)
+natusChar *
+natus_as_string_utf16(natusValue *val, size_t *len)
 {
-  ntChar *s = nt_value_to_string_utf16(val, len);
-  nt_value_decref(val);
+  natusChar *s = natus_to_string_utf16(val, len);
+  natus_decref(val);
   return s;
 }
 
-ntValue *
-nt_value_del(ntValue *val, const ntValue *id)
+natusValue *
+natus_del(natusValue *val, const natusValue *id)
 {
-  if (!nt_value_is_type(id, ntValueTypeNumber | ntValueTypeString))
+  if (!natus_is_type(id, natusValueTypeNumber | natusValueTypeString))
     return NULL;
 
   // If the object is native, skip argument conversion and js overhead;
   //    call directly for increased speed
-  ntClass *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
+  natusClass *cls = natus_get_private_name(val, NATUS_PRIV_CLASS);
   if (cls && cls->del) {
-    ntValue *rslt = cls->del(cls, val, id);
-    if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
+    natusValue *rslt = cls->del(cls, val, id);
+    if (!natus_is_undefined(rslt) || !natus_is_exception(rslt))
       return rslt;
-    nt_value_decref(rslt);
+    natus_decref(rslt);
   }
 
-  callandreturn(ntValueTypeUnknown, val, del, val->ctx->ctx, val->val, id->val);
+  callandreturn(natusValueTypeUnknown, val, del, val->ctx->ctx, val->val, id->val);
 }
 
-ntValue *
-nt_value_del_utf8(ntValue *val, const char *id)
+natusValue *
+natus_del_utf8(natusValue *val, const char *id)
 {
-  ntValue *vid = nt_value_new_string_utf8(val, id);
+  natusValue *vid = natus_new_string_utf8(val, id);
   if (!vid)
     return NULL;
-  ntValue *ret = nt_value_del(val, vid);
-  nt_value_decref(vid);
+  natusValue *ret = natus_del(val, vid);
+  natus_decref(vid);
   return ret;
 }
 
-ntValue *
-nt_value_del_index(ntValue *val, size_t id)
+natusValue *
+natus_del_index(natusValue *val, size_t id)
 {
-  ntValue *vid = nt_value_new_number(val, id);
+  natusValue *vid = natus_new_number(val, id);
   if (!vid)
     return NULL;
-  ntValue *ret = nt_value_del(val, vid);
-  nt_value_decref(vid);
+  natusValue *ret = natus_del(val, vid);
+  natus_decref(vid);
   return ret;
 }
 
-ntValue *
-nt_value_del_recursive_utf8(ntValue *obj, const char *id)
+natusValue *
+natus_del_recursive_utf8(natusValue *obj, const char *id)
 {
   if (!obj || !id)
     return NULL;
@@ -990,62 +990,62 @@ nt_value_del_recursive_utf8(ntValue *obj, const char *id)
   char *next = strchr(id, '.');
   if (next == NULL
     )
-    return nt_value_del_utf8(obj, id);
+    return natus_del_utf8(obj, id);
   char *base = strdup(id);
   if (!base)
     return NULL;
   base[next++ - id] = '\0';
 
-  ntValue *basev = nt_value_get_utf8(obj, base);
-  ntValue *tmp = nt_value_del_recursive_utf8(basev, next);
-  nt_value_decref(basev);
+  natusValue *basev = natus_get_utf8(obj, base);
+  natusValue *tmp = natus_del_recursive_utf8(basev, next);
+  natus_decref(basev);
   free(base);
   return tmp;
 }
 
-ntValue *
-nt_value_get(ntValue *val, const ntValue *id)
+natusValue *
+natus_get(natusValue *val, const natusValue *id)
 {
-  if (!nt_value_is_type(id, ntValueTypeNumber | ntValueTypeString))
+  if (!natus_is_type(id, natusValueTypeNumber | natusValueTypeString))
     return NULL;
 
   // If the object is native, skip argument conversion and js overhead;
   //    call directly for increased speed
-  ntClass *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
+  natusClass *cls = natus_get_private_name(val, NATUS_PRIV_CLASS);
   if (cls && cls->get) {
-    ntValue *rslt = cls->get(cls, val, id);
-    if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
+    natusValue *rslt = cls->get(cls, val, id);
+    if (!natus_is_undefined(rslt) || !natus_is_exception(rslt))
       return rslt;
-    nt_value_decref(rslt);
+    natus_decref(rslt);
   }
 
-  callandreturn(ntValueTypeUnknown, val, get, val->ctx->ctx, val->val, id->val);
+  callandreturn(natusValueTypeUnknown, val, get, val->ctx->ctx, val->val, id->val);
 }
 
-ntValue *
-nt_value_get_utf8(ntValue *val, const char *id)
+natusValue *
+natus_get_utf8(natusValue *val, const char *id)
 {
-  ntValue *vid = nt_value_new_string_utf8(val, id);
+  natusValue *vid = natus_new_string_utf8(val, id);
   if (!vid)
     return NULL;
-  ntValue *ret = nt_value_get(val, vid);
-  nt_value_decref(vid);
+  natusValue *ret = natus_get(val, vid);
+  natus_decref(vid);
   return ret;
 }
 
-ntValue *
-nt_value_get_index(ntValue *val, size_t id)
+natusValue *
+natus_get_index(natusValue *val, size_t id)
 {
-  ntValue *vid = nt_value_new_number(val, id);
+  natusValue *vid = natus_new_number(val, id);
   if (!vid)
     return NULL;
-  ntValue *ret = nt_value_get(val, vid);
-  nt_value_decref(vid);
+  natusValue *ret = natus_get(val, vid);
+  natus_decref(vid);
   return ret;
 }
 
-ntValue *
-nt_value_get_recursive_utf8(ntValue *obj, const char *id)
+natusValue *
+natus_get_recursive_utf8(natusValue *obj, const char *id)
 {
   if (!obj || !id)
     return NULL;
@@ -1055,64 +1055,64 @@ nt_value_get_recursive_utf8(ntValue *obj, const char *id)
   char *next = strchr(id, '.');
   if (next == NULL
     )
-    return nt_value_get_utf8(obj, id);
+    return natus_get_utf8(obj, id);
   char *base = strdup(id);
   if (!base)
     return NULL;
   base[next++ - id] = '\0';
 
-  ntValue *basev = nt_value_get_utf8(obj, base);
-  ntValue *tmp = nt_value_get_recursive_utf8(basev, next);
-  nt_value_decref(basev);
+  natusValue *basev = natus_get_utf8(obj, base);
+  natusValue *tmp = natus_get_recursive_utf8(basev, next);
+  natus_decref(basev);
   free(base);
   return tmp;
 }
 
-ntValue *
-nt_value_set(ntValue *val, const ntValue *id, const ntValue *value, ntPropAttr attrs)
+natusValue *
+natus_set(natusValue *val, const natusValue *id, const natusValue *value, natusPropAttr attrs)
 {
-  if (!nt_value_is_type(id, ntValueTypeNumber | ntValueTypeString))
+  if (!natus_is_type(id, natusValueTypeNumber | natusValueTypeString))
     return NULL;
   if (!value)
     return NULL;
 
   // If the object is native, skip argument conversion and js overhead;
   //    call directly for increased speed
-  ntClass *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
+  natusClass *cls = natus_get_private_name(val, NATUS_PRIV_CLASS);
   if (cls && cls->set) {
-    ntValue *rslt = cls->set(cls, val, id, value);
-    if (!nt_value_is_undefined(rslt) || !nt_value_is_exception(rslt))
+    natusValue *rslt = cls->set(cls, val, id, value);
+    if (!natus_is_undefined(rslt) || !natus_is_exception(rslt))
       return rslt;
-    nt_value_decref(rslt);
+    natus_decref(rslt);
   }
 
-  callandreturn(ntValueTypeUnknown, val, set, val->ctx->ctx, val->val, id->val, value->val, attrs);
+  callandreturn(natusValueTypeUnknown, val, set, val->ctx->ctx, val->val, id->val, value->val, attrs);
 }
 
-ntValue *
-nt_value_set_utf8(ntValue *val, const char *id, const ntValue *value, ntPropAttr attrs)
+natusValue *
+natus_set_utf8(natusValue *val, const char *id, const natusValue *value, natusPropAttr attrs)
 {
-  ntValue *vid = nt_value_new_string_utf8(val, id);
+  natusValue *vid = natus_new_string_utf8(val, id);
   if (!vid)
     return NULL;
-  ntValue *ret = nt_value_set(val, vid, value, attrs);
-  nt_value_decref(vid);
+  natusValue *ret = natus_set(val, vid, value, attrs);
+  natus_decref(vid);
   return ret;
 }
 
-ntValue *
-nt_value_set_index(ntValue *val, size_t id, const ntValue *value)
+natusValue *
+natus_set_index(natusValue *val, size_t id, const natusValue *value)
 {
-  ntValue *vid = nt_value_new_number(val, id);
+  natusValue *vid = natus_new_number(val, id);
   if (!vid)
     return NULL;
-  ntValue *ret = nt_value_set(val, vid, value, ntPropAttrNone);
-  nt_value_decref(vid);
+  natusValue *ret = natus_set(val, vid, value, natusPropAttrNone);
+  natus_decref(vid);
   return ret;
 }
 
-ntValue *
-nt_value_set_recursive_utf8(ntValue *obj, const char *id, const ntValue *value, ntPropAttr attrs, bool mkpath)
+natusValue *
+natus_set_recursive_utf8(natusValue *obj, const char *id, const natusValue *value, natusPropAttr attrs, bool mkpath)
 {
   if (!obj || !id)
     return NULL;
@@ -1122,59 +1122,59 @@ nt_value_set_recursive_utf8(ntValue *obj, const char *id, const ntValue *value, 
   char *next = strchr(id, '.');
   if (next == NULL
     )
-    return nt_value_set_utf8(obj, id, value, attrs);
+    return natus_set_utf8(obj, id, value, attrs);
   char *base = strdup(id);
   if (!base)
     return NULL;
   base[next++ - id] = '\0';
 
-  ntValue *step = nt_value_get_utf8(obj, base);
-  if (mkpath && (!step || nt_value_is_undefined(step))) {
-    nt_value_decref(step);
-    step = nt_value_new_object(obj, NULL);
+  natusValue *step = natus_get_utf8(obj, base);
+  if (mkpath && (!step || natus_is_undefined(step))) {
+    natus_decref(step);
+    step = natus_new_object(obj, NULL);
     if (step) {
-      ntValue *rslt = nt_value_set_utf8(obj, base, step, attrs);
-      if (nt_value_is_exception(rslt)) {
-        nt_value_decref(step);
+      natusValue *rslt = natus_set_utf8(obj, base, step, attrs);
+      if (natus_is_exception(rslt)) {
+        natus_decref(step);
         free(base);
         return rslt;
       }
-      nt_value_decref(rslt);
+      natus_decref(rslt);
     }
   }
   free(base);
 
-  ntValue *tmp = nt_value_set_recursive_utf8(step, next, value, attrs, mkpath);
-  nt_value_decref(step);
+  natusValue *tmp = natus_set_recursive_utf8(step, next, value, attrs, mkpath);
+  natus_decref(step);
   return tmp;
 }
 
-ntValue *
-nt_value_enumerate(ntValue *val)
+natusValue *
+natus_enumerate(natusValue *val)
 {
   // If the object is native, skip argument conversion and js overhead;
   //    call directly for increased speed
-  ntClass *cls = nt_value_get_private_name(val, NATUS_PRIV_CLASS);
+  natusClass *cls = natus_get_private_name(val, NATUS_PRIV_CLASS);
   if (cls && cls->enumerate)
     return cls->enumerate(cls, val);
 
-  callandreturn(ntValueTypeArray, val, enumerate, val->ctx->ctx, val->val);
+  callandreturn(natusValueTypeArray, val, enumerate, val->ctx->ctx, val->val);
 }
 
 bool
-nt_value_set_private_name(ntValue *obj, const char *key, void *priv, ntFreeFunction free)
+natus_set_private_name(natusValue *obj, const char *key, void *priv, natusFreeFunction free)
 {
-  if (!nt_value_is_type(obj, ntValueTypeSupportsPrivate))
+  if (!natus_is_type(obj, natusValueTypeSupportsPrivate))
     return false;
   if (!key)
     return false;
 
-  ntPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
-  return nt_private_set(prv, key, priv, free);
+  natusPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
+  return natus_private_set(prv, key, priv, free);
 }
 
 static void
-free_private_value(ntValue *pv)
+free_private_value(natusValue *pv)
 {
   if (!pv)
     return;
@@ -1189,18 +1189,18 @@ free_private_value(ntValue *pv)
 }
 
 bool
-nt_value_set_private_name_value(ntValue *obj, const char *key, ntValue* priv)
+natus_set_private_name_value(natusValue *obj, const char *key, natusValue* priv)
 {
-  ntEngVal v = NULL;
-  ntValue *val = NULL;
+  natusEngVal v = NULL;
+  natusValue *val = NULL;
 
   if (priv) {
     /* NOTE: So we have this circular problem where if we hide just a normal
-     *       ntValue* it keeps a reference to the ctx, but the hidden value
+     *       natusValue* it keeps a reference to the ctx, but the hidden value
      *       won't be free'd until the ctx is destroyed, but that won't happen
      *       because we have a reference.
      *
-     *       So the way around this is that we don't store the normal ntValue,
+     *       So the way around this is that we don't store the normal natusValue,
      *       but instead store a special one without a refcount on the ctx.
      *       This means that ctx will be properly freed. */
     v = priv->ctx->eng->spec->val_duplicate(priv->ctx->ctx, priv->val);
@@ -1213,7 +1213,7 @@ nt_value_set_private_name_value(ntValue *obj, const char *key, ntValue* priv)
     val->ctx->ref--; /* Don't keep a copy of this reference around */
   }
 
-  if (!nt_value_set_private_name(obj, key, val, (ntFreeFunction) free_private_value)) {
+  if (!natus_set_private_name(obj, key, val, (natusFreeFunction) free_private_value)) {
     free_private_value(val);
     return false;
   }
@@ -1221,21 +1221,21 @@ nt_value_set_private_name_value(ntValue *obj, const char *key, ntValue* priv)
 }
 
 void*
-nt_value_get_private_name(const ntValue *obj, const char *key)
+natus_get_private_name(const natusValue *obj, const char *key)
 {
-  if (!nt_value_is_type(obj, ntValueTypeSupportsPrivate))
+  if (!natus_is_type(obj, natusValueTypeSupportsPrivate))
     return NULL;
   if (!key)
     return NULL;
-  ntPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
-  return nt_private_get(prv, key);
+  natusPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
+  return natus_private_get(prv, key);
 }
 
-ntValue *
-nt_value_get_private_name_value(const ntValue *obj, const char *key)
+natusValue *
+natus_get_private_name_value(const natusValue *obj, const char *key)
 {
-  /* See note in nt_value_set_private_name_value() */
-  ntValue *val = nt_value_get_private_name(obj, key);
+  /* See note in natus_set_private_name_value() */
+  natusValue *val = natus_get_private_name(obj, key);
   if (!val)
     return NULL;
   return mkval(val,
@@ -1244,21 +1244,21 @@ nt_value_get_private_name_value(const ntValue *obj, const char *key)
       val->typ);
 }
 
-ntValue *
-nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filename, unsigned int lineno)
+natusValue *
+natus_evaluate(natusValue *ths, const natusValue *javascript, const natusValue *filename, unsigned int lineno)
 {
   if (!ths || !javascript)
     return NULL;
-  ntValue *jscript = NULL;
+  natusValue *jscript = NULL;
 
   // Remove shebang line if present
   size_t len;
-  ntChar *chars = nt_value_to_string_utf16(javascript, &len);
+  natusChar *chars = natus_to_string_utf16(javascript, &len);
   if (len > 2 && chars[0] == '#' && chars[1] == '!') {
     size_t i;
     for (i = 2; i < len; i++) {
       if (chars[i] == '\n') {
-        jscript = nt_value_new_string_utf16_length(ths, chars + i, len - i);
+        jscript = natus_new_string_utf16_length(ths, chars + i, len - i);
         break;
       }
     }
@@ -1267,14 +1267,14 @@ nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filena
 
   // Add the file's directory to the require stack
   bool pushed = false;
-  ntValue *glbl = nt_value_get_global(ths);
-  ntValue *reqr = nt_value_get_utf8(glbl, "require");
-  ntValue *stck = nt_value_get_private_name_value(reqr, "natus.reqStack");
-  if (nt_value_is_array(stck))
-    nt_value_decref(nt_value_set_index(stck, nt_value_as_long(nt_value_get_utf8(stck, "length")), filename));
+  natusValue *glbl = natus_get_global(ths);
+  natusValue *reqr = natus_get_utf8(glbl, "require");
+  natusValue *stck = natus_get_private_name_value(reqr, "natus.reqStack");
+  if (natus_is_array(stck))
+    natus_decref(natus_set_index(stck, natus_as_long(natus_get_utf8(stck, "length")), filename));
 
-  callandmkval(ntValue *rslt,
-      ntValueTypeUnknown,
+  callandmkval(natusValue *rslt,
+      natusValueTypeUnknown,
       ths, evaluate,
       ths->ctx->ctx,
       ths->val,
@@ -1285,208 +1285,208 @@ nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filena
       ? filename->val
       : NULL,
       lineno);
-  nt_value_decref(jscript);
+  natus_decref(jscript);
 
   // Remove the directory from the stack
   if (pushed)
-    nt_value_decref(nt_value_call_utf8_array(stck, "pop", NULL));
-  nt_value_decref(stck);
-  nt_value_decref(reqr);
+    natus_decref(natus_call_utf8_array(stck, "pop", NULL));
+  natus_decref(stck);
+  natus_decref(reqr);
   return rslt;
 }
 
-ntValue *
-nt_value_evaluate_utf8(ntValue *ths, const char *javascript, const char *filename, unsigned int lineno)
+natusValue *
+natus_evaluate_utf8(natusValue *ths, const char *javascript, const char *filename, unsigned int lineno)
 {
   if (!ths || !javascript)
     return NULL;
-  if (!(nt_value_get_type(ths) & (ntValueTypeArray | ntValueTypeFunction | ntValueTypeObject)))
+  if (!(natus_get_type(ths) & (natusValueTypeArray | natusValueTypeFunction | natusValueTypeObject)))
     return NULL;
 
-  ntValue *jscript = nt_value_new_string_utf8(ths, javascript);
+  natusValue *jscript = natus_new_string_utf8(ths, javascript);
   if (!jscript)
     return NULL;
 
-  ntValue *fname = NULL;
+  natusValue *fname = NULL;
   if (filename) {
-    fname = nt_value_new_string_utf8(ths, filename);
+    fname = natus_new_string_utf8(ths, filename);
     if (!fname) {
-      nt_value_decref(jscript);
+      natus_decref(jscript);
       return NULL;
     }
   }
 
-  ntValue *ret = nt_value_evaluate(ths, jscript, fname, lineno);
-  nt_value_decref(jscript);
-  nt_value_decref(fname);
+  natusValue *ret = natus_evaluate(ths, jscript, fname, lineno);
+  natus_decref(jscript);
+  natus_decref(fname);
   return ret;
 }
 
-ntValue *
-nt_value_call(ntValue *func, ntValue *ths, ...)
+natusValue *
+natus_call(natusValue *func, natusValue *ths, ...)
 {
   va_list ap;
   va_start(ap, ths);
-  ntValue *tmp = nt_value_call_varg(func, ths, ap);
+  natusValue *tmp = natus_call_varg(func, ths, ap);
   va_end(ap);
   return tmp;
 }
 
-ntValue *
-nt_value_call_varg(ntValue *func, ntValue *ths, va_list ap)
+natusValue *
+natus_call_varg(natusValue *func, natusValue *ths, va_list ap)
 {
-  ntValue *array = nt_value_new_array_varg(func, ap);
-  if (nt_value_is_exception(array))
+  natusValue *array = natus_new_array_varg(func, ap);
+  if (natus_is_exception(array))
     return array;
 
-  ntValue *ret = nt_value_call_array(func, ths, array);
-  nt_value_decref(array);
+  natusValue *ret = natus_call_array(func, ths, array);
+  natus_decref(array);
   return ret;
 }
 
-ntValue *
-nt_value_call_array(ntValue *func, ntValue *ths, ntValue *args)
+natusValue *
+natus_call_array(natusValue *func, natusValue *ths, natusValue *args)
 {
-  ntValue *newargs = NULL;
+  natusValue *newargs = NULL;
   if (!args)
-    args = newargs = nt_value_new_array(func, NULL);
+    args = newargs = natus_new_array(func, NULL);
   if (ths)
-    nt_value_incref(ths);
+    natus_incref(ths);
   else
-    ths = nt_value_new_undefined(func);
+    ths = natus_new_undefined(func);
 
   // If the function is native, skip argument conversion and js overhead;
   //    call directly for increased speed
-  ntNativeFunction fnc = nt_value_get_private_name(func, NATUS_PRIV_FUNCTION);
-  ntClass *cls = nt_value_get_private_name(func, NATUS_PRIV_CLASS);
-  ntValue *res = NULL;
+  natusNativeFunction fnc = natus_get_private_name(func, NATUS_PRIV_FUNCTION);
+  natusClass *cls = natus_get_private_name(func, NATUS_PRIV_CLASS);
+  natusValue *res = NULL;
   if (fnc || (cls && cls->call)) {
     if (fnc)
       res = fnc(func, ths, args);
     else
       res = cls->call(cls, func, ths, args);
-  } else if (nt_value_is_function(func)) {
-    callandmkval(res, ntValueTypeUnknown, func, call, func->ctx->ctx, func->val, ths->val, args->val);
+  } else if (natus_is_function(func)) {
+    callandmkval(res, natusValueTypeUnknown, func, call, func->ctx->ctx, func->val, ths->val, args->val);
   }
 
-  nt_value_decref(ths);
-  nt_value_decref(newargs);
+  natus_decref(ths);
+  natus_decref(newargs);
   return res;
 }
 
-ntValue *
-nt_value_call_utf8(ntValue *ths, const char *name, ...)
+natusValue *
+natus_call_utf8(natusValue *ths, const char *name, ...)
 {
   va_list ap;
   va_start(ap, name);
-  ntValue *tmp = nt_value_call_utf8_varg(ths, name, ap);
+  natusValue *tmp = natus_call_utf8_varg(ths, name, ap);
   va_end(ap);
   return tmp;
 }
 
-ntValue *
-nt_value_call_utf8_varg(ntValue *ths, const char *name, va_list ap)
+natusValue *
+natus_call_utf8_varg(natusValue *ths, const char *name, va_list ap)
 {
-  ntValue *array = nt_value_new_array_varg(ths, ap);
-  if (nt_value_is_exception(array))
+  natusValue *array = natus_new_array_varg(ths, ap);
+  if (natus_is_exception(array))
     return array;
 
-  ntValue *ret = nt_value_call_utf8_array(ths, name, array);
-  nt_value_decref(array);
+  natusValue *ret = natus_call_utf8_array(ths, name, array);
+  natus_decref(array);
   return ret;
 }
 
-ntValue *
-nt_value_call_name(ntValue *ths, const ntValue *name, ntValue *args)
+natusValue *
+natus_call_name(natusValue *ths, const natusValue *name, natusValue *args)
 {
-  ntValue *func = nt_value_get(ths, name);
+  natusValue *func = natus_get(ths, name);
   if (!func)
     return NULL;
 
-  ntValue *ret = nt_value_call_array(func, ths, args);
-  nt_value_decref(func);
+  natusValue *ret = natus_call_array(func, ths, args);
+  natus_decref(func);
   return ret;
 }
 
-ntValue *
-nt_value_call_new(ntValue *func, ...)
+natusValue *
+natus_call_new(natusValue *func, ...)
 {
   va_list ap;
   va_start(ap, func);
-  ntValue *tmp = nt_value_call_new_varg(func, ap);
+  natusValue *tmp = natus_call_new_varg(func, ap);
   va_end(ap);
   return tmp;
 }
 
-ntValue *
-nt_value_call_new_varg(ntValue *func, va_list ap)
+natusValue *
+natus_call_new_varg(natusValue *func, va_list ap)
 {
-  ntValue *array = nt_value_new_array_varg(func, ap);
-  if (nt_value_is_exception(array))
+  natusValue *array = natus_new_array_varg(func, ap);
+  if (natus_is_exception(array))
     return array;
 
-  ntValue *ret = nt_value_call_new_array(func, array);
-  nt_value_decref(array);
+  natusValue *ret = natus_call_new_array(func, array);
+  natus_decref(array);
   return ret;
 }
 
-ntValue *
-nt_value_call_utf8_array(ntValue *ths, const char *name, ntValue *args)
+natusValue *
+natus_call_utf8_array(natusValue *ths, const char *name, natusValue *args)
 {
-  ntValue *func = nt_value_get_utf8(ths, name);
+  natusValue *func = natus_get_utf8(ths, name);
   if (!func)
     return NULL;
 
-  ntValue *ret = nt_value_call_array(func, ths, args);
-  nt_value_decref(func);
+  natusValue *ret = natus_call_array(func, ths, args);
+  natus_decref(func);
   return ret;
 }
 
-ntValue *
-nt_value_call_new_utf8(ntValue *obj, const char *name, ...)
+natusValue *
+natus_call_new_utf8(natusValue *obj, const char *name, ...)
 {
   va_list ap;
   va_start(ap, name);
-  ntValue *tmp = nt_value_call_new_utf8_varg(obj, name, ap);
+  natusValue *tmp = natus_call_new_utf8_varg(obj, name, ap);
   va_end(ap);
   return tmp;
 }
 
-ntValue *
-nt_value_call_new_utf8_varg(ntValue *obj, const char *name, va_list ap)
+natusValue *
+natus_call_new_utf8_varg(natusValue *obj, const char *name, va_list ap)
 {
-  ntValue *array = nt_value_new_array_varg(obj, ap);
-  if (nt_value_is_exception(array))
+  natusValue *array = natus_new_array_varg(obj, ap);
+  if (natus_is_exception(array))
     return array;
 
-  ntValue *ret = nt_value_call_new_utf8_array(obj, name, array);
-  nt_value_decref(array);
+  natusValue *ret = natus_call_new_utf8_array(obj, name, array);
+  natus_decref(array);
   return ret;
 }
 
-ntValue *
-nt_value_call_new_array(ntValue *func, ntValue *args)
+natusValue *
+natus_call_new_array(natusValue *func, natusValue *args)
 {
-  return nt_value_call_array(func, NULL, args);
+  return natus_call_array(func, NULL, args);
 }
 
-ntValue *
-nt_value_call_new_utf8_array(ntValue *obj, const char *name, ntValue *args)
+natusValue *
+natus_call_new_utf8_array(natusValue *obj, const char *name, natusValue *args)
 {
-  ntValue *fnc = nt_value_get_utf8(obj, name);
-  ntValue *ret = nt_value_call_array(fnc, NULL, args);
-  nt_value_decref(fnc);
+  natusValue *fnc = natus_get_utf8(obj, name);
+  natusValue *ret = natus_call_array(fnc, NULL, args);
+  natus_decref(fnc);
   return ret;
 }
 
 bool
-nt_value_equals(const ntValue *val1, const ntValue *val2)
+natus_equals(const natusValue *val1, const natusValue *val2)
 {
   if (!val1 && !val2)
     return true;
-  if (!val1 && nt_value_is_undefined(val2))
+  if (!val1 && natus_is_undefined(val2))
     return true;
-  if (!val2 && nt_value_is_undefined(val1))
+  if (!val2 && natus_is_undefined(val1))
     return true;
   if (!val1 || !val2)
     return false;
@@ -1494,13 +1494,13 @@ nt_value_equals(const ntValue *val1, const ntValue *val2)
 }
 
 bool
-nt_value_equals_strict(const ntValue *val1, const ntValue *val2)
+natus_equals_strict(const natusValue *val1, const natusValue *val2)
 {
   if (!val1 && !val2)
     return true;
-  if (!val1 && nt_value_is_undefined(val2))
+  if (!val1 && natus_is_undefined(val2))
     return true;
-  if (!val2 && nt_value_is_undefined(val1))
+  if (!val2 && natus_is_undefined(val1))
     return true;
   if (!val1 || !val2)
     return false;
@@ -1509,82 +1509,82 @@ nt_value_equals_strict(const ntValue *val1, const ntValue *val2)
 
 /**** ENGINE FUNCTIONS ****/
 
-static ntEngVal
-return_ownership(ntValue *val, ntEngValFlags *flags)
+static natusEngVal
+return_ownership(natusValue *val, natusEngValFlags *flags)
 {
-  ntEngVal ret = NULL;
+  natusEngVal ret = NULL;
   if (!flags)
     return NULL;
-  *flags = ntEngValFlagNone;
-  if (nt_value_is_exception(val))
-    *flags |= ntEngValFlagException;
+  *flags = natusEngValFlagNone;
+  if (natus_is_exception(val))
+    *flags |= natusEngValFlagException;
   if (!val)
     return NULL;
 
   /* If this value will free here, return ownership */
   ret = val->val;
   if (val->ref <= 1) {
-    *flags |= ntEngValFlagMustFree;
-    val->flg = val->flg & ~ntEngValFlagMustFree; /* Don't free this! */
+    *flags |= natusEngValFlagMustFree;
+    val->flg = val->flg & ~natusEngValFlagMustFree; /* Don't free this! */
   }
-  nt_value_decref(val);
+  natus_decref(val);
 
   return ret;
 }
 
-ntEngVal
-nt_value_handle_property(const ntPropertyAction act, ntEngVal obj, const ntPrivate *priv, ntEngVal idx, ntEngVal val, ntEngValFlags *flags)
+natusEngVal
+natus_handle_property(const natusPropertyAction act, natusEngVal obj, const natusPrivate *priv, natusEngVal idx, natusEngVal val, natusEngValFlags *flags)
 {
-  ntValue *glbl = nt_private_get(priv, NATUS_PRIV_GLOBAL);
+  natusValue *glbl = natus_private_get(priv, NATUS_PRIV_GLOBAL);
   assert(glbl);
 
   /* Convert the arguments */
-  ntValue *vobj = mkval(glbl, obj, ntEngValFlagMustFree, ntValueTypeUnknown);
-  ntValue *vidx = mkval(glbl, act & ntPropertyActionEnumerate ? NULL : idx, ntEngValFlagMustFree, ntValueTypeUnknown);
-  ntValue *vval = mkval(glbl, act & ntPropertyActionSet ? val : NULL, ntEngValFlagMustFree, ntValueTypeUnknown);
-  ntValue *rslt = NULL;
+  natusValue *vobj = mkval(glbl, obj, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *vidx = mkval(glbl, act & natusPropertyActionEnumerate ? NULL : idx, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *vval = mkval(glbl, act & natusPropertyActionSet ? val : NULL, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *rslt = NULL;
 
   /* Do the call */
-  ntClass *clss = nt_private_get(priv, NATUS_PRIV_CLASS);
-  if (clss && vobj && (vidx || act & ntPropertyActionEnumerate) && (vval || act & ~ntPropertyActionSet)) {
+  natusClass *clss = natus_private_get(priv, NATUS_PRIV_CLASS);
+  if (clss && vobj && (vidx || act & natusPropertyActionEnumerate) && (vval || act & ~natusPropertyActionSet)) {
     switch (act) {
-    case ntPropertyActionDelete:
+    case natusPropertyActionDelete:
       rslt = clss->del(clss, vobj, vidx);
       break;
-    case ntPropertyActionGet:
+    case natusPropertyActionGet:
       rslt = clss->get(clss, vobj, vidx);
       break;
-    case ntPropertyActionSet:
+    case natusPropertyActionSet:
       rslt = clss->set(clss, vobj, vidx, vval);
       break;
-    case ntPropertyActionEnumerate:
+    case natusPropertyActionEnumerate:
       rslt = clss->enumerate(clss, vobj);
       break;
     default:
       assert(false);
     }
   }
-  nt_value_decref(vobj);
-  nt_value_decref(vidx);
-  nt_value_decref(vval);
+  natus_decref(vobj);
+  natus_decref(vidx);
+  natus_decref(vval);
 
   return return_ownership(rslt, flags);
 }
 
-ntEngVal
-nt_value_handle_call(ntEngVal obj, const ntPrivate *priv, ntEngVal ths, ntEngVal arg, ntEngValFlags *flags)
+natusEngVal
+natus_handle_call(natusEngVal obj, const natusPrivate *priv, natusEngVal ths, natusEngVal arg, natusEngValFlags *flags)
 {
-  ntValue *glbl = nt_private_get(priv, NATUS_PRIV_GLOBAL);
+  natusValue *glbl = natus_private_get(priv, NATUS_PRIV_GLOBAL);
   assert(glbl);
 
   /* Convert the arguments */
-  ntValue *vobj = mkval(glbl, obj, ntEngValFlagMustFree, ntValueTypeUnknown);
-  ntValue *vths = ths ? mkval(glbl, ths, ntEngValFlagMustFree, ntValueTypeUnknown) : nt_value_new_undefined(glbl);
-  ntValue *varg = mkval(glbl, arg, ntEngValFlagMustFree, ntValueTypeUnknown);
-  ntValue *rslt = NULL;
+  natusValue *vobj = mkval(glbl, obj, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *vths = ths ? mkval(glbl, ths, natusEngValFlagMustFree, natusValueTypeUnknown) : natus_new_undefined(glbl);
+  natusValue *varg = mkval(glbl, arg, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *rslt = NULL;
   if (vobj && vths && varg) {
-    ntClass *clss = nt_private_get(priv, NATUS_PRIV_CLASS);
-    ntNativeFunction func = nt_private_get(priv, NATUS_PRIV_FUNCTION);
+    natusClass *clss = natus_private_get(priv, NATUS_PRIV_CLASS);
+    natusNativeFunction func = natus_private_get(priv, NATUS_PRIV_FUNCTION);
     if (clss)
       rslt = clss->call(clss, vobj, vths, varg);
     else if (func)
@@ -1592,9 +1592,9 @@ nt_value_handle_call(ntEngVal obj, const ntPrivate *priv, ntEngVal ths, ntEngVal
   }
 
   /* Free the arguments */
-  nt_value_decref(vobj);
-  nt_value_decref(vths);
-  nt_value_decref(varg);
+  natus_decref(vobj);
+  natus_decref(vths);
+  natus_decref(varg);
 
   return return_ownership(rslt, flags);
 }

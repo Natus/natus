@@ -29,28 +29,28 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-typedef struct _ntPrivate ntPrivate;
+typedef struct natusPrivate natusPrivate;
 
 typedef void
-(*ntPrivateForeach)(const char *name, void *priv, void *misc);
+(*natusPrivateForeach)(const char *name, void *priv, void *misc);
 
-ntPrivate *
-nt_private_init(void *misc, ntFreeFunction free);
+natusPrivate *
+natus_private_init(void *misc, natusFreeFunction free);
 
 void
-nt_private_free(ntPrivate *priv);
+natus_private_free(natusPrivate *priv);
 
 void *
-nt_private_get(const ntPrivate *self, const char *name);
+natus_private_get(const natusPrivate *self, const char *name);
 
 bool
-nt_private_set(ntPrivate *self, const char *name, void *priv, ntFreeFunction free);
+natus_private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
 
 bool
-nt_private_push(ntPrivate *self, void *priv, ntFreeFunction free);
+natus_private_push(natusPrivate *self, void *priv, natusFreeFunction free);
 
 void
-nt_private_foreach(const ntPrivate *self, bool rev, ntPrivateForeach foreach, void *misc);
+natus_private_foreach(const natusPrivate *self, bool rev, natusPrivateForeach foreach, void *misc);
 
 #ifdef __cplusplus
 } /* extern "C" */

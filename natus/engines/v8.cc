@@ -30,17 +30,17 @@
 using namespace v8;
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-typedef Persistent<Context>* ntEngCtx;
-typedef Persistent<Value>* ntEngVal;
+typedef Persistent<Context>* natusEngCtx;
+typedef Persistent<Value>* natusEngVal;
 #include <natus/backend.h>
 
 #define V8_PRIV_SLOT 0
 #define V8_PRIV_STRING String::New("natus::v8::private")
 
-static ntEngVal
+static natusEngVal
 makeval(Handle<Value> val)
 {
-  ntEngVal tmp = new Persistent<Value>;
+  natusEngVal tmp = new Persistent<Value>;
   *tmp = Persistent<Value>::New(val);
   return tmp;
 }
@@ -48,37 +48,37 @@ makeval(Handle<Value> val)
 static void
 on_free(Persistent<Value> object, void* parameter)
 {
-  nt_private_free((ntPrivate*) parameter);
+  natus_private_free((natusPrivate*) parameter);
   object.Dispose();
   object.ClearWeak();
 }
 
 static Handle<Value>
-property_handler(const AccessorInfo& info, Handle<Value> property, Handle<Value> value, ntPropertyAction act)
+property_handler(const AccessorInfo& info, Handle<Value> property, Handle<Value> value, natusPropertyAction act)
 {
   HandleScope hs;
 
-  ntPrivate *priv = (ntPrivate*) info.Data()->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
+  natusPrivate *priv = (natusPrivate*) info.Data()->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
 
-  ntEngValFlags flags = ntEngValFlagNone;
-  ntEngVal ths = makeval(info.This());
-  ntEngVal idx = makeval(property);
-  ntEngVal val = (act & ntPropertyActionSet) ? makeval(value) : NULL;
-  ntEngVal res = nt_value_handle_property(act, ths, priv, idx, val, &flags);
+  natusEngValFlags flags = natusEngValFlagNone;
+  natusEngVal ths = makeval(info.This());
+  natusEngVal idx = makeval(property);
+  natusEngVal val = (act & natusPropertyActionSet) ? makeval(value) : NULL;
+  natusEngVal res = natus_handle_property(act, ths, priv, idx, val, &flags);
   if (!res)
     return Handle<Value>();
 
   Handle<Value> ret = *res;
-  if (flags & ntEngValFlagMustFree) {
+  if (flags & natusEngValFlagMustFree) {
     res->Dispose();
     res->Clear();
     delete res;
   }
 
-  if (flags & ntEngValFlagException)
+  if (flags & natusEngValFlagException)
     return ret->IsUndefined() ? Handle<Value>() : ThrowException(ret);
 
-  if (act & ntPropertyActionGet)
+  if (act & natusPropertyActionGet)
     return ret;
 
   return Boolean::New(true);
@@ -87,19 +87,19 @@ property_handler(const AccessorInfo& info, Handle<Value> property, Handle<Value>
 static Handle<Value>
 obj_item_get(uint32_t index, const AccessorInfo& info)
 {
-  return property_handler(info, Uint32::New(index), Handle<Value>(), ntPropertyActionGet);
+  return property_handler(info, Uint32::New(index), Handle<Value>(), natusPropertyActionGet);
 }
 
 static Handle<Value>
 obj_property_get(Local<String> property, const AccessorInfo& info)
 {
-  return property_handler(info, property, Handle<Value>(), ntPropertyActionGet);
+  return property_handler(info, property, Handle<Value>(), natusPropertyActionGet);
 }
 
 static Handle<Boolean>
 obj_item_del(uint32_t index, const AccessorInfo& info)
 {
-  Handle<Value> v = property_handler(info, Uint32::New(index), Handle<Value>(), ntPropertyActionDelete);
+  Handle<Value> v = property_handler(info, Uint32::New(index), Handle<Value>(), natusPropertyActionDelete);
   if (v.IsEmpty())
     return Handle<Boolean>();
   return v->ToBoolean();
@@ -108,7 +108,7 @@ obj_item_del(uint32_t index, const AccessorInfo& info)
 static Handle<Boolean>
 obj_property_del(Local<String> property, const AccessorInfo& info)
 {
-  Handle<Value> v = property_handler(info, property, Handle<Value>(), ntPropertyActionDelete);
+  Handle<Value> v = property_handler(info, property, Handle<Value>(), natusPropertyActionDelete);
   if (v.IsEmpty())
     return Handle<Boolean>();
   return v->ToBoolean();
@@ -117,13 +117,13 @@ obj_property_del(Local<String> property, const AccessorInfo& info)
 static Handle<Value>
 obj_item_set(uint32_t index, Local<Value> value, const AccessorInfo& info)
 {
-  return property_handler(info, Uint32::New(index), value, ntPropertyActionSet);
+  return property_handler(info, Uint32::New(index), value, natusPropertyActionSet);
 }
 
 static Handle<Value>
 obj_property_set(Local<String> property, Local<Value> value, const AccessorInfo& info)
 {
-  return property_handler(info, property, value, ntPropertyActionSet);
+  return property_handler(info, property, value, natusPropertyActionSet);
 }
 
 static Handle<Array>
@@ -131,14 +131,14 @@ obj_enumerate(const AccessorInfo& info)
 {
   HandleScope hs;
 
-  ntEngValFlags flags = ntEngValFlagNone;
-  ntPrivate* prv = (ntPrivate*) External::Unwrap(info.Data()->ToObject());
-  ntEngVal res = nt_value_handle_property(ntPropertyActionEnumerate, makeval(info.This()), prv, NULL, NULL, &flags);
+  natusEngValFlags flags = natusEngValFlagNone;
+  natusPrivate* prv = (natusPrivate*) External::Unwrap(info.Data()->ToObject());
+  natusEngVal res = natus_handle_property(natusPropertyActionEnumerate, makeval(info.This()), prv, NULL, NULL, &flags);
   if (!res)
     return Handle<Array>();
 
   Handle<Value> ret = *res;
-  if (flags & ntEngValFlagMustFree) {
+  if (flags & natusEngValFlagMustFree) {
     res->Dispose();
     res->Clear();
     delete res;
@@ -156,7 +156,7 @@ int_call(const Arguments& args, Handle<Value> object)
   HandleScope hs;
 
   // Get the private pointer
-  ntPrivate *priv = (ntPrivate*) args.Data()->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
+  natusPrivate *priv = (natusPrivate*) args.Data()->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
 
   // Convert the arguments
   Handle<Array> array = Array::New(args.Length());
@@ -165,22 +165,22 @@ int_call(const Arguments& args, Handle<Value> object)
 
   // Note: when called as an object,
   // This() is *not* this. Upstream bug.
-  ntEngValFlags flags = ntEngValFlagNone;
-  ntEngVal obj = makeval(object);
-  ntEngVal ths = makeval(args.IsConstructCall() ? (Handle<Value> ) Undefined() : args.This());
-  ntEngVal arg = makeval(array);
-  ntEngVal res = nt_value_handle_call(obj, priv, ths, arg, &flags);
+  natusEngValFlags flags = natusEngValFlagNone;
+  natusEngVal obj = makeval(object);
+  natusEngVal ths = makeval(args.IsConstructCall() ? (Handle<Value> ) Undefined() : args.This());
+  natusEngVal arg = makeval(array);
+  natusEngVal res = natus_handle_call(obj, priv, ths, arg, &flags);
   if (!res)
     return ThrowException(Undefined());
 
   Handle<Value> ret = *res;
-  if (flags & ntEngValFlagMustFree) {
+  if (flags & natusEngValFlagMustFree) {
     res->Dispose();
     res->Clear();
     delete res;
   }
 
-  if (flags & ntEngValFlagException)
+  if (flags & natusEngValFlagException)
     return ThrowException(ret);
 
   return ret;
@@ -199,17 +199,17 @@ fnc_call(const Arguments& args)
 }
 
 static void
-v8_ctx_free(ntEngCtx ctx)
+v8_ctx_free(natusEngCtx ctx)
 {
 #define FORCE_GC() while(!V8::IdleNotification()) {}
   HandleScope hs;
 
   FORCE_GC();
-  ntPrivate *priv = (ntPrivate*) (*ctx)->Global()
+  natusPrivate *priv = (natusPrivate*) (*ctx)->Global()
       ->GetHiddenValue(V8_PRIV_STRING)
       ->ToObject()
       ->GetPointerFromInternalField(V8_PRIV_SLOT);
-  nt_private_free(priv);
+  natus_private_free(priv);
   FORCE_GC();
 
   ctx->Dispose();
@@ -219,19 +219,19 @@ v8_ctx_free(ntEngCtx ctx)
 }
 
 static void
-v8_val_unlock(ntEngCtx ctx, ntEngVal val)
+v8_val_unlock(natusEngCtx ctx, natusEngVal val)
 {
 
 }
 
-static ntEngVal
-v8_val_duplicate(ntEngCtx ctx, ntEngVal val)
+static natusEngVal
+v8_val_duplicate(natusEngCtx ctx, natusEngVal val)
 {
   return makeval(*val);
 }
 
 static void
-v8_val_free(ntEngVal val)
+v8_val_free(natusEngVal val)
 {
   val->Dispose();
   val->Clear();
@@ -239,8 +239,8 @@ v8_val_free(ntEngVal val)
   delete val;
 }
 
-static ntEngVal
-v8_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags)
+static natusEngVal
+v8_new_global(natusEngCtx ctx, natusEngVal val, natusPrivate *priv, natusEngCtx *newctx, natusEngValFlags *flags)
 {
   HandleScope hs;
 
@@ -265,40 +265,40 @@ v8_new_global(ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntE
   return makeval(global);
 }
 
-static ntEngVal
-v8_new_bool(const ntEngCtx ctx, bool b, ntEngValFlags *flags)
+static natusEngVal
+v8_new_bool(const natusEngCtx ctx, bool b, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
   return makeval(Boolean::New(b));
 }
 
-static ntEngVal
-v8_new_number(const ntEngCtx ctx, double n, ntEngValFlags *flags)
+static natusEngVal
+v8_new_number(const natusEngCtx ctx, double n, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
   return makeval(Number::New(n));
 }
 
-static ntEngVal
-v8_new_string_utf8(const ntEngCtx ctx, const char *str, size_t len, ntEngValFlags *flags)
+static natusEngVal
+v8_new_string_utf8(const natusEngCtx ctx, const char *str, size_t len, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
   return makeval(String::New(str, len));
 }
 
-static ntEngVal
-v8_new_string_utf16(const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValFlags *flags)
+static natusEngVal
+v8_new_string_utf16(const natusEngCtx ctx, const natusChar *str, size_t len, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
   return makeval(String::New(str, len));
 }
 
-static ntEngVal
-v8_new_array(const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlags *flags)
+static natusEngVal
+v8_new_array(const natusEngCtx ctx, const natusEngVal *array, size_t len, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -309,8 +309,8 @@ v8_new_array(const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlag
   return makeval(valv);
 }
 
-static ntEngVal
-v8_new_function(const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValFlags *flags)
+static natusEngVal
+v8_new_function(const natusEngCtx ctx, const char *name, natusPrivate *priv, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -359,13 +359,13 @@ v8_new_function(const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValF
   return makeval(fnc);
 
 exception:
-  nt_private_free(priv);
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  natus_private_free(priv);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntEngVal
-v8_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *flags)
+static natusEngVal
+v8_new_object(const natusEngCtx ctx, natusClass *cls, natusPrivate *priv, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -423,21 +423,21 @@ v8_new_object(const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *
   return makeval(obj);
 
 exception:
-  nt_private_free(priv);
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  natus_private_free(priv);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntEngVal
-v8_new_null(const ntEngCtx ctx, ntEngValFlags *flags)
+static natusEngVal
+v8_new_null(const natusEngCtx ctx, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
   return makeval(Null());
 }
 
-static ntEngVal
-v8_new_undefined(const ntEngCtx ctx, ntEngValFlags *flags)
+static natusEngVal
+v8_new_undefined(const natusEngCtx ctx, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -445,7 +445,7 @@ v8_new_undefined(const ntEngCtx ctx, ntEngValFlags *flags)
 }
 
 static bool
-v8_to_bool(const ntEngCtx ctx, const ntEngVal val)
+v8_to_bool(const natusEngCtx ctx, const natusEngVal val)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -453,7 +453,7 @@ v8_to_bool(const ntEngCtx ctx, const ntEngVal val)
 }
 
 static double
-v8_to_double(const ntEngCtx ctx, const ntEngVal val)
+v8_to_double(const natusEngCtx ctx, const natusEngVal val)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -461,7 +461,7 @@ v8_to_double(const ntEngCtx ctx, const ntEngVal val)
 }
 
 static char *
-v8_to_string_utf8(const ntEngCtx ctx, const ntEngVal val, size_t *len)
+v8_to_string_utf8(const natusEngCtx ctx, const natusEngVal val, size_t *len)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -484,8 +484,8 @@ v8_to_string_utf8(const ntEngCtx ctx, const ntEngVal val, size_t *len)
   return buff;
 }
 
-static ntChar *
-v8_to_string_utf16(const ntEngCtx ctx, const ntEngVal val, size_t *len)
+static natusChar *
+v8_to_string_utf16(const natusEngCtx ctx, const natusEngVal val, size_t *len)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -499,17 +499,17 @@ v8_to_string_utf16(const ntEngCtx ctx, const ntEngVal val, size_t *len)
 
   *len = str->Length();
 
-  ntChar* buff = (ntChar*) malloc(sizeof(ntChar) * (*len + 1));
+  natusChar* buff = (natusChar*) malloc(sizeof(natusChar) * (*len + 1));
   if (!buff)
     return NULL;
-  memset(buff, 0, sizeof(ntChar) * (*len + 1));
+  memset(buff, 0, sizeof(natusChar) * (*len + 1));
 
   str->Write(buff);
   return buff;
 }
 
-static ntEngVal
-v8_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags)
+static natusEngVal
+v8_del(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -525,12 +525,12 @@ v8_del(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags
   if (!tc.HasCaught())
     return makeval(Boolean::New(rslt));
 
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntEngVal
-v8_get(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags)
+static natusEngVal
+v8_get(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -540,12 +540,12 @@ v8_get(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags
   if (!tc.HasCaught())
     return makeval(rslt);
 
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntEngVal
-v8_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value, ntPropAttr attrs, ntEngValFlags *flags)
+static natusEngVal
+v8_set(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, const natusEngVal value, natusPropAttr attrs, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -555,12 +555,12 @@ v8_set(const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value
   if (!tc.HasCaught())
     return makeval(Boolean::New(rslt));
 
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntEngVal
-v8_enumerate(const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags)
+static natusEngVal
+v8_enumerate(const natusEngCtx ctx, natusEngVal val, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -568,8 +568,8 @@ v8_enumerate(const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags)
   return makeval((*val)->ToObject()->GetPropertyNames());
 }
 
-static ntEngVal
-v8_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngValFlags *flags)
+static natusEngVal
+v8_call(const natusEngCtx ctx, natusEngVal func, natusEngVal ths, natusEngVal args, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -593,12 +593,12 @@ v8_call(const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngVal
   if (!tc.HasCaught())
     return makeval(res);
 
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntEngVal
-v8_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEngVal filename, unsigned int lineno, ntEngValFlags *flags)
+static natusEngVal
+v8_evaluate(const natusEngCtx ctx, natusEngVal ths, const natusEngVal jscript, const natusEngVal filename, unsigned int lineno, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -611,12 +611,12 @@ v8_evaluate(const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEn
   if (!tc.HasCaught())
     return makeval(res);
 
-  *flags = (ntEngValFlags) (*flags | ntEngValFlagException);
+  *flags = (natusEngValFlags) (*flags | natusEngValFlagException);
   return makeval(tc.Exception());
 }
 
-static ntPrivate *
-v8_get_private(const ntEngCtx ctx, const ntEngVal val)
+static natusPrivate *
+v8_get_private(const natusEngCtx ctx, const natusEngVal val)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -624,42 +624,42 @@ v8_get_private(const ntEngCtx ctx, const ntEngVal val)
   Handle<Value> hidden = (*val)->ToObject()->GetHiddenValue(V8_PRIV_STRING);
   if (hidden.IsEmpty() || !hidden->IsObject())
     return NULL;
-  return (ntPrivate*) hidden->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
+  return (natusPrivate*) hidden->ToObject()->GetPointerFromInternalField(V8_PRIV_SLOT);
 }
 
-static ntEngVal
-v8_get_global(const ntEngCtx ctx, const ntEngVal val)
+static natusEngVal
+v8_get_global(const natusEngCtx ctx, const natusEngVal val)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
   return makeval((*ctx)->Global());
 }
 
-static ntValueType
-v8_get_type(const ntEngCtx ctx, const ntEngVal val)
+static natusValueType
+v8_get_type(const natusEngCtx ctx, const natusEngVal val)
 {
   if ((*val)->IsArray())
-    return ntValueTypeArray;
+    return natusValueTypeArray;
   else if ((*val)->IsBoolean())
-    return ntValueTypeBoolean;
+    return natusValueTypeBoolean;
   else if ((*val)->IsFunction())
-    return ntValueTypeFunction;
+    return natusValueTypeFunction;
   else if ((*val)->IsNull())
-    return ntValueTypeNull;
+    return natusValueTypeNull;
   else if ((*val)->IsNumber() || (*val)->IsInt32() || (*val)->IsUint32())
-    return ntValueTypeNumber;
+    return natusValueTypeNumber;
   else if ((*val)->IsObject() || (*val)->IsDate() /*|| (*val)->IsRegExp()*/)
-    return ntValueTypeObject;
+    return natusValueTypeObject;
   else if ((*val)->IsString())
-    return ntValueTypeString;
+    return natusValueTypeString;
   else if ((*val)->IsUndefined())
-    return ntValueTypeUndefined;
+    return natusValueTypeUndefined;
   else
-    return ntValueTypeUnknown;
+    return natusValueTypeUnknown;
 }
 
 static bool
-v8_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
+v8_borrow_context(natusEngCtx ctx, natusEngVal val, void **context, void **value)
 {
   *context = ctx;
   *value = val;
@@ -667,7 +667,7 @@ v8_borrow_context(ntEngCtx ctx, ntEngVal val, void **context, void **value)
 }
 
 static bool
-v8_equal(const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict)
+v8_equal(const natusEngCtx ctx, const natusEngVal val1, const natusEngVal val2, bool strict)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);
@@ -682,10 +682,10 @@ static void
 _init()
 {
   // Make sure that v8 doesn't change its enum values
-  assert(None == (PropertyAttribute) ntPropAttrNone);
-  assert(ReadOnly == (PropertyAttribute) ntPropAttrReadOnly);
-  assert(DontEnum == (PropertyAttribute) ntPropAttrDontEnum);
-  assert(DontDelete == (PropertyAttribute) ntPropAttrDontDelete);
+  assert(None == (PropertyAttribute) natusPropAttrNone);
+  assert(ReadOnly == (PropertyAttribute) natusPropAttrReadOnly);
+  assert(DontEnum == (PropertyAttribute) natusPropAttrDontEnum);
+  assert(DontDelete == (PropertyAttribute) natusPropAttrDontDelete);
 }
 
 // V8_Fatal appears to be the only v8 unique extern "C" symbol

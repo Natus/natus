@@ -37,7 +37,7 @@ extern "C" {
 #define NATUS_ENGINE_VERSION 1
 #define NATUS_ENGINE_ natus_engine__
 #define NATUS_ENGINE(name, symb, prfx) \
-  ntEngineSpec NATUS_ENGINE_ = { \
+  natusEngineSpec NATUS_ENGINE_ = { \
     NATUS_ENGINE_VERSION, \
     name, \
     symb, \
@@ -73,61 +73,61 @@ extern "C" {
   }
 
 typedef enum {
-  ntPropertyActionDelete    = 1,
-  ntPropertyActionGet       = 1 << 1,
-  ntPropertyActionSet       = 1 << 2,
-  ntPropertyActionEnumerate = 1 << 3
-} ntPropertyAction;
+  natusPropertyActionDelete    = 1,
+  natusPropertyActionGet       = 1 << 1,
+  natusPropertyActionSet       = 1 << 2,
+  natusPropertyActionEnumerate = 1 << 3
+} natusPropertyAction;
 
 typedef enum {
-  ntEngValFlagNone      = 0,
-  ntEngValFlagException = 1,
-  ntEngValFlagMustFree  = 1 << 1
-} ntEngValFlags;
+  natusEngValFlagNone      = 0,
+  natusEngValFlagException = 1,
+  natusEngValFlagMustFree  = 1 << 1
+} natusEngValFlags;
 
 typedef struct {
   unsigned int version;
   const char *name;
   const char *symbol;
 
-  void        (*ctx_free)         (ntEngCtx ctx);
-  void        (*val_unlock)       (ntEngCtx ctx, ntEngVal val);
-  ntEngVal    (*val_duplicate)    (ntEngCtx ctx, ntEngVal val);
-  void        (*val_free)         (ntEngVal val);
+  void           (*ctx_free)         (natusEngCtx ctx);
+  void           (*val_unlock)       (natusEngCtx ctx, natusEngVal val);
+  natusEngVal    (*val_duplicate)    (natusEngCtx ctx, natusEngVal val);
+  void           (*val_free)         (natusEngVal val);
 
-  ntEngVal    (*new_global)       (ntEngCtx ctx, ntEngVal val, ntPrivate *priv, ntEngCtx *newctx, ntEngValFlags *flags);
-  ntEngVal    (*new_bool)         (const ntEngCtx ctx, bool b, ntEngValFlags *flags);
-  ntEngVal    (*new_number)       (const ntEngCtx ctx, double n, ntEngValFlags *flags);
-  ntEngVal    (*new_string_utf8)  (const ntEngCtx ctx, const char *str, size_t len, ntEngValFlags *flags);
-  ntEngVal    (*new_string_utf16) (const ntEngCtx ctx, const ntChar *str, size_t len, ntEngValFlags *flags);
-  ntEngVal    (*new_array)        (const ntEngCtx ctx, const ntEngVal *array, size_t len, ntEngValFlags *flags);
-  ntEngVal    (*new_function)     (const ntEngCtx ctx, const char *name, ntPrivate *priv, ntEngValFlags *flags);
-  ntEngVal    (*new_object)       (const ntEngCtx ctx, ntClass *cls, ntPrivate *priv, ntEngValFlags *flags);
-  ntEngVal    (*new_null)         (const ntEngCtx ctx, ntEngValFlags *flags);
-  ntEngVal    (*new_undefined)    (const ntEngCtx ctx, ntEngValFlags *flags);
+  natusEngVal    (*new_global)       (natusEngCtx ctx, natusEngVal val, natusPrivate *priv, natusEngCtx *newctx, natusEngValFlags *flags);
+  natusEngVal    (*new_bool)         (const natusEngCtx ctx, bool b, natusEngValFlags *flags);
+  natusEngVal    (*new_number)       (const natusEngCtx ctx, double n, natusEngValFlags *flags);
+  natusEngVal    (*new_string_utf8)  (const natusEngCtx ctx, const char *str, size_t len, natusEngValFlags *flags);
+  natusEngVal    (*new_string_utf16) (const natusEngCtx ctx, const natusChar *str, size_t len, natusEngValFlags *flags);
+  natusEngVal    (*new_array)        (const natusEngCtx ctx, const natusEngVal *array, size_t len, natusEngValFlags *flags);
+  natusEngVal    (*new_function)     (const natusEngCtx ctx, const char *name, natusPrivate *priv, natusEngValFlags *flags);
+  natusEngVal    (*new_object)       (const natusEngCtx ctx, natusClass *cls, natusPrivate *priv, natusEngValFlags *flags);
+  natusEngVal    (*new_null)         (const natusEngCtx ctx, natusEngValFlags *flags);
+  natusEngVal    (*new_undefined)    (const natusEngCtx ctx, natusEngValFlags *flags);
 
-  bool        (*to_bool)          (const ntEngCtx ctx, const ntEngVal val);
-  double      (*to_double)        (const ntEngCtx ctx, const ntEngVal val);
-  char       *(*to_string_utf8)   (const ntEngCtx ctx, const ntEngVal val, size_t *len);
-  ntChar     *(*to_string_utf16)  (const ntEngCtx ctx, const ntEngVal val, size_t *len);
+  bool           (*to_bool)          (const natusEngCtx ctx, const natusEngVal val);
+  double         (*to_double)        (const natusEngCtx ctx, const natusEngVal val);
+  char          *(*to_string_utf8)   (const natusEngCtx ctx, const natusEngVal val, size_t *len);
+  natusChar     *(*to_string_utf16)  (const natusEngCtx ctx, const natusEngVal val, size_t *len);
 
-  ntEngVal    (*del)              (const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags);
-  ntEngVal    (*get)              (const ntEngCtx ctx, ntEngVal val, const ntEngVal id, ntEngValFlags *flags);
-  ntEngVal    (*set)              (const ntEngCtx ctx, ntEngVal val, const ntEngVal id, const ntEngVal value, ntPropAttr attrs, ntEngValFlags *flags);
-  ntEngVal    (*enumerate)        (const ntEngCtx ctx, ntEngVal val, ntEngValFlags *flags);
+  natusEngVal    (*del)              (const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngValFlags *flags);
+  natusEngVal    (*get)              (const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngValFlags *flags);
+  natusEngVal    (*set)              (const natusEngCtx ctx, natusEngVal val, const natusEngVal id, const natusEngVal value, natusPropAttr attrs, natusEngValFlags *flags);
+  natusEngVal    (*enumerate)        (const natusEngCtx ctx, natusEngVal val, natusEngValFlags *flags);
 
-  ntEngVal    (*call)             (const ntEngCtx ctx, ntEngVal func, ntEngVal ths, ntEngVal args, ntEngValFlags *flags);
-  ntEngVal    (*evaluate)         (const ntEngCtx ctx, ntEngVal ths, const ntEngVal jscript, const ntEngVal filename, unsigned int lineno, ntEngValFlags *flags);
+  natusEngVal    (*call)             (const natusEngCtx ctx, natusEngVal func, natusEngVal ths, natusEngVal args, natusEngValFlags *flags);
+  natusEngVal    (*evaluate)         (const natusEngCtx ctx, natusEngVal ths, const natusEngVal jscript, const natusEngVal filename, unsigned int lineno, natusEngValFlags *flags);
 
-  ntPrivate  *(*get_private)      (const ntEngCtx ctx, const ntEngVal val);
-  ntEngVal    (*get_global)       (const ntEngCtx ctx, const ntEngVal val);
-  ntValueType (*get_type)         (const ntEngCtx ctx, const ntEngVal val);
-  bool        (*borrow_context)   (ntEngCtx ctx, ntEngVal val, void **context, void **value);
-  bool        (*equal)            (const ntEngCtx ctx, const ntEngVal val1, const ntEngVal val2, bool strict);
-} ntEngineSpec;
+  natusPrivate  *(*get_private)      (const natusEngCtx ctx, const natusEngVal val);
+  natusEngVal    (*get_global)       (const natusEngCtx ctx, const natusEngVal val);
+  natusValueType (*get_type)         (const natusEngCtx ctx, const natusEngVal val);
+  bool           (*borrow_context)   (natusEngCtx ctx, natusEngVal val, void **context, void **value);
+  bool           (*equal)            (const natusEngCtx ctx, const natusEngVal val1, const natusEngVal val2, bool strict);
+} natusEngineSpec;
 
-ntEngVal nt_value_handle_property(ntPropertyAction act, ntEngVal obj, const ntPrivate *priv, ntEngVal idx, ntEngVal val, ntEngValFlags *flags);
-ntEngVal nt_value_handle_call    (ntEngVal obj, const ntPrivate *priv, ntEngVal ths, ntEngVal arg, ntEngValFlags *flags);
+natusEngVal natus_handle_property(natusPropertyAction act, natusEngVal obj, const natusPrivate *priv, natusEngVal idx, natusEngVal val, natusEngValFlags *flags);
+natusEngVal natus_handle_call    (natusEngVal obj, const natusPrivate *priv, natusEngVal ths, natusEngVal arg, natusEngValFlags *flags);
 
 #ifdef __cplusplus
 } /* extern "C" */

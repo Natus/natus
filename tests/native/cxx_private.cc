@@ -79,32 +79,32 @@ doTest(Value& global)
   testInternal(global, "", Value::TypeUndefined);
 
   // Test the private datastructure
-  ntPrivate *priv = nt_private_init(NULL, NULL);
+  natusPrivate *priv = natus_private_init(NULL, NULL);
   assert(priv);
 
   // Test set and clear
   deleted = 0;
-  assert(nt_private_set(priv, "foo", (void *) 0x1234, incDeleted));
+  assert(natus_private_set(priv, "foo", (void *) 0x1234, incDeleted));
   // Set
-  assert(nt_private_set(priv, "foo", NULL, NULL));
+  assert(natus_private_set(priv, "foo", NULL, NULL));
   // Delete
   assert(deleted == 1);
 
   // Test push
-  assert(nt_private_push(priv, (void *) 0x1234, incDeleted));
-  assert(nt_private_push(priv, (void *) 0x4321, incDeleted));
+  assert(natus_private_push(priv, (void *) 0x1234, incDeleted));
+  assert(natus_private_push(priv, (void *) 0x4321, incDeleted));
 
   // Test iteration
   bool up = true;
-  nt_private_foreach(priv, false, (ntPrivateForeach) foreach, &up);
+  natus_private_foreach(priv, false, (natusPrivateForeach) foreach, &up);
   assert(up);
-  nt_private_foreach(priv, true, (ntPrivateForeach) foreach, &up);
+  natus_private_foreach(priv, true, (natusPrivateForeach) foreach, &up);
   assert(!up);
 
   // Test destructor delete
-  assert(nt_private_set(priv, "foo", (void *) 0x1234, incDeleted));
+  assert(natus_private_set(priv, "foo", (void *) 0x1234, incDeleted));
   // Set
-  nt_private_free(priv); // Delete
+  natus_private_free(priv); // Delete
   assert(deleted == 4);
 
   // Cleanup

@@ -35,87 +35,87 @@
 #define SET_ARGUMENT(type) { \
   p = va_arg(apc, void*); \
   d = va_arg(apc, void*); \
-  *((type*) p) = (nt_value_is_undefined(val) \
+  *((type*) p) = (natus_is_undefined(val) \
                    ? ((type) (intptr_t) d) \
-                   : ((type) nt_value_to_double(val))); \
+                   : ((type) natus_to_double(val))); \
 }
 
-ntValue *
-nt_throw_exception(const ntValue *ctx, const char *base, const char *name, const char *format, ...) {
+natusValue *
+natus_throw_exception(const natusValue *ctx, const char *base, const char *name, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  ntValue *exc = nt_throw_exception_varg(ctx, base, name, format, ap);
+  natusValue *exc = natus_throw_exception_varg(ctx, base, name, format, ap);
   va_end(ap);
 
   return exc;
 }
 
-ntValue *
-nt_throw_exception_varg(const ntValue *ctx, const char *base, const char *name, const char *format, va_list ap)
+natusValue *
+natus_throw_exception_varg(const natusValue *ctx, const char *base, const char *name, const char *format, va_list ap)
 {
   char *msg;
   if (vasprintf(&msg, format, ap) < 0)
     return NULL;
 
-  ntValue *vmsg = nt_value_new_string_utf8(ctx, msg);
+  natusValue *vmsg = natus_new_string_utf8(ctx, msg);
   free(msg);
-  if (nt_value_is_exception(vmsg))
+  if (natus_is_exception(vmsg))
     return vmsg;
 
-  ntValue *glb = nt_value_get_global(ctx);
-  if (nt_value_is_exception(glb)) {
-    nt_value_decref(vmsg);
+  natusValue *glb = natus_get_global(ctx);
+  if (natus_is_exception(glb)) {
+    natus_decref(vmsg);
     return glb;
   }
 
   // If the name passed in is an actual function, use it
-  ntValue *err = nt_value_get_utf8(glb, name);
-  if (!nt_value_is_function(err)) {
-    nt_value_decref(err);
+  natusValue *err = natus_get_utf8(glb, name);
+  if (!natus_is_function(err)) {
+    natus_decref(err);
 
     // Try to get the base.  If base is not found, use Error().
-    err = nt_value_get_utf8(glb, base);
-    if (!nt_value_is_function(err)) {
-      nt_value_decref(err);
-      err = nt_value_get_utf8(glb, "Error");
+    err = natus_get_utf8(glb, base);
+    if (!natus_is_function(err)) {
+      natus_decref(err);
+      err = natus_get_utf8(glb, "Error");
     }
   }
 
   // Construct the exception
-  ntValue *argv = nt_value_new_array(err, vmsg, NULL);
-  ntValue *exc = nt_value_call_new_array(err, argv);
-  nt_value_decref(argv);
-  nt_value_decref(err);
+  natusValue *argv = natus_new_array(err, vmsg, NULL);
+  natusValue *exc = natus_call_new_array(err, argv);
+  natus_decref(argv);
+  natus_decref(err);
 
   // Set the name
-  ntValue *vname = nt_value_new_string_utf8(ctx, name);
-  nt_value_decref(nt_value_set_utf8(exc, "name", vname, ntPropAttrNone));
-  nt_value_decref(vname);
+  natusValue *vname = natus_new_string_utf8(ctx, name);
+  natus_decref(natus_set_utf8(exc, "name", vname, natusPropAttrNone));
+  natus_decref(vname);
 
-  return nt_value_to_exception(exc);
+  return natus_to_exception(exc);
 }
 
-ntValue *
-nt_throw_exception_code(const ntValue *ctx, const char *base, const char *name, int code, const char *format, ...) {
+natusValue *
+natus_throw_exception_code(const natusValue *ctx, const char *base, const char *name, int code, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  ntValue *exc = nt_throw_exception_code_varg(ctx, base, name, code, format, ap);
+  natusValue *exc = natus_throw_exception_code_varg(ctx, base, name, code, format, ap);
   va_end(ap);
   return exc;
 }
 
-ntValue *
-nt_throw_exception_code_varg(const ntValue *ctx, const char *base, const char *name, int code, const char *format, va_list ap)
+natusValue *
+natus_throw_exception_code_varg(const natusValue *ctx, const char *base, const char *name, int code, const char *format, va_list ap)
 {
-  ntValue *exc = nt_throw_exception_varg(ctx, base, name, format, ap);
-  ntValue *vcode = nt_value_new_number(ctx, (double) code);
-  nt_value_decref(nt_value_set_utf8(exc, "code", vcode, ntPropAttrConstant));
-  nt_value_decref(vcode);
+  natusValue *exc = natus_throw_exception_varg(ctx, base, name, format, ap);
+  natusValue *vcode = natus_new_number(ctx, (double) code);
+  natus_decref(natus_set_utf8(exc, "code", vcode, natusPropAttrConstant));
+  natus_decref(vcode);
   return exc;
 }
 
-ntValue *
-nt_throw_exception_errno(const ntValue *ctx, int errorno)
+natusValue *
+natus_throw_exception_errno(const natusValue *ctx, int errorno)
 {
   const char* base = NULL;
   const char* name = "OSError";
@@ -517,14 +517,14 @@ nt_throw_exception_errno(const ntValue *ctx, int errorno)
     break;
   }
 
-  return nt_throw_exception_code(ctx, base, name, errorno, strerror(errorno));
+  return natus_throw_exception_code(ctx, base, name, errorno, strerror(errorno));
 }
 
-ntValue *
-nt_ensure_arguments(ntValue *arg, const char *fmt)
+natusValue *
+natus_ensure_arguments(natusValue *arg, const char *fmt)
 {
   char types[4096];
-  unsigned int len = nt_value_as_long(nt_value_get_utf8(arg, "length"));
+  unsigned int len = natus_as_long(natus_get_utf8(arg, "length"));
   unsigned int minimum = 0;
   unsigned int i, j;
   for (i = 0, j = 0; i < len; i++) {
@@ -535,46 +535,46 @@ nt_ensure_arguments(ntValue *arg, const char *fmt)
     if (minimum == 0 && fmt[j] == '|')
       minimum = j++;
 
-    ntValue *thsArg = nt_value_get_index(arg, i);
+    natusValue *thsArg = natus_get_index(arg, i);
     do {
       switch (fmt[j++]) {
       case 'a':
-        correct = nt_value_get_type(thsArg) == ntValueTypeArray;
+        correct = natus_get_type(thsArg) == natusValueTypeArray;
         if (strlen(types) + strlen("array, ") < 4095)
           strcat(types, "array, ");
         break;
       case 'b':
-        correct = nt_value_get_type(thsArg) == ntValueTypeBoolean;
+        correct = natus_get_type(thsArg) == natusValueTypeBoolean;
         if (strlen(types) + strlen("boolean, ") < 4095)
           strcat(types, "boolean, ");
         break;
       case 'f':
-        correct = nt_value_get_type(thsArg) == ntValueTypeFunction;
+        correct = natus_get_type(thsArg) == natusValueTypeFunction;
         if (strlen(types) + strlen("function, ") < 4095)
           strcat(types, "function, ");
         break;
       case 'N':
-        correct = nt_value_get_type(thsArg) == ntValueTypeNull;
+        correct = natus_get_type(thsArg) == natusValueTypeNull;
         if (strlen(types) + strlen("null, ") < 4095)
           strcat(types, "null, ");
         break;
       case 'n':
-        correct = nt_value_get_type(thsArg) == ntValueTypeNumber;
+        correct = natus_get_type(thsArg) == natusValueTypeNumber;
         if (strlen(types) + strlen("number, ") < 4095)
           strcat(types, "number, ");
         break;
       case 'o':
-        correct = nt_value_get_type(thsArg) == ntValueTypeObject;
+        correct = natus_get_type(thsArg) == natusValueTypeObject;
         if (strlen(types) + strlen("object, ") < 4095)
           strcat(types, "object, ");
         break;
       case 's':
-        correct = nt_value_get_type(thsArg) == ntValueTypeString;
+        correct = natus_get_type(thsArg) == natusValueTypeString;
         if (strlen(types) + strlen("string, ") < 4095)
           strcat(types, "string, ");
         break;
       case 'u':
-        correct = nt_value_get_type(thsArg) == ntValueTypeUndefined;
+        correct = natus_get_type(thsArg) == natusValueTypeUndefined;
         if (strlen(types) + strlen("undefined, ") < 4095)
           strcat(types, "undefined, ");
         break;
@@ -585,11 +585,11 @@ nt_ensure_arguments(ntValue *arg, const char *fmt)
         depth--;
         break;
       default:
-        nt_value_decref(thsArg);
-        return nt_throw_exception(arg, NULL, "SyntaxError", "Invalid format character!");
+        natus_decref(thsArg);
+        return natus_throw_exception(arg, NULL, "SyntaxError", "Invalid format character!");
       }
     } while (!correct && depth > 0);
-    nt_value_decref(thsArg);
+    natus_decref(thsArg);
 
     if (strlen(types) > 2)
       types[strlen(types) - 2] = '\0';
@@ -597,28 +597,28 @@ nt_ensure_arguments(ntValue *arg, const char *fmt)
     if (strcmp(types, "") && !correct) {
       char msg[5120];
       snprintf(msg, 5120, "argument %u must be one of these types: %s", i, types);
-      return nt_throw_exception(arg, NULL, "TypeError", msg);
+      return natus_throw_exception(arg, NULL, "TypeError", msg);
     }
   }
 
   if (len < minimum) {
-    return nt_throw_exception(arg, NULL, "TypeError", "Function requires at least %u arguments!", minimum);
+    return natus_throw_exception(arg, NULL, "TypeError", "Function requires at least %u arguments!", minimum);
   }
 
-  return nt_value_new_undefined(arg);
+  return natus_new_undefined(arg);
 }
 
-ntValue *
-nt_convert_arguments(ntValue *arg, const char *fmt, ...) {
+natusValue *
+natus_convert_arguments(natusValue *arg, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  ntValue *ret = nt_convert_arguments_varg(arg, fmt, ap);
+  natusValue *ret = natus_convert_arguments_varg(arg, fmt, ap);
   va_end(ap);
   return ret;
 }
 
-ntValue *
-nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
+natusValue *
+natus_convert_arguments_varg(natusValue *arg, const char *fmt, va_list ap)
 {
   va_list apc;
   size_t i = 0;
@@ -631,7 +631,7 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
 
     void *p;
     void *d;
-    ntValue *val = nt_value_get_index(arg, i++);
+    natusValue *val = natus_get_index(arg, i++);
 
     switch (*++c) {
     case 'h':
@@ -733,35 +733,35 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
         SET_ARGUMENT(double);
         break;
       case 'c':
-        if (nt_value_is_string(val)) {
+        if (natus_is_string(val)) {
           p = va_arg(apc, void*);
           d = va_arg(apc, void*);
           size_t len = 0;
-          ntChar *tmp = nt_value_to_string_utf16(val, &len);
-          *((ntChar*) p) = len > 0 ? tmp[0] : (ntChar) 0;
+          natusChar *tmp = natus_to_string_utf16(val, &len);
+          *((natusChar*) p) = len > 0 ? tmp[0] : (natusChar) 0;
           free(tmp);
           tmp = va_arg(apc, void*); // consume the default
         } else
-          SET_ARGUMENT(ntChar);
+          SET_ARGUMENT(natusChar);
         break;
       case 's':
         p = va_arg(apc, void*);
         d = va_arg(apc, void*);
-        if (nt_value_is_undefined(val)) {
+        if (natus_is_undefined(val)) {
           if (d != NULL) {
             ssize_t len = 0;
-            while (((ntChar*) d)[len++])
+            while (((natusChar*) d)[len++])
               ;
-            ntChar *tmp = calloc(len+1, sizeof(ntChar));
+            natusChar *tmp = calloc(len+1, sizeof(natusChar));
             if (!tmp)
               goto nomem;
             for (; len >= 0; len--)
-              tmp[len] = ((ntChar*) d)[len];
+              tmp[len] = ((natusChar*) d)[len];
             d = tmp;
           }
-          *((ntChar**) p) = (ntChar*) d;
+          *((natusChar**) p) = (natusChar*) d;
         } else
-          *((ntChar**) p) = (ntChar*) nt_value_to_string_utf16(val, NULL);
+          *((natusChar**) p) = (natusChar*) natus_to_string_utf16(val, NULL);
         break;
       case 'n':
         break;
@@ -852,12 +852,12 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
       SET_ARGUMENT(float);
       break;
     case 'c':
-      if (nt_value_is_string(val)) {
+      if (natus_is_string(val)) {
         p = va_arg(apc, void*);
         d = va_arg(apc, void*);
 
         size_t len = 0;
-        char *tmp = nt_value_to_string_utf8(val, &len);
+        char *tmp = natus_to_string_utf8(val, &len);
         *((char*) p) = (tmp && len > 0) ? tmp[0] : (char) 0;
         free(tmp);
       } else
@@ -866,22 +866,22 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
     case 's':
       p = va_arg(apc, void*);
       d = va_arg(apc, void*);
-      if (nt_value_is_undefined(val))
+      if (natus_is_undefined(val))
         *((char**) p) = strdup((char*) d);
       else
-        *((char**) p) = (char*) nt_value_to_string_utf8(val, NULL);
+        *((char**) p) = (char*) natus_to_string_utf8(val, NULL);
       break;
     case '[':
       p = va_arg(apc, void*);
       d = va_arg(apc, void*);
       if (!strchr(++c, ']'))
         goto inval;
-      if (!nt_value_is_undefined(val)) {
+      if (!natus_is_undefined(val)) {
         char *tmp = strdup(c);
         if (!tmp)
           goto nomem;
         *strchr(tmp, ']') = '\0';
-        *((void**) p) = nt_value_get_private_name(val, tmp);
+        *((void**) p) = natus_get_private_name(val, tmp);
         free(tmp);
       } else
         *((void**) p) = d;
@@ -893,20 +893,20 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
       goto inval;
     }
 
-    nt_value_decref(val);
+    natus_decref(val);
     continue;
 
   inval:
     va_end(ap);
-    nt_value_decref(val);
-    return nt_throw_exception(arg, NULL, "SyntaxError", "Invalid format string!");
+    natus_decref(val);
+    return natus_throw_exception(arg, NULL, "SyntaxError", "Invalid format string!");
 
   nomem:
     va_end(ap);
-    nt_value_decref(val);
+    natus_decref(val);
     return NULL;
   }
 
   va_end(apc);
-  return nt_value_new_number(arg, i);
+  return natus_new_number(arg, i);
 }
