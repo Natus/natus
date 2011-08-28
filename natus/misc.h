@@ -66,24 +66,6 @@ nt_convert_arguments(ntValue *arg, const char *fmt, ...);
 ntValue *
 nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap);
 
-ntValue *
-nt_from_json(const ntValue *json);
-
-ntValue *
-nt_from_json_utf8(const ntValue *ctx, const char *json, size_t len);
-
-ntValue *
-nt_from_json_utf16(const ntValue *ctx, const ntChar *json, size_t len);
-
-ntValue *
-nt_to_json(const ntValue *val);
-
-char *
-nt_to_json_utf8(const ntValue *val, size_t *len);
-
-ntChar *
-nt_to_json_utf16(const ntValue *val, size_t *len);
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

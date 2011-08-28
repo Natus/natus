@@ -13,7 +13,6 @@ TESTS = cxx_globals \
         cxx_object \
         cxx_private \
         cxx_string \
-        cxx_json \
         cxx_recursive \
         cxx_require \
         cxx_exception \

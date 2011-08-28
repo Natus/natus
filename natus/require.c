@@ -328,16 +328,34 @@ require_js(ntValue *require, ntValue *ths, ntValue *arg)
 bool
 nt_require_init(ntValue *ctx, const char *config)
 {
+  ntValue *glb, *json = NULL, *arg = NULL, *cfg = NULL;
+  bool rslt = false;
+
   // Parse the config
   if (!config)
     config = "{}";
-  ntValue *cfg = nt_from_json_utf8(ctx, config, strlen(config));
-  if (nt_value_is_exception(cfg)) {
-    nt_value_decref(cfg);
-    return false;
-  }
 
-  bool rslt = nt_require_init_value(ctx, cfg);
+  glb  = nt_value_get_global(ctx);
+  if (nt_value_is_exception(glb))
+    return false;
+
+  json = nt_value_get_utf8(glb, "JSON");
+  if (nt_value_is_exception(json))
+    goto out;
+
+  arg  = nt_value_new_string_utf8(glb, config);
+  if (nt_value_is_exception(arg))
+    goto out;
+
+  cfg  = nt_value_call_new_utf8(json, "parse", arg, NULL);
+  if (nt_value_is_exception(cfg))
+    goto out;
+
+  rslt = nt_require_init_value(ctx, cfg);
+
+out:
+  nt_value_decref(json);
+  nt_value_decref(arg);
   nt_value_decref(cfg);
   return rslt;
 }

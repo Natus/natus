@@ -86,18 +86,6 @@ namespace natus
 
   Value
   arrayBuilder(Value array, NativeFunction item);
-
-  Value
-  fromJSON(Value json);
-
-  Value
-  fromJSON(Value ctx, UTF8 json);
-
-  Value
-  fromJSON(Value ctx, UTF16 json);
-
-  Value
-  toJSON(Value val);
 }
 #endif /* MISCXX_HPP_ */
 

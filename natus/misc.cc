@@ -150,28 +150,4 @@ namespace natus
   {
     return arrayBuilder(array, array.newFunction(item));
   }
-
-  Value
-  fromJSON(Value json)
-  {
-    return nt_from_json(json.borrowCValue());
-  }
-
-  Value
-  fromJSON(Value ctx, UTF8 json)
-  {
-    return fromJSON(ctx.newString(json));
-  }
-
-  Value
-  fromJSON(Value ctx, UTF16 json)
-  {
-    return fromJSON(ctx.newString(json));
-  }
-
-  Value
-  toJSON(Value val)
-  {
-    return nt_to_json(val.borrowCValue());
-  }
 }
