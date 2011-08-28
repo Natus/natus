@@ -255,17 +255,11 @@ internal_require(ntValue *ctx, ntRequireHookStep step, char *name, void *misc)
       nt_value_decref(modid);
       nt_value_decref(moduri);
 
-      // Convert arguments to an array
-      const ntValue *argv[] =
-        { exports, require, module, NULL };
-      ntValue *args = nt_value_new_array_vector(ctx, argv);
+      // Call the function
+      ntValue *res = nt_value_call(func, exports, exports, require, module, NULL);
       nt_value_decref(require);
       nt_value_decref(module);
-
-      // Call the function
-      ntValue *res = nt_value_call(func, exports, args);
       nt_value_decref(func);
-      nt_value_decref(args);
       if (nt_value_is_exception(res)) {
         nt_value_decref(exports);
         retval = res;

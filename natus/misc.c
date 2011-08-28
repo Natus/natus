@@ -83,7 +83,7 @@ nt_throw_exception_varg(const ntValue *ctx, const char *base, const char *name, 
 
   // Construct the exception
   ntValue *argv = nt_value_new_array(err, vmsg, NULL);
-  ntValue *exc = nt_value_call_new(err, argv);
+  ntValue *exc = nt_value_call_new_array(err, argv);
   nt_value_decref(argv);
   nt_value_decref(err);
 

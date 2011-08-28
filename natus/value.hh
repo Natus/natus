@@ -453,22 +453,58 @@ namespace natus
     evaluate(UTF16 javascript, UTF16 filename, unsigned int lineno = 0);
 
     Value
+    call(Value ths, va_list ap);
+
+    Value
     call(Value ths, Value args = NULL);
+
+    Value
+    call(Value ths, const Value *arg0, ...);
+
+    Value
+    call(UTF8 name, va_list ap);
 
     Value
     call(UTF8 name, Value args = NULL);
 
     Value
+    call(UTF8 name, const Value *arg0, ...);
+
+    Value
+    call(UTF16 name, va_list ap);
+
+    Value
     call(UTF16 name, Value args = NULL);
+
+    Value
+    call(UTF16 name, const Value *arg0, ...);
+
+    Value
+    callNew(va_list ap);
 
     Value
     callNew(Value args = NULL);
 
     Value
+    callNew(const Value *arg0, ...);
+
+    Value
+    callNew(UTF8 name, va_list ap);
+
+    Value
     callNew(UTF8 name, Value args = NULL);
 
     Value
+    callNew(UTF8 name, const Value *arg0, ...);
+
+    Value
+    callNew(UTF16 name, va_list ap);
+
+    Value
     callNew(UTF16 name, Value args = NULL);
+
+    Value
+    callNew(UTF16 name, const Value *arg0, ...);
 
     bool
     equals(Value val);

@@ -856,7 +856,7 @@ nt_value_to_string_utf8(const ntValue *val, size_t *len)
     len = &intlen;
 
   if (!nt_value_is_string(val)) {
-    ntValue *str = nt_value_call_utf8((ntValue*) val, "toString", NULL);
+    ntValue *str = nt_value_call_utf8_array((ntValue*) val, "toString", NULL);
     if (nt_value_is_string(str)) {
       char *tmp = val->ctx->eng->spec->to_string_utf8(str->ctx->ctx, str->val, len);
       nt_value_decref(str);
@@ -878,7 +878,7 @@ nt_value_to_string_utf16(const ntValue *val, size_t *len)
     len = &intlen;
 
   if (!nt_value_is_string(val)) {
-    ntValue *str = nt_value_call_utf8((ntValue*) val, "toString", NULL);
+    ntValue *str = nt_value_call_utf8_array((ntValue*) val, "toString", NULL);
     if (nt_value_is_string(str)) {
       ntChar *tmp = val->ctx->eng->spec->to_string_utf16(str->ctx->ctx, str->val, len);
       nt_value_decref(str);
@@ -1289,7 +1289,7 @@ nt_value_evaluate(ntValue *ths, const ntValue *javascript, const ntValue *filena
 
   // Remove the directory from the stack
   if (pushed)
-    nt_value_decref(nt_value_call_utf8(stck, "pop", NULL));
+    nt_value_decref(nt_value_call_utf8_array(stck, "pop", NULL));
   nt_value_decref(stck);
   nt_value_decref(reqr);
   return rslt;
@@ -1323,7 +1323,29 @@ nt_value_evaluate_utf8(ntValue *ths, const char *javascript, const char *filenam
 }
 
 ntValue *
-nt_value_call(ntValue *func, ntValue *ths, ntValue *args)
+nt_value_call(ntValue *func, ntValue *ths, ...)
+{
+  va_list ap;
+  va_start(ap, ths);
+  ntValue *tmp = nt_value_call_varg(func, ths, ap);
+  va_end(ap);
+  return tmp;
+}
+
+ntValue *
+nt_value_call_varg(ntValue *func, ntValue *ths, va_list ap)
+{
+  ntValue *array = nt_value_new_array_varg(func, ap);
+  if (nt_value_is_exception(array))
+    return array;
+
+  ntValue *ret = nt_value_call_array(func, ths, array);
+  nt_value_decref(array);
+  return ret;
+}
+
+ntValue *
+nt_value_call_array(ntValue *func, ntValue *ths, ntValue *args)
 {
   ntValue *newargs = NULL;
   if (!args)
@@ -1353,40 +1375,106 @@ nt_value_call(ntValue *func, ntValue *ths, ntValue *args)
 }
 
 ntValue *
+nt_value_call_utf8(ntValue *ths, const char *name, ...)
+{
+  va_list ap;
+  va_start(ap, name);
+  ntValue *tmp = nt_value_call_utf8_varg(ths, name, ap);
+  va_end(ap);
+  return tmp;
+}
+
+ntValue *
+nt_value_call_utf8_varg(ntValue *ths, const char *name, va_list ap)
+{
+  ntValue *array = nt_value_new_array_varg(ths, ap);
+  if (nt_value_is_exception(array))
+    return array;
+
+  ntValue *ret = nt_value_call_utf8_array(ths, name, array);
+  nt_value_decref(array);
+  return ret;
+}
+
+ntValue *
 nt_value_call_name(ntValue *ths, const ntValue *name, ntValue *args)
 {
   ntValue *func = nt_value_get(ths, name);
   if (!func)
     return NULL;
 
-  ntValue *ret = nt_value_call(func, ths, args);
+  ntValue *ret = nt_value_call_array(func, ths, args);
   nt_value_decref(func);
   return ret;
 }
 
 ntValue *
-nt_value_call_utf8(ntValue *ths, const char *name, ntValue *args)
+nt_value_call_new(ntValue *func, ...)
+{
+  va_list ap;
+  va_start(ap, func);
+  ntValue *tmp = nt_value_call_new_varg(func, ap);
+  va_end(ap);
+  return tmp;
+}
+
+ntValue *
+nt_value_call_new_varg(ntValue *func, va_list ap)
+{
+  ntValue *array = nt_value_new_array_varg(func, ap);
+  if (nt_value_is_exception(array))
+    return array;
+
+  ntValue *ret = nt_value_call_new_array(func, array);
+  nt_value_decref(array);
+  return ret;
+}
+
+ntValue *
+nt_value_call_utf8_array(ntValue *ths, const char *name, ntValue *args)
 {
   ntValue *func = nt_value_get_utf8(ths, name);
   if (!func)
     return NULL;
 
-  ntValue *ret = nt_value_call(func, ths, args);
+  ntValue *ret = nt_value_call_array(func, ths, args);
   nt_value_decref(func);
   return ret;
 }
 
 ntValue *
-nt_value_call_new(ntValue *func, ntValue *args)
+nt_value_call_new_utf8(ntValue *obj, const char *name, ...)
 {
-  return nt_value_call(func, NULL, args);
+  va_list ap;
+  va_start(ap, name);
+  ntValue *tmp = nt_value_call_new_utf8_varg(obj, name, ap);
+  va_end(ap);
+  return tmp;
 }
 
 ntValue *
-nt_value_call_new_utf8(ntValue *obj, const char *name, ntValue *args)
+nt_value_call_new_utf8_varg(ntValue *obj, const char *name, va_list ap)
+{
+  ntValue *array = nt_value_new_array_varg(obj, ap);
+  if (nt_value_is_exception(array))
+    return array;
+
+  ntValue *ret = nt_value_call_new_utf8_array(obj, name, array);
+  nt_value_decref(array);
+  return ret;
+}
+
+ntValue *
+nt_value_call_new_array(ntValue *func, ntValue *args)
+{
+  return nt_value_call_array(func, NULL, args);
+}
+
+ntValue *
+nt_value_call_new_utf8_array(ntValue *obj, const char *name, ntValue *args)
 {
   ntValue *fnc = nt_value_get_utf8(obj, name);
-  ntValue *ret = nt_value_call(fnc, NULL, args);
+  ntValue *ret = nt_value_call_array(fnc, NULL, args);
   nt_value_decref(fnc);
   return ret;
 }

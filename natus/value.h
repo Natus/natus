@@ -294,16 +294,40 @@ ntValue *
 nt_value_evaluate_utf8(ntValue *ths, const char *javascript, const char *filename, unsigned int lineno);
 
 ntValue *
-nt_value_call(ntValue *func, ntValue *ths, ntValue *args);
+nt_value_call(ntValue *func, ntValue *ths, ...);
 
 ntValue *
-nt_value_call_utf8(ntValue *ths, const char *name, ntValue *args);
+nt_value_call_varg(ntValue *func, ntValue *ths, va_list ap);
 
 ntValue *
-nt_value_call_new(ntValue *func, ntValue *args);
+nt_value_call_array(ntValue *func, ntValue *ths, ntValue *args);
 
 ntValue *
-nt_value_call_new_utf8(ntValue *obj, const char *name, ntValue *args);
+nt_value_call_utf8(ntValue *ths, const char *name, ...);
+
+ntValue *
+nt_value_call_utf8_varg(ntValue *ths, const char *name, va_list ap);
+
+ntValue *
+nt_value_call_utf8_array(ntValue *ths, const char *name, ntValue *args);
+
+ntValue *
+nt_value_call_new(ntValue *func, ...);
+
+ntValue *
+nt_value_call_new_varg(ntValue *func, va_list ap);
+
+ntValue *
+nt_value_call_new_array(ntValue *func, ntValue *args);
+
+ntValue *
+nt_value_call_new_utf8(ntValue *obj, const char *name, ...);
+
+ntValue *
+nt_value_call_new_utf8_varg(ntValue *obj, const char *name, va_list ap);
+
+ntValue *
+nt_value_call_new_utf8_array(ntValue *obj, const char *name, ntValue *args);
 
 bool
 nt_value_equals(const ntValue *val1, const ntValue *val2);

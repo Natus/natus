@@ -342,27 +342,38 @@ Value::newArray(va_list ap) const
   return newArray(array);
 }
 
-Value
-Value::newArray(const Value* item, ...) const {
-  va_list ap;
+static Value
+new_array(const Value& ctx, const Value *arg0, va_list ap)
+{
+  va_list apc;
   size_t count = 1;
 
-  if (!item)
-  return newArray();
+  if (!arg0)
+    return ctx.newArray();
 
-  va_start(ap, item);
-  while (va_arg(ap, const Value*))
+  va_copy(apc, ap);
+  while (va_arg(apc, const Value*))
     count++;
-  va_end(ap);
+  va_end(apc);
 
   const Value* array[count + 1];
-  array[0] = item;
-  va_start(ap, item);
+  array[0] = arg0;
+  va_copy(apc, ap);
   for (size_t i=1; i < count; i++)
-    array[i] = va_arg(ap, const Value*);
-  va_end(ap);
+    array[i] = va_arg(apc, const Value*);
+  va_end(apc);
 
-  return newArray(array);
+  return ctx.newArray(array);
+}
+
+Value
+Value::newArray(const Value* item, ...) const
+{
+  va_list ap;
+  va_start(ap, item);
+  Value ret = new_array(*this, item, ap);
+  va_end(ap);
+  return ret;
 }
 
 Value
@@ -1026,43 +1037,157 @@ Value::evaluate(UTF16 javascript, UTF16 filename, unsigned int lineno)
 }
 
 Value
+Value::call(Value ths, va_list ap)
+{
+  Value array = newArray(ap);
+  if (array.isException())
+    return array;
+  return call(ths, array);
+}
+
+Value
 Value::call(Value ths, Value args)
 {
-  return nt_value_call(internal, ths.internal, args.internal);
+  return nt_value_call_array(internal, ths.internal, args.internal);
+}
+
+Value
+Value::call(Value ths, const Value *arg0, ...)
+{
+  va_list ap;
+  va_start(ap, arg0);
+  Value ret = call(ths, new_array(*this, arg0, ap));
+  va_end(ap);
+  return ret;
+}
+
+Value
+Value::call(UTF8 name, va_list ap)
+{
+  Value array = newArray(ap);
+  if (array.isException())
+    return array;
+  return call(name, array);
 }
 
 Value
 Value::call(UTF8 name, Value args)
 {
   Value func = get(name);
-  return nt_value_call(func.internal, internal, args.internal);
+  return nt_value_call_array(func.internal, internal, args.internal);
+}
+
+Value
+Value::call(UTF8 name, const Value *arg0, ...)
+{
+  va_list ap;
+  va_start(ap, arg0);
+  Value ret = call(name, new_array(*this, arg0, ap));
+  va_end(ap);
+  return ret;
+}
+
+Value
+Value::call(UTF16 name, va_list ap)
+{
+  Value array = newArray(ap);
+  if (array.isException())
+    return array;
+  return call(name, array);
 }
 
 Value
 Value::call(UTF16 name, Value args)
 {
   Value func = get(name);
-  return nt_value_call(func.internal, internal, args.internal);
+  return nt_value_call_array(func.internal, internal, args.internal);
+}
+
+Value
+Value::call(UTF16 name, const Value *arg0, ...)
+{
+  va_list ap;
+  va_start(ap, arg0);
+  Value ret = call(name, new_array(*this, arg0, ap));
+  va_end(ap);
+  return ret;
+}
+
+Value
+Value::callNew(va_list ap)
+{
+  Value array = newArray(ap);
+  if (array.isException())
+    return array;
+  return callNew(array);
 }
 
 Value
 Value::callNew(Value args)
 {
-  return nt_value_call_new(internal, args.internal);
+  return nt_value_call_new_array(internal, args.internal);
+}
+
+Value
+Value::callNew(const Value* arg0, ...)
+{
+  va_list ap;
+  va_start(ap, arg0);
+  Value ret = callNew(new_array(*this, arg0, ap));
+  va_end(ap);
+  return ret;
+}
+
+Value
+Value::callNew(UTF8 name, va_list ap)
+{
+  Value array = newArray(ap);
+  if (array.isException())
+    return array;
+  return callNew(name, array);
 }
 
 Value
 Value::callNew(UTF8 name, Value args)
 {
   Value fnc = get(name);
-  return nt_value_call_new(fnc.internal, args.internal);
+  return nt_value_call_new_array(fnc.internal, args.internal);
+}
+
+Value
+Value::callNew(UTF8 name, const Value *arg0, ...)
+{
+  va_list ap;
+  va_start(ap, arg0);
+  Value ret = callNew(name, new_array(*this, arg0, ap));
+  va_end(ap);
+  return ret;
+}
+
+Value
+Value::callNew(UTF16 name, va_list ap)
+{
+  Value array = newArray(ap);
+  if (array.isException())
+    return array;
+  return callNew(name, array);
 }
 
 Value
 Value::callNew(UTF16 name, Value args)
 {
   Value fnc = get(name);
-  return nt_value_call_new(fnc.internal, args.internal);
+  return nt_value_call_new_array(fnc.internal, args.internal);
+}
+
+Value
+Value::callNew(UTF16 name, const Value *arg0, ...)
+{
+  va_list ap;
+  va_start(ap, arg0);
+  Value ret = callNew(name, new_array(*this, arg0, ap));
+  va_end(ap);
+  return ret;
 }
 
 bool
