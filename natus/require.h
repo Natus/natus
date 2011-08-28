@@ -21,11 +21,9 @@
  * 
  */
 
-#ifndef MODULES_H_
-#define MODULES_H_
-#include "types.h"
-#include "value.h"
-#include "misc.h"
+#ifndef NATUS_REQUIRE_H_
+#define NATUS_REQUIRE_H_
+#include <natus/natus.h>
 
 #define NATUS_MODULE(modname) bool natus_module_init(natusValue *modname)
 #define NATUS_CHECK_ORIGIN(ctx, uri) \
@@ -83,5 +81,5 @@ natus_require(natusValue *ctx, const char *name);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /* MODULES_H_ */
+#endif /* NATUS_REQUIRE_H_ */
 

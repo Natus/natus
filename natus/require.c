@@ -44,8 +44,7 @@
 #define CFG_ORIGINS_WHITELIST "natus.origins.whitelist"
 #define CFG_ORIGINS_BLACKLIST "natus.origins.blacklist"
 
-#include "value.h"
-#include "misc.h"
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "private.h"
 #include "require.h"
 

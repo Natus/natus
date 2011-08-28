@@ -3,32 +3,45 @@ moduledir = @MODULEDIR@
 enginedir = $(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 natincdir = $(includedir)/$(PACKAGE_NAME)
 
+# Defaults
+AM_CFLAGS   = -Wall -I$(top_srcdir) -DMODSUFFIX='".so"'
+AM_CXXFLAGS = -Wall -I$(top_srcdir) -DMODSUFFIX='".so"'
+AM_LDFLAGS  = -export-symbols-regex '^(_ZNK?5natus|natus_)' -ldl -lpthread
+
 # Variables
-CHEADERS   = misc.h  value.h  require.h  private.h natus.h  types.h  backend.h 
-CSOURCES   = misc.c  value.c  require.c  private.c
-CXXHEADERS = misc.hh value.hh require.hh           natus.hh types.hh
-CXXSOURCES = misc.cc value.cc require.cc
+CHEADERS   = misc.h  value.h  private.h natus.h  types.h  backend.h 
+CSOURCES   = misc.c  value.c  private.c
+CXXHEADERS = misc.hh value.hh           natus.hh types.hh
+CXXSOURCES = misc.cc value.cc
 
 # Handle the headers
 natinc_HEADERS = $(CHEADERS) $(CXXHEADERS)
 
-# Build our internal C library
-noinst_LTLIBRARIES   = libnatusc.la
-libnatusc_la_SOURCES = $(CSOURCES) $(CHEADERS)
-libnatusc_la_CFLAGS  = $(AM_CFLAGS) -Wall -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir) -DMODSUFFIX='".so"'
+# Build our internal C libraries
+noinst_LTLIBRARIES   = libnatusc.la libnatusc-require.la
 
-# Build/install the shared C/C++ library
-lib_LTLIBRARIES      = libnatus.la
-libnatus_la_SOURCES  = $(CXXSOURCES) $(CXXHEADERS)
-libnatus_la_CXXFLAGS = $(AM_CFLAGS) -Wall 
-libnatus_la_LIBADD   = libnatusc.la
-libnatus_la_LDFLAGS  = $(AM_LDFLAGS) -ldl -lpthread
+libnatusc_la_SOURCES = $(CSOURCES) $(CHEADERS)
+libnatusc_la_CFLAGS  = $(AM_CFLAGS) -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir)
+
+libnatusc_require_la_SOURCES = require.c require.h
+libnatusc_require_la_CFLAGS  = $(AM_CFLAGS)
+
+# Build/install the shared C/C++ libraries
+lib_LTLIBRARIES              = libnatus.la libnatus-require.la
+
+libnatus_la_SOURCES          = $(CXXSOURCES) $(CXXHEADERS)
+libnatus_la_CXXFLAGS         = $(AM_CXXFLAGS)
+libnatus_la_LIBADD           = libnatusc.la
+
+libnatus_require_la_SOURCES  = require.cc require.hh
+libnatus_require_la_CXXFLAGS = $(AM_CXXFLAGS)
+libnatus_require_la_LIBADD   = libnatus.la libnatusc-require.la
 
 # Build/install the shell
 bin_PROGRAMS         = natus
 natus_SOURCES        = main.cc
 natus_CXXFLAGS       = $(AM_CXXFLAGS) -Wall -DMODULEDIR=$(moduledir) -I../
 natus_LDFLAGS        = $(AM_LDFLAGS) -lreadline
-natus_LDADD          = libnatus.la
+natus_LDADD          = libnatus-require.la
 
 SUBDIRS = . engines

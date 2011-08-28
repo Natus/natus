@@ -1,3 +1,4 @@
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include "require.h"
 #include "require.hh"
 using namespace natus;

@@ -21,11 +21,9 @@
  * 
  */
 
-#ifndef MODULE_HPP_
-#define MODULE_HPP_
-#include "types.hh"
-#include "value.hh"
-#include "misc.hh"
+#ifndef NATUS_REQUIRE_HH_
+#define NATUS_REQUIRE_HH_
+#include <natus/natus.hh>
 
 #undef NATUS_MODULE
 #define NATUS_MODULE(modname) \
@@ -93,5 +91,5 @@ namespace natus
   };
 
 }
-#endif /* MODULE_HPP_ */
+#endif /* NATUS_REQUIRE_HH_ */
 
