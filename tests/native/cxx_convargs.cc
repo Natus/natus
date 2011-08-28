@@ -13,11 +13,11 @@ doTest(Value& global)
   arrayBuilder(array, global.newNumber('x'));
   arrayBuilder(array, global.newString("test"));
   arrayBuilder(array, obj);
-  assert(array.get ("length").to<int> () == 3);
+  assert(array.get("length").to<int>() == 3);
 
   // No conversions
-  assert(convertArguments (array, "").to<int> () == 0);
-  assert(convertArguments (array, "aosimfoais").to<int> () == 0);
+  assert(convertArguments(array, "").to<int>() == 0);
+  assert(convertArguments(array, "aosimfoais").to<int>() == 0);
 
   unsigned char a = 0;
   signed char b = 0;
@@ -139,14 +139,14 @@ doTest(Value& global)
   settest("%zi", r, 'x');
 
   settest("%c", s, 'x');
-  assert(convertArguments (array, "%n%c", &s).to<int> () == 2 && s == 't');
-  assert(convertArguments (array, "%n%s", &t).to<int> () == 2);
-  assert(!strcmp (t, "test"));
+  assert(convertArguments(array, "%n%c", &s).to<int>() == 2 && s == 't');
+  assert(convertArguments(array, "%n%s", &t).to<int>() == 2);
+  assert(!strcmp(t, "test"));
   free(t);
 
   settest("%lc", u, 'x');
-  assert(convertArguments (array, "%n%lc", &u).to<int> () == 2 && u == 't');
-  assert(convertArguments (array, "%n%ls", &v).to<int> () == 2);
+  assert(convertArguments(array, "%n%lc", &u).to<int>() == 2 && u == 't');
+  assert(convertArguments(array, "%n%ls", &v).to<int>() == 2);
   assert(v[0] == 't');
   assert(v[1] == 'e');
   assert(v[2] == 's');
@@ -154,8 +154,8 @@ doTest(Value& global)
   assert(v[4] == '\0');
   free(v);
 
-  assert(convertArguments (array, "%n%n%[foo]", &w).to<int> () == 3 && w == NULL);
-  assert(convertArguments (array, "%n%n%[private]", &w).to<int> () == 3 && w == (void*) 0x1234);
+  assert(convertArguments(array, "%n%n%[foo]", &w).to<int>() == 3 && w == NULL);
+  assert(convertArguments(array, "%n%n%[private]", &w).to<int>() == 3 && w == (void*) 0x1234);
 
   // Reset the values to test default value handling
   array = global.newArray();
@@ -279,14 +279,14 @@ doTest(Value& global)
   deftest("%zi", r, 'x');
 
   deftest("%c", s, 'x');
-  assert(convertArguments (array, "%s", &t, "test").to<int> () == 1);
-  assert(!strcmp (t, "test"));
+  assert(convertArguments(array, "%s", &t, "test").to<int>() == 1);
+  assert(!strcmp(t, "test"));
   free(t);
 
   Char testchars[] =
     { 't', 'e', 's', 't', '\0' };
   deftest("%lc", u, 'x');
-  assert(convertArguments (array, "%ls", &v, testchars).to<int> () == 1);
+  assert(convertArguments(array, "%ls", &v, testchars).to<int>() == 1);
   assert(v[0] == 't');
   assert(v[1] == 'e');
   assert(v[2] == 's');
@@ -294,8 +294,8 @@ doTest(Value& global)
   assert(v[4] == '\0');
   free(v);
 
-  assert(convertArguments (array, "%[foo]", &w, NULL).to<int> () == 1 && w == NULL);
-  assert(convertArguments (array, "%[private]", &w, 0x1234).to<int> () == 1 && w == (void*) 0x1234);
+  assert(convertArguments(array, "%[foo]", &w, NULL).to<int>() == 1 && w == NULL);
+  assert(convertArguments(array, "%[private]", &w, 0x1234).to<int>() == 1 && w == (void*) 0x1234);
 
   return 0;
 }

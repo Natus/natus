@@ -44,7 +44,7 @@ ntValue *
 nt_throw_exception(const ntValue *ctx, const char *base, const char *name, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  ntValue *exc = nt_throw_exception_varg (ctx, base, name, format, ap);
+  ntValue *exc = nt_throw_exception_varg(ctx, base, name, format, ap);
   va_end(ap);
 
   return exc;
@@ -99,7 +99,7 @@ ntValue *
 nt_throw_exception_code(const ntValue *ctx, const char *base, const char *name, int code, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
-  ntValue *exc = nt_throw_exception_code_varg (ctx, base, name, code, format, ap);
+  ntValue *exc = nt_throw_exception_code_varg(ctx, base, name, code, format, ap);
   va_end(ap);
   return exc;
 }
@@ -612,7 +612,7 @@ ntValue *
 nt_convert_arguments(ntValue *arg, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  ntValue *ret = nt_convert_arguments_varg (arg, fmt, ap);
+  ntValue *ret = nt_convert_arguments_varg(arg, fmt, ap);
   va_end(ap);
   return ret;
 }
@@ -747,12 +747,12 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
       case 's':
         p = va_arg(apc, void*);
         d = va_arg(apc, void*);
-        if (nt_value_is_undefined (val)) {
+        if (nt_value_is_undefined(val)) {
           if (d != NULL) {
             ssize_t len = 0;
             while (((ntChar*) d)[len++])
               ;
-            ntChar *tmp = calloc (len+1, sizeof(ntChar));
+            ntChar *tmp = calloc(len+1, sizeof(ntChar));
             if (!tmp)
               goto nomem;
             for (; len >= 0; len--)
@@ -761,7 +761,7 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
           }
           *((ntChar**) p) = (ntChar*) d;
         } else
-          *((ntChar**) p) = (ntChar*) nt_value_to_string_utf16 (val, NULL);
+          *((ntChar**) p) = (ntChar*) nt_value_to_string_utf16(val, NULL);
         break;
       case 'n':
         break;
@@ -852,40 +852,40 @@ nt_convert_arguments_varg(ntValue *arg, const char *fmt, va_list ap)
       SET_ARGUMENT(float);
       break;
     case 'c':
-      if (nt_value_is_string (val)) {
+      if (nt_value_is_string(val)) {
         p = va_arg(apc, void*);
         d = va_arg(apc, void*);
 
         size_t len = 0;
-        char *tmp = nt_value_to_string_utf8 (val, &len);
+        char *tmp = nt_value_to_string_utf8(val, &len);
         *((char*) p) = (tmp && len > 0) ? tmp[0] : (char) 0;
-        free (tmp);
+        free(tmp);
       } else
         SET_ARGUMENT(char);
       break;
     case 's':
       p = va_arg(apc, void*);
       d = va_arg(apc, void*);
-      if (nt_value_is_undefined (val))
-        *((char**) p) = strdup ((char*) d);
+      if (nt_value_is_undefined(val))
+        *((char**) p) = strdup((char*) d);
       else
-        *((char**) p) = (char*) nt_value_to_string_utf8 (val, NULL);
+        *((char**) p) = (char*) nt_value_to_string_utf8(val, NULL);
       break;
     case '[':
       p = va_arg(apc, void*);
       d = va_arg(apc, void*);
-      if (!strchr (++c, ']'))
+      if (!strchr(++c, ']'))
         goto inval;
-      if (!nt_value_is_undefined (val)) {
-        char *tmp = strdup (c);
+      if (!nt_value_is_undefined(val)) {
+        char *tmp = strdup(c);
         if (!tmp)
           goto nomem;
-        *strchr (tmp, ']') = '\0';
-        *((void**) p) = nt_value_get_private_name (val, tmp);
-        free (tmp);
+        *strchr(tmp, ']') = '\0';
+        *((void**) p) = nt_value_get_private_name(val, tmp);
+        free(tmp);
       } else
         *((void**) p) = d;
-      c = strchr (c, ']');
+      c = strchr(c, ']');
       break;
     case 'n':
       break;

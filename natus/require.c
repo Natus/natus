@@ -121,19 +121,19 @@ check_path(struct stat *st, const char *fmt, ...) {
 
   va_list ap;
   va_start(ap, fmt);
-  int sz = vasprintf (&fn, fmt, ap);
+  int sz = vasprintf(&fn, fmt, ap);
   va_end(ap);
   if (sz < 0)
   return NULL;
 
-  char *rp = realpath (fn, NULL);
-  free (fn);
+  char *rp = realpath(fn, NULL);
+  free(fn);
   if (!rp)
   return NULL;
 
-  if (stat (rp, st) == 0)
+  if (stat(rp, st) == 0)
   return rp;
-  free (rp);
+  free(rp);
   return NULL;
 }
 

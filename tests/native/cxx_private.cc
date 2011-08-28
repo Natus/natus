@@ -29,34 +29,34 @@ testInternal(Value& global, const char* js, Value::Type type)
   // Test private on an internal function
   global.evaluate(js);
   Value x = global.get("x");
-  assert(x.isType (type));
-  assert(!x.setPrivateName ("test", (void *) 0x1234));
-  assert(NULL == x.getPrivateName<void*> ("test"));
-  assert(!global.del ("x").isException ());
+  assert(x.isType(type));
+  assert(!x.setPrivateName("test", (void *) 0x1234));
+  assert(NULL == x.getPrivateName<void*>("test"));
+  assert(!global.del("x").isException());
 }
 
 static void
 testExternal(Value& global, Value val, Value::Type type, bool works = false)
 {
-  assert(!global.set ("x", val).isException ());
+  assert(!global.set("x", val).isException());
   Value x = global.get("x");
-  assert(x.isType (type));
+  assert(x.isType(type));
   if (works) {
-    assert(x.setPrivateName ("test", (void *) 0x1234));
-    assert(0x1234 == x.getPrivateName<long> ("test"));
+    assert(x.setPrivateName("test", (void *) 0x1234));
+    assert(0x1234 == x.getPrivateName<long>("test"));
   } else {
-    assert(!x.setPrivateName ("test", (void *) 0x1234));
-    assert(NULL == x.getPrivateName<void*> ("test"));
+    assert(!x.setPrivateName("test", (void *) 0x1234));
+    assert(NULL == x.getPrivateName<void*>("test"));
   }
-  assert(!global.del ("x").isException ());
+  assert(!global.del("x").isException());
 }
 
 int
 doTest(Value& global)
 {
   // Ensure we can store private on the global
-  assert(global.setPrivateName ("test", (void *) 0x1234));
-  assert(0x1234 == global.getPrivateName<long> ("test"));
+  assert(global.setPrivateName("test", (void *) 0x1234));
+  assert(0x1234 == global.getPrivateName<long>("test"));
 
   // Test private on an externally defined types
   testExternal(global, global.newArray(), Value::TypeArray);
@@ -84,15 +84,15 @@ doTest(Value& global)
 
   // Test set and clear
   deleted = 0;
-  assert(nt_private_set (priv, "foo", (void *) 0x1234, incDeleted));
+  assert(nt_private_set(priv, "foo", (void *) 0x1234, incDeleted));
   // Set
-  assert(nt_private_set (priv, "foo", NULL, NULL));
+  assert(nt_private_set(priv, "foo", NULL, NULL));
   // Delete
   assert(deleted == 1);
 
   // Test push
-  assert(nt_private_push (priv, (void *) 0x1234, incDeleted));
-  assert(nt_private_push (priv, (void *) 0x4321, incDeleted));
+  assert(nt_private_push(priv, (void *) 0x1234, incDeleted));
+  assert(nt_private_push(priv, (void *) 0x4321, incDeleted));
 
   // Test iteration
   bool up = true;
@@ -102,12 +102,12 @@ doTest(Value& global)
   assert(!up);
 
   // Test destructor delete
-  assert(nt_private_set (priv, "foo", (void *) 0x1234, incDeleted));
+  assert(nt_private_set(priv, "foo", (void *) 0x1234, incDeleted));
   // Set
   nt_private_free(priv); // Delete
   assert(deleted == 4);
 
   // Cleanup
-  assert(global.get ("x").isUndefined ());
+  assert(global.get("x").isUndefined());
   return 0;
 }
