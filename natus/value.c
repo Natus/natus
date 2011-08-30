@@ -1546,7 +1546,9 @@ natus_handle_property(const natusPropertyAction act, natusEngVal obj, const natu
 
   /* Do the call */
   natusClass *clss = private_get(priv, NATUS_PRIV_CLASS);
-  if (clss && vobj && (vidx || act & natusPropertyActionEnumerate) && (vval || act & ~natusPropertyActionSet)) {
+  if (clss && vobj &&
+      (vidx || (act & natusPropertyActionEnumerate)) &&
+      (vval || (act & ~natusPropertyActionSet))) {
     switch (act) {
     case natusPropertyActionDelete:
       rslt = clss->del(clss, vobj, vidx);
