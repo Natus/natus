@@ -475,7 +475,7 @@ sm_new_object(const natusEngCtx ctx, natusClass *cls, natusPrivate *priv, natusE
     jscls->call = cls->call ? obj_call : NULL;
     jscls->construct = cls->call ? obj_new : NULL;
 
-    if (!natus_private_set(priv, "natus::SpiderMonkey::JSClass", jscls, free))
+    if (!natus_private_push(priv, jscls, free))
       goto error;
   }
 

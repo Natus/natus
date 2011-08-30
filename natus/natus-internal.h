@@ -23,14 +23,12 @@
 
 #ifndef NATUS_INTERNAL_H_
 #define NATUS_INTERNAL_H_
-#include <natus.h>
+#include <natus-engine.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
-
-typedef struct natusPrivate natusPrivate;
 
 typedef void
 (*natusPrivateForeach)(const char *name, void *priv, void *misc);
@@ -46,9 +44,6 @@ natus_private_get(const natusPrivate *self, const char *name);
 
 bool
 natus_private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
-
-bool
-natus_private_push(natusPrivate *self, void *priv, natusFreeFunction free);
 
 void
 natus_private_foreach(const natusPrivate *self, bool rev, natusPrivateForeach foreach, void *misc);

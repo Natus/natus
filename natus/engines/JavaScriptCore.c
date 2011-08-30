@@ -487,7 +487,7 @@ jsc_new_object(const natusEngCtx ctx, natusClass *cls, natusPrivate *priv, natus
     jscc->def.callAsFunction = cls->call ? obj_call : NULL;
     jscc->def.callAsConstructor = cls->call ? obj_new : NULL;
 
-    if (!natus_private_set(priv, NATUS_PRIV_JSC_CLASS, jscc, (natusFreeFunction) class_free))
+    if (!natus_private_push(priv, jscc, (natusFreeFunction) class_free))
       return NULL;
 
     jscc->ref = jscls = JSClassCreate(&jscc->def);

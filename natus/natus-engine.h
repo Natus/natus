@@ -89,8 +89,8 @@ typedef enum {
 
 typedef struct {
   unsigned int version;
-  const char *name;
-  const char *symbol;
+  const char  *name;
+  const char  *symbol;
 
   void           (*ctx_free)         (natusEngCtx ctx);
   void           (*val_unlock)       (natusEngCtx ctx, natusEngVal val);
@@ -131,7 +131,7 @@ typedef struct {
 natusEngVal natus_handle_property(natusPropertyAction act, natusEngVal obj, const natusPrivate *priv, natusEngVal idx, natusEngVal val, natusEngValFlags *flags);
 natusEngVal natus_handle_call    (natusEngVal obj, const natusPrivate *priv, natusEngVal ths, natusEngVal arg, natusEngValFlags *flags);
 void natus_private_free(natusPrivate *priv);
-bool natus_private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
+bool natus_private_push(natusPrivate *self, void *priv, natusFreeFunction free);
 
 #ifdef __cplusplus
 } /* extern "C" */
