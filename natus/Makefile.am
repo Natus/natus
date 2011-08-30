@@ -9,13 +9,14 @@ AM_CXXFLAGS = -Wall -I$(top_srcdir) -DMODSUFFIX='".so"'
 AM_LDFLAGS  = -export-symbols-regex '^(_ZNK?5natus|natus_)' -ldl -lpthread
 
 # Variables
-CHEADERS   = misc.h  value.h  private.h natus.h  types.h  backend.h 
-CSOURCES   = misc.c  value.c  private.c
-CXXHEADERS = misc.hh value.hh           natus.hh types.hh
-CXXSOURCES = misc.cc value.cc
+CHEADERS   = natus.h  natus-engine.h 
+CXXHEADERS = natus.hh
+CSOURCES   = misc.c   value.c  private.c
+CXXSOURCES = misc.cc  value.cc
 
 # Handle the headers
 natinc_HEADERS = $(CHEADERS) $(CXXHEADERS)
+noinst_HEADERS = natus-internal.h
 
 # Build our internal C libraries
 noinst_LTLIBRARIES   = libnatusc.la libnatusc-require.la
@@ -23,7 +24,7 @@ noinst_LTLIBRARIES   = libnatusc.la libnatusc-require.la
 libnatusc_la_SOURCES = $(CSOURCES) $(CHEADERS)
 libnatusc_la_CFLAGS  = $(AM_CFLAGS) -DMODULEDIR=$(moduledir) -DENGINEDIR=$(enginedir)
 
-libnatusc_require_la_SOURCES = require.c require.h
+libnatusc_require_la_SOURCES = require.c natus-require.h
 libnatusc_require_la_CFLAGS  = $(AM_CFLAGS)
 
 # Build/install the shared C/C++ libraries
@@ -33,7 +34,7 @@ libnatus_la_SOURCES          = $(CXXSOURCES) $(CXXHEADERS)
 libnatus_la_CXXFLAGS         = $(AM_CXXFLAGS)
 libnatus_la_LIBADD           = libnatusc.la
 
-libnatus_require_la_SOURCES  = require.cc require.hh
+libnatus_require_la_SOURCES  = require.cc natus-require.hh
 libnatus_require_la_CXXFLAGS = $(AM_CXXFLAGS)
 libnatus_require_la_LIBADD   = libnatus.la libnatusc-require.la
 

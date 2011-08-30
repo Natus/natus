@@ -35,7 +35,8 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef void* natusEngCtx;
 typedef void* natusEngVal;
-#include "backend.h"
+#include <natus-engine.h>
+#include <natus-internal.h>
 
 #define  _str(s) # s
 #define __str(s) _str(s)
@@ -587,8 +588,7 @@ natus_new_array_varg(const natusValue *ctx, va_list ap)
   size_t count = 0, i = 0;
 
   va_copy(apc, ap);
-  while (
-    va_arg(apc, natusValue*))
+  while (va_arg(apc, natusValue*))
     count++;
   va_end(apc);
 
@@ -599,7 +599,7 @@ natus_new_array_varg(const natusValue *ctx, va_list ap)
       return NULL;
     va_copy(apc, ap);
     while (--count > 0)
-    array[i++] = va_arg(apc, natusValue*);
+      array[i++] = va_arg(apc, natusValue*);
     array[i] = NULL;
     va_end(apc);
   }

@@ -1,5 +1,4 @@
 #include "test.hh"
-#include <natus/value.h>
 
 class TestClass : public Class {
   virtual Value

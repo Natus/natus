@@ -1,5 +1,5 @@
 #include "test.hh"
-#include <natus/private.h>
+#include <natus-internal.h>
 
 static int deleted = 0;
 

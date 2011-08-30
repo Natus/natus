@@ -45,8 +45,8 @@
 #define CFG_ORIGINS_BLACKLIST "natus.origins.blacklist"
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "private.h"
-#include "require.h"
+#include <natus-internal.h>
+#include <natus-require.h>
 
 #define  _str(s) # s
 #define __str(s) _str(s)

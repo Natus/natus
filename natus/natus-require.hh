@@ -23,7 +23,7 @@
 
 #ifndef NATUS_REQUIRE_HH_
 #define NATUS_REQUIRE_HH_
-#include <natus/natus.hh>
+#include <natus.hh>
 
 #undef NATUS_MODULE
 #define NATUS_MODULE(modname) \

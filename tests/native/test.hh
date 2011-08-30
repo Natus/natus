@@ -10,7 +10,7 @@
 using namespace std;
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus/natus.hh>
+#include <natus.hh>
 using namespace natus;
 
 #include "../test.h"

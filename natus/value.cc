@@ -26,8 +26,9 @@
 
 #include <cstdio>
 
-#include "value.hh"
-#include "value.h"
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include <natus.h>
+#include <natus.hh>
 using namespace natus;
 
 static inline Value**

@@ -38,7 +38,7 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef JSContextRef natusEngCtx;
 typedef JSValueRef natusEngVal;
-#include <natus/backend.h>
+#include <natus-engine.h>
 
 #define NATUS_PRIV_JSC_CLASS "natus.JavaScriptCore.JSClass"
 

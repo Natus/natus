@@ -21,9 +21,9 @@
  *
  */
 
-#include "misc.h"
-#include "value.h"
-#include "value.hh"
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include <natus.h>
+#include <natus.hh>
 using namespace natus;
 
 namespace natus

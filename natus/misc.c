@@ -29,8 +29,8 @@
 #include <assert.h>
 #include <stddef.h>
 
-#include "misc.h"
-#include "value.h"
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include "natus.h"
 
 #define SET_ARGUMENT(type) { \
   p = va_arg(apc, void*); \

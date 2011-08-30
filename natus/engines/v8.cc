@@ -32,7 +32,7 @@ using namespace v8;
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef Persistent<Context>* natusEngCtx;
 typedef Persistent<Value>* natusEngVal;
-#include <natus/backend.h>
+#include <natus-engine.h>
 
 #define V8_PRIV_SLOT 0
 #define V8_PRIV_STRING String::New("natus::v8::private")

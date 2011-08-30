@@ -1,6 +1,6 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "require.h"
-#include "require.hh"
+#include <natus-require.h>
+#include <natus-require.hh>
 using namespace natus;
 
 struct HookMisc {

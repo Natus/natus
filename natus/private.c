@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
-#include "private.h"
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include <natus-internal.h>
 
 typedef struct {
   char *name;

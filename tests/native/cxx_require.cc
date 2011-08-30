@@ -1,5 +1,5 @@
 #include "test.hh"
-#include <natus/require.hh>
+#include <natus-require.hh>
 
 static bool freecalled = false;
 void

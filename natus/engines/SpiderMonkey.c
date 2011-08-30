@@ -29,7 +29,7 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef JSContext* natusEngCtx;
 typedef jsval* natusEngVal;
-#include <natus/backend.h>
+#include <natus-engine.h>
 
 static void
 sm_val_unlock(natusEngCtx ctx, natusEngVal val);

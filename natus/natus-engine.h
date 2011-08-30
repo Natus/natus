@@ -23,12 +23,7 @@
 
 #ifndef ENGINEMOD_H_
 #define ENGINEMOD_H_
-#include "value.h"
-#include "private.h"
-
-#ifndef I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#error Natus is not stable, go look elsewhere...
-#endif
+#include <natus.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,6 +66,8 @@ extern "C" {
     prfx ## _borrow_context, \
     prfx ## _equal \
   }
+
+typedef struct natusPrivate natusPrivate;
 
 typedef enum {
   natusPropertyActionDelete    = 1,
@@ -128,6 +125,8 @@ typedef struct {
 
 natusEngVal natus_handle_property(natusPropertyAction act, natusEngVal obj, const natusPrivate *priv, natusEngVal idx, natusEngVal val, natusEngValFlags *flags);
 natusEngVal natus_handle_call    (natusEngVal obj, const natusPrivate *priv, natusEngVal ths, natusEngVal arg, natusEngValFlags *flags);
+void natus_private_free(natusPrivate *priv);
+bool natus_private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
 
 #ifdef __cplusplus
 } /* extern "C" */

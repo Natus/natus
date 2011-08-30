@@ -41,6 +41,7 @@ using namespace std;
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus/natus.hh>
+#include <natus/natus-require.hh>
 using namespace natus;
 
 #define _str(s) # s
