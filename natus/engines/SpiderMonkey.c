@@ -26,9 +26,10 @@
 
 #include <jsapi.h>
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef JSContext* natusEngCtx;
 typedef jsval* natusEngVal;
+#define NATUS_ENGINE_TYPES_DEFINED
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus-engine.h>
 
 static void

@@ -29,9 +29,10 @@
 #include <v8.h>
 using namespace v8;
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef Persistent<Context>* natusEngCtx;
 typedef Persistent<Value>* natusEngVal;
+#define NATUS_ENGINE_TYPES_DEFINED
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus-engine.h>
 
 #define V8_PRIV_SLOT 0

@@ -67,6 +67,11 @@ extern "C" {
     prfx ## _equal \
   }
 
+#ifndef NATUS_ENGINE_TYPES_DEFINED
+typedef void* natusEngCtx;
+typedef void* natusEngVal;
+#endif
+
 typedef struct natusPrivate natusPrivate;
 
 typedef enum {
