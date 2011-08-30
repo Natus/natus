@@ -21,8 +21,8 @@
  * 
  */
 
-#ifndef ENGINEMOD_H_
-#define ENGINEMOD_H_
+#ifndef NATUS_ENGINE_H_
+#define NATUS_ENGINE_H_
 #include <natus.h>
 
 #ifdef __cplusplus
@@ -136,4 +136,4 @@ bool natus_private_push(natusPrivate *self, void *priv, natusFreeFunction free);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /* ENGINEMOD_H_ */
+#endif /* NATUS_ENGINE_H_ */
