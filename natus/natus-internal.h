@@ -25,30 +25,19 @@
 #define NATUS_INTERNAL_H_
 #include <natus-engine.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif /* __cplusplus */
-
 typedef void
 (*natusPrivateForeach)(const char *name, void *priv, void *misc);
 
 natusPrivate *
-natus_private_init(void *misc, natusFreeFunction free);
-
-void
-natus_private_free(natusPrivate *priv);
+private_init(void *misc, natusFreeFunction free);
 
 void *
-natus_private_get(const natusPrivate *self, const char *name);
+private_get(const natusPrivate *self, const char *name);
 
 bool
-natus_private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
+private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
 
 void
-natus_private_foreach(const natusPrivate *self, bool rev, natusPrivateForeach foreach, void *misc);
+private_foreach(const natusPrivate *self, bool rev, natusPrivateForeach foreach, void *misc);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
 #endif /* NATUS_INTERNAL_H_ */

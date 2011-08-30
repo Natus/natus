@@ -79,7 +79,7 @@ doTest(Value& global)
   testInternal(global, "", Value::TypeUndefined);
 
   // Test the private datastructure
-  natusPrivate *priv = natus_private_init(NULL, NULL);
+  natusPrivate *priv = private_init(NULL, NULL);
   assert(priv);
 
   // Test set and clear

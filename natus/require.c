@@ -379,10 +379,10 @@ natus_require_init_value(natusValue *ctx, natusValue *config)
     goto error;
   memset(req, 0, sizeof(natusRequire));
   req->config = natus_incref(config);
-  req->hooks = natus_private_init(NULL, NULL);
-  req->matchers = natus_private_init(NULL, NULL);
-  req->dll = natus_private_init(NULL, NULL);
-  req->modules = natus_private_init(NULL, NULL);
+  req->hooks = private_init(NULL, NULL);
+  req->matchers = private_init(NULL, NULL);
+  req->dll = private_init(NULL, NULL);
+  req->modules = private_init(NULL, NULL);
   if (!req->hooks || !req->matchers || !req->dll || !req->modules)
     goto error;
 
@@ -528,7 +528,7 @@ natus_require_origin_permitted(natusValue *ctx, const char *uri)
     ld.pat = natus_as_string_utf8(natus_get_index(whitelist, i), NULL);
     if (!ld.pat)
       continue;
-    natus_private_foreach(req->matchers, false, (natusPrivateForeach) _foreach_match, &ld);
+    private_foreach(req->matchers, false, (natusPrivateForeach) _foreach_match, &ld);
     free(ld.pat);
   }
   natus_decref(whitelist);
@@ -541,7 +541,7 @@ natus_require_origin_permitted(natusValue *ctx, const char *uri)
       ld.pat = natus_as_string_utf8(natus_get_index(blacklist, i), NULL);
       if (!ld.pat)
         continue;
-      natus_private_foreach(req->matchers, false, (natusPrivateForeach) _foreach_match, &ld);
+      private_foreach(req->matchers, false, (natusPrivateForeach) _foreach_match, &ld);
       free(ld.pat);
     }
     ld.match = !ld.match;
@@ -575,7 +575,7 @@ do_hooks(const char *hookname, reqHook *hook, natusHookData *misc)
     natus_decref(misc->res);
 
     // If the name was found in the cache, return it
-    misc->res = natus_private_get(misc->req->modules, name);
+    misc->res = private_get(misc->req->modules, name);
     return;
   }
 
@@ -607,7 +607,7 @@ do_hooks(const char *hookname, reqHook *hook, natusHookData *misc)
     natus_decref(whitelist);
 
     // Store the module in the cache
-    assert(natus_private_set(misc->req->modules, name, natus_incref(misc->res), (natusFreeFunction) natus_decref));
+    assert(private_set(misc->req->modules, name, natus_incref(misc->res), (natusFreeFunction) natus_decref));
   }
 }
 
@@ -623,7 +623,7 @@ natus_require(natusValue *ctx, const char *name)
   // Check to see if we've already loaded the module (resolve step)
   natusHookData hd =
     { name, req, natusRequireHookStepResolve, global, NULL };
-  natus_private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
+  private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
   if (hd.res) {
     if (!natus_is_exception(hd.res))
       goto modfound;
@@ -632,7 +632,7 @@ natus_require(natusValue *ctx, const char *name)
 
   // Load the module (load step)
   hd.step = natusRequireHookStepLoad;
-  natus_private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
+  private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
   if (hd.res) {
     if (!natus_is_exception(hd.res))
       goto modfound;
@@ -648,7 +648,7 @@ modfound:
   hd.step = natusRequireHookStepProcess;
   hd.ctx = hd.res;
   hd.res = NULL;
-  natus_private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
+  private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
   natus_decref(hd.res);
   return hd.ctx;
 }

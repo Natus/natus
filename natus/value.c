@@ -247,7 +247,7 @@ mkpriv(engCtx *ctx)
   if (!pw)
     return NULL;
 
-  pw->priv = natus_private_init(pw, (natusFreeFunction) onprivfree);
+  pw->priv = private_init(pw, (natusFreeFunction) onprivfree);
   if (!pw->priv) {
     free(pw);
     return NULL;
@@ -400,7 +400,7 @@ natus_new_global(const char *name_or_path)
     goto error;
 
   priv = mkpriv(self->ctx);
-  if (!priv || !natus_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
+  if (!priv || !private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
     natus_private_free(priv);
     goto error;
   }
@@ -435,7 +435,7 @@ natus_new_global_shared(const natusValue *global)
   if (!pw)
     return NULL;
 
-  natusPrivate *priv = natus_private_init(pw, (natusFreeFunction) onprivfree);
+  natusPrivate *priv = private_init(pw, (natusFreeFunction) onprivfree);
   if (!priv)
     return NULL;
 
@@ -464,7 +464,7 @@ natus_new_global_shared(const natusValue *global)
     global->ctx->next = self->ctx;
   }
 
-  if (!natus_private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
+  if (!private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
     natus_decref(self);
     return NULL;
   }
@@ -618,9 +618,9 @@ natus_new_function(const natusValue *ctx, natusNativeFunction func, const char *
   natusPrivate *priv = mkpriv(ctx->ctx);
   if (!priv)
     goto error;
-  if (!natus_private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
+  if (!private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
     goto error;
-  if (!natus_private_set(priv, NATUS_PRIV_FUNCTION, func, NULL))
+  if (!private_set(priv, NATUS_PRIV_FUNCTION, func, NULL))
     goto error;
 
   callandreturn(natusValueTypeFunction, ctx, new_function, ctx->ctx->ctx, name, priv);
@@ -639,9 +639,9 @@ natus_new_object(const natusValue *ctx, natusClass *cls)
   natusPrivate *priv = mkpriv(ctx->ctx);
   if (!priv)
     goto error;
-  if (cls && !natus_private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
+  if (cls && !private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
     goto error;
-  if (cls && !natus_private_set(priv, NATUS_PRIV_CLASS, cls, (natusFreeFunction) cls->free))
+  if (cls && !private_set(priv, NATUS_PRIV_CLASS, cls, (natusFreeFunction) cls->free))
     goto error;
 
   callandreturn(natusValueTypeObject, ctx, new_object, ctx->ctx->ctx, cls, priv);
@@ -688,7 +688,7 @@ natus_get_global(const natusValue *ctx)
   if (!priv)
     return NULL;
 
-  return natus_private_get(priv, NATUS_PRIV_GLOBAL);
+  return private_get(priv, NATUS_PRIV_GLOBAL);
 }
 
 const char *
@@ -1170,7 +1170,7 @@ natus_set_private_name(natusValue *obj, const char *key, void *priv, natusFreeFu
     return false;
 
   natusPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
-  return natus_private_set(prv, key, priv, free);
+  return private_set(prv, key, priv, free);
 }
 
 static void
@@ -1228,7 +1228,7 @@ natus_get_private_name(const natusValue *obj, const char *key)
   if (!key)
     return NULL;
   natusPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
-  return natus_private_get(prv, key);
+  return private_get(prv, key);
 }
 
 natusValue *
@@ -1535,7 +1535,7 @@ return_ownership(natusValue *val, natusEngValFlags *flags)
 natusEngVal
 natus_handle_property(const natusPropertyAction act, natusEngVal obj, const natusPrivate *priv, natusEngVal idx, natusEngVal val, natusEngValFlags *flags)
 {
-  natusValue *glbl = natus_private_get(priv, NATUS_PRIV_GLOBAL);
+  natusValue *glbl = private_get(priv, NATUS_PRIV_GLOBAL);
   assert(glbl);
 
   /* Convert the arguments */
@@ -1545,7 +1545,7 @@ natus_handle_property(const natusPropertyAction act, natusEngVal obj, const natu
   natusValue *rslt = NULL;
 
   /* Do the call */
-  natusClass *clss = natus_private_get(priv, NATUS_PRIV_CLASS);
+  natusClass *clss = private_get(priv, NATUS_PRIV_CLASS);
   if (clss && vobj && (vidx || act & natusPropertyActionEnumerate) && (vval || act & ~natusPropertyActionSet)) {
     switch (act) {
     case natusPropertyActionDelete:
@@ -1574,7 +1574,7 @@ natus_handle_property(const natusPropertyAction act, natusEngVal obj, const natu
 natusEngVal
 natus_handle_call(natusEngVal obj, const natusPrivate *priv, natusEngVal ths, natusEngVal arg, natusEngValFlags *flags)
 {
-  natusValue *glbl = natus_private_get(priv, NATUS_PRIV_GLOBAL);
+  natusValue *glbl = private_get(priv, NATUS_PRIV_GLOBAL);
   assert(glbl);
 
   /* Convert the arguments */
@@ -1583,8 +1583,8 @@ natus_handle_call(natusEngVal obj, const natusPrivate *priv, natusEngVal ths, na
   natusValue *varg = mkval(glbl, arg, natusEngValFlagMustFree, natusValueTypeUnknown);
   natusValue *rslt = NULL;
   if (vobj && vths && varg) {
-    natusClass *clss = natus_private_get(priv, NATUS_PRIV_CLASS);
-    natusNativeFunction func = natus_private_get(priv, NATUS_PRIV_FUNCTION);
+    natusClass *clss = private_get(priv, NATUS_PRIV_CLASS);
+    natusNativeFunction func = private_get(priv, NATUS_PRIV_FUNCTION);
     if (clss)
       rslt = clss->call(clss, vobj, vths, varg);
     else if (func)
