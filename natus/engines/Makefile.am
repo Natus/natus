@@ -1,6 +1,7 @@
 enginesdir=$(libdir)/$(PACKAGE_NAME)/$(PACKAGE_VERSION)/engines
 AM_LDFLAGS = -module -avoid-version -no-undefined -shared
 AM_CFLAGS = -g -Wall -I$(top_srcdir)/natus
+AM_CXXFLAGS = -g -Wall -I$(top_srcdir)/natus
 
 engines_LTLIBRARIES=
 
