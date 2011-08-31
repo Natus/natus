@@ -45,8 +45,8 @@
 #define CFG_ORIGINS_BLACKLIST "natus.origins.blacklist"
 
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus-internal.h>
 #include <natus-require.h>
+#include <natus-internal.h>
 
 #define  _str(s) # s
 #define __str(s) _str(s)
@@ -456,7 +456,7 @@ natus_require_get_config(natusValue *ctx)
   if (!glb) goto error; \
   natusRequire *req = (natusRequire*) natus_get_private(glb, natusRequire*); \
   if (!req) goto error; \
-  return natus_private_set(req->field, name, item, ((natusFreeFunction) free)); \
+  return private_set(req->field, name, item, ((natusFreeFunction) free)); \
   error: \
     if (item) free((reqPayload*) item); \
     return false;
@@ -528,7 +528,7 @@ natus_require_origin_permitted(natusValue *ctx, const char *uri)
     ld.pat = natus_as_string_utf8(natus_get_index(whitelist, i), NULL);
     if (!ld.pat)
       continue;
-    private_foreach(req->matchers, false, (natusPrivateForeach) _foreach_match, &ld);
+    private_foreach(req->matchers, false, (privateForeach) _foreach_match, &ld);
     free(ld.pat);
   }
   natus_decref(whitelist);
@@ -541,7 +541,7 @@ natus_require_origin_permitted(natusValue *ctx, const char *uri)
       ld.pat = natus_as_string_utf8(natus_get_index(blacklist, i), NULL);
       if (!ld.pat)
         continue;
-      private_foreach(req->matchers, false, (natusPrivateForeach) _foreach_match, &ld);
+      private_foreach(req->matchers, false, (privateForeach) _foreach_match, &ld);
       free(ld.pat);
     }
     ld.match = !ld.match;
@@ -621,9 +621,8 @@ natus_require(natusValue *ctx, const char *name)
     return NULL;
 
   // Check to see if we've already loaded the module (resolve step)
-  natusHookData hd =
-    { name, req, natusRequireHookStepResolve, global, NULL };
-  private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
+  natusHookData hd = { name, req, natusRequireHookStepResolve, global, NULL };
+  private_foreach(req->hooks, true, (privateForeach) do_hooks, &hd);
   if (hd.res) {
     if (!natus_is_exception(hd.res))
       goto modfound;
@@ -632,7 +631,7 @@ natus_require(natusValue *ctx, const char *name)
 
   // Load the module (load step)
   hd.step = natusRequireHookStepLoad;
-  private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
+  private_foreach(req->hooks, true, (privateForeach) do_hooks, &hd);
   if (hd.res) {
     if (!natus_is_exception(hd.res))
       goto modfound;
@@ -648,7 +647,7 @@ modfound:
   hd.step = natusRequireHookStepProcess;
   hd.ctx = hd.res;
   hd.res = NULL;
-  private_foreach(req->hooks, true, (natusPrivateForeach) do_hooks, &hd);
+  private_foreach(req->hooks, true, (privateForeach) do_hooks, &hd);
   natus_decref(hd.res);
   return hd.ctx;
 }

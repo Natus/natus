@@ -20,7 +20,6 @@
  * THE SOFTWARE.
  *
  */
-
 #define _GNU_SOURCE
 #include <errno.h>
 #include <string.h>
@@ -29,8 +28,8 @@
 #include <assert.h>
 #include <stddef.h>
 
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include "natus.h"
+#include <natus-internal.h>
+
 
 #define SET_ARGUMENT(type) { \
   p = va_arg(apc, void*); \
@@ -38,6 +37,37 @@
   *((type*) p) = (natus_is_undefined(val) \
                    ? ((type) (intptr_t) d) \
                    : ((type) natus_to_double(val))); \
+}
+
+void *
+malloc0(size_t size)
+{
+  void *tmp = malloc(size);
+  if (tmp)
+    return memset(tmp, 0, size);
+  return NULL;
+}
+
+natusValue *
+mkval(const natusValue *ctx, natusEngVal val, natusEngValFlags flags, natusValueType type)
+{
+  if (!ctx || !val)
+    return NULL;
+
+  natusValue *self = new0(natusValue);
+  if (!self) {
+    ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, val);
+    ctx->ctx->eng->spec->val_free(val);
+    return NULL;
+  }
+
+  self->ref++;
+  self->ctx = ctx->ctx;
+  self->ctx->ref++;
+  self->val = val;
+  self->flg = flags;
+  self->typ = flags & natusEngValFlagException ? natusValueTypeUnknown : type;
+  return self;
 }
 
 natusValue *

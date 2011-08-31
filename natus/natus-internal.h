@@ -23,21 +23,80 @@
 
 #ifndef NATUS_INTERNAL_H_
 #define NATUS_INTERNAL_H_
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus-engine.h>
 
+#define NATUS_PRIV_CLASS     "natus::Class"
+#define NATUS_PRIV_FUNCTION  "natus::Function"
+#define NATUS_PRIV_GLOBAL    "natus::Global"
+
+#define callandmkval(n, t, c, f, ...) \
+  natusEngValFlags _flags = natusEngValFlagMustFree; \
+  natusEngVal _val = c->ctx->eng->spec->f(__VA_ARGS__, &_flags); \
+  n = mkval(c, _val, _flags, t);
+
+#define callandreturn(t, c, f, ...) \
+  callandmkval(natusValue *_value, t, c, f, __VA_ARGS__); \
+  return _value
+
 typedef void
-(*natusPrivateForeach)(const char *name, void *priv, void *misc);
+(*privateForeach)(const char *name, void *priv, void *misc);
+
+typedef struct engine engine;
+struct engine {
+  size_t ref;
+  engine *next;
+  engine *prev;
+  void *dll;
+  natusEngineSpec *spec;
+};
+
+typedef struct privWrap privWrap;
+typedef struct engCtx engCtx;
+struct engCtx {
+  size_t ref;
+  engine *eng;
+  natusEngCtx ctx;
+  engCtx *next;
+  engCtx *prev;
+  privWrap *priv;
+};
+
+struct natusValue {
+  size_t ref;
+  engCtx *ctx;
+  natusValueType typ;
+  natusEngVal val;
+  natusEngValFlags flg;
+};
+
+#define new0(type) ((type*) malloc0(sizeof(type)))
+void *
+malloc0(size_t size);
+
+natusValue *
+mkval(const natusValue *ctx, natusEngVal val, natusEngValFlags flags, natusValueType type);
+
+natusPrivate *
+mkpriv(engCtx *ctx);
 
 natusPrivate *
 private_init(void *misc, natusFreeFunction free);
+
+void
+private_free(natusPrivate *self);
+
+void
+private_wrap_free(privWrap *pw);
 
 void *
 private_get(const natusPrivate *self, const char *name);
 
 bool
-private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
+private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction freef);
 
 void
-private_foreach(const natusPrivate *self, bool rev, natusPrivateForeach foreach, void *misc);
+private_foreach(const natusPrivate *self, bool rev, privateForeach foreach, void *misc);
 
 #endif /* NATUS_INTERNAL_H_ */
+

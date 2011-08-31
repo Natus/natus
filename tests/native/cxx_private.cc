@@ -78,35 +78,6 @@ doTest(Value& global)
   testInternal(global, "x = 'hello';", Value::TypeString);
   testInternal(global, "", Value::TypeUndefined);
 
-  // Test the private datastructure
-  natusPrivate *priv = private_init(NULL, NULL);
-  assert(priv);
-
-  // Test set and clear
-  deleted = 0;
-  assert(natus_private_set(priv, "foo", (void *) 0x1234, incDeleted));
-  // Set
-  assert(natus_private_set(priv, "foo", NULL, NULL));
-  // Delete
-  assert(deleted == 1);
-
-  // Test push
-  assert(natus_private_push(priv, (void *) 0x1234, incDeleted));
-  assert(natus_private_push(priv, (void *) 0x4321, incDeleted));
-
-  // Test iteration
-  bool up = true;
-  natus_private_foreach(priv, false, (natusPrivateForeach) foreach, &up);
-  assert(up);
-  natus_private_foreach(priv, true, (natusPrivateForeach) foreach, &up);
-  assert(!up);
-
-  // Test destructor delete
-  assert(natus_private_set(priv, "foo", (void *) 0x1234, incDeleted));
-  // Set
-  natus_private_free(priv); // Delete
-  assert(deleted == 4);
-
   // Cleanup
   assert(global.get("x").isUndefined());
   return 0;
