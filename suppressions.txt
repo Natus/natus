@@ -37,7 +37,7 @@
 {
    jsc-ignore-JSGlobalContextRelease
    Memcheck:Cond
-   obj:*libwebkitgtk*
+   obj:*libjavascriptcoregtk*
    ...
    fun:JSGlobalContextRelease
    ...
@@ -45,7 +45,7 @@
 {
    jsc-ignore-JSGarbageCollect
    Memcheck:Cond
-   obj:*libwebkitgtk*
+   obj:*libjavascriptcoregtk*
    ...
    fun:JSGarbageCollect
    ...
@@ -53,7 +53,7 @@
 {
    jsc-ignore-WebKitGTK-val8
    Memcheck:Value8
-   obj:*libwebkitgtk*
+   obj:*libjavascriptcoregtk*
    ...
 }
 {
