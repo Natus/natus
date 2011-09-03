@@ -301,6 +301,12 @@ natus_set_recursive_utf8(natusValue *obj, const char *id, const natusValue *valu
 natusValue *
 natus_enumerate(natusValue *obj);
 
+natusValue *
+natus_push(natusValue *array, natusValue *val);
+
+natusValue *
+natus_pop(natusValue *array);
+
 #define natus_set_private(obj, type, priv, free) \
   natus_set_private_name(obj, # type, priv, free)
 

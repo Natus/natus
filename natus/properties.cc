@@ -449,3 +449,70 @@ Value::enumerate() const
 {
   return natus_enumerate(internal);
 }
+
+Value
+Value::push(Value item)
+{
+  return natus_incref(natus_push(internal, item.internal));
+}
+
+Value
+Value::push(bool item)
+{
+  return push(newBoolean(item));
+}
+
+Value
+Value::push(int item)
+{
+  return push(newNumber(item));
+}
+
+Value
+Value::push(long item)
+{
+  return push(newNumber(item));
+}
+
+Value
+Value::push(double item)
+{
+  return push(newNumber(item));
+}
+
+Value
+Value::push(const char* item)
+{
+  return push(newString(item));
+}
+
+Value
+Value::push(const Char* item)
+{
+  return push(newString(item));
+}
+
+Value
+Value::push(UTF8 item)
+{
+  return push(newString(item));
+}
+
+Value
+Value::push(UTF16 item)
+{
+  return push(newString(item));
+}
+
+Value
+Value::push(NativeFunction item, const char* name)
+{
+  return push(newFunction(item, name));
+}
+
+Value
+Value::pop()
+{
+  return natus_pop(internal);
+}
+

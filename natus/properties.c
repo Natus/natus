@@ -224,3 +224,31 @@ natus_enumerate(natusValue *val)
 
   callandreturn(natusValueTypeArray, val, enumerate, val->ctx->ctx, val->val);
 }
+
+natusValue *
+natus_push(natusValue *array, natusValue *val)
+{
+  if (!array || !val)
+    return NULL;
+
+  natusValue *length = natus_get_utf8(array, "length");
+  if (!natus_is_exception(length) && natus_is_number(length)) {
+    natusValue *rslt = natus_set_index(array, natus_as_long(length), val);
+    if (natus_is_exception(rslt)) {
+      natus_decref(rslt);
+      return NULL;
+    }
+    natus_decref(rslt);
+    return array;
+  }
+
+  natus_decref(length);
+  return NULL;
+}
+
+natusValue *
+natus_pop(natusValue *array)
+{
+  return natus_call_utf8(array, "pop", NULL);
+}
+

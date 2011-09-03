@@ -459,6 +459,39 @@ typedef void (*FreeFunction) (void *mem);
     Value
     enumerate() const;
 
+    Value
+    push(Value item);
+
+    Value
+    push(bool item);
+
+    Value
+    push(int item);
+
+    Value
+    push(long item);
+
+    Value
+    push(double item);
+
+    Value
+    push(const char* item);
+
+    Value
+    push(const Char* item);
+
+    Value
+    push(UTF8 item);
+
+    Value
+    push(UTF16 item);
+
+    Value
+    push(NativeFunction item, const char *name=NULL);
+
+    Value
+    pop();
+
 #define getPrivate(type) getPrivateName<type>(# type)
     template<class T>
       T
