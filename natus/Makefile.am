@@ -13,7 +13,10 @@ natinc_HEADERS = natus.h natus-engine.h natus-require.h natus.hh natus-require.h
 noinst_HEADERS = natus-internal.h
 
 # Build our internal C libraries
-noinst_LTLIBRARIES = libnatusc.la libnatusc-require.la
+noinst_LTLIBRARIES = libmem.la libnatusc.la libnatusc-require.la
+
+libmem_la_SOURCES = libmem.cc
+libmem_la_CXXFLAGS = $(AM_CXXFLAGS)
 
 libnatusc_la_SOURCES = call.c \
                        ctypes.c \
@@ -47,11 +50,11 @@ libnatus_la_SOURCES  = call.cc \
 			           properties.cc \
 			           natus.hh
 libnatus_la_CXXFLAGS = $(AM_CXXFLAGS)
-libnatus_la_LIBADD   = libnatusc.la
+libnatus_la_LIBADD   = libmem.la libnatusc.la
 
 libnatus_require_la_SOURCES  = require.cc natus-require.hh
 libnatus_require_la_CXXFLAGS = $(AM_CXXFLAGS)
-libnatus_require_la_LIBADD   = libnatus.la libnatusc-require.la
+libnatus_require_la_LIBADD   = libmem.la libnatus.la libnatusc-require.la
 
 # Build/install the shell
 bin_PROGRAMS         = natus
