@@ -35,104 +35,53 @@
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 typedef void* natusEngCtx;
 typedef void* natusEngVal;
-#include <natus-engine.h>
 #include <natus-internal.h>
+#include <libmem.h>
 
 #define  _str(s) # s
 #define __str(s) _str(s)
 
-struct privWrap {
-  privWrap *next;
-  privWrap *prev;
-  privWrap **head;
-  natusPrivate *priv;
-};
-
-static engine *engines;
-
-static void
-engine_decref(engine **head, engine *eng)
+static bool
+do_load_file(const char *filename, bool reqsym,
+             void **dll, natusEngineSpec **spec)
 {
-  if (!eng)
-    return;
-  if (eng->ref > 0)
-    eng->ref--;
-  if (eng->ref == 0) {
-    dlclose(eng->dll);
-    if (eng->prev)
-      eng->prev->next = eng->next;
-    else
-      *head = eng->next;
-    free(eng);
-  }
-}
-
-static engine *
-do_load_file(const char *filename, bool reqsym)
-{
-  engine *eng;
-  void *dll;
-
   /* Open the file */
-  dll = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
-  if (!dll) {
+  *dll = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+  if (!*dll) {
     fprintf(stderr, "%s -- %s\n", filename, dlerror());
-    return NULL;
-  }
-
-  /* See if this engine was already loaded */
-  for (eng = engines; eng; eng = eng->next) {
-    if (dll == eng->dll) {
-      dlclose(dll);
-      eng->ref++;
-      return eng;
-    }
-  }
-
-  /* Create a new engine */
-  eng = new0(engine);
-  if (!eng) {
-    dlclose(dll);
-    return NULL;
+    return false;
   }
 
   /* Get the engine spec */
-  eng->spec = (natusEngineSpec*) dlsym(dll, __str(NATUS_ENGINE_));
-  if (!eng->spec || eng->spec->version != NATUS_ENGINE_VERSION) {
-    dlclose(dll);
-    free(eng);
-    return NULL;
+  *spec = (natusEngineSpec*) dlsym(*dll, __str(NATUS_ENGINE_));
+  if (!*spec || (*spec)->version != NATUS_ENGINE_VERSION) {
+    dlclose(*dll);
+    return false;
   }
 
   /* Do the symbol check */
-  if (eng->spec->symbol && reqsym) {
+  if ((*spec)->symbol && reqsym) {
     void *tmp = dlopen(NULL, 0);
-    if (!tmp || !dlsym(tmp, eng->spec->symbol)) {
+    if (!tmp || !dlsym(tmp, (*spec)->symbol)) {
       if (tmp)
         dlclose(tmp);
-      dlclose(dll);
-      free(eng);
-      return NULL;
+      dlclose(*dll);
+      return false;
     }
     dlclose(tmp);
   }
 
-  /* Insert the engine */
-  eng->ref++;
-  eng->dll = dll;
-  eng->next = engines;
-  if (eng->next)
-    eng->next->prev = eng;
-  return engines = eng;
+  return true;
 }
 
-static engine *
-do_load_dir(const char *dirname, bool reqsym)
+static bool
+do_load_dir(const char *dirname, bool reqsym,
+            void **dll, natusEngineSpec **spec)
 {
-  engine *res = NULL;
+  bool res = false;
   DIR *dir = opendir(dirname);
   if (!dir)
-    return NULL;
+    return res;
 
   struct dirent *ent = NULL;
   while ((ent = readdir(dir))) {
@@ -152,7 +101,7 @@ do_load_dir(const char *dirname, bool reqsym)
     strcat(tmp, "/");
     strcat(tmp, ent->d_name);
 
-    if ((res = do_load_file(tmp, reqsym))) {
+    if ((res = do_load_file(tmp, reqsym, dll, spec))) {
       free(tmp);
       break;
     }
@@ -164,189 +113,136 @@ do_load_dir(const char *dirname, bool reqsym)
 }
 
 static void
-onprivfree(privWrap *pw)
+dll_dtor(void **dll)
 {
-  if (pw->prev)
-    pw->prev->next = pw->next;
-  else if (pw->head)
-    *(pw->head) = pw->next;
-  if (pw->next)
-    pw->next->prev = pw->prev;
-  free(pw);
+  if (!dll)
+    return;
+  mem_decref_children(dll);
+  if (*dll)
+    dlclose(*dll);
 }
 
-static natusPrivate *
-pushpriv(engCtx *ctx, privWrap *pw)
+static void
+value_dtor(natusValue *self)
 {
-  if (!ctx || !pw)
-    return NULL;
-
-  pw->head = &ctx->priv;
-  pw->next = ctx->priv;
-  if (pw->next)
-    pw->next->prev = pw;
-  ctx->priv = pw;
-  return pw->priv;
+  if (self->val && self->ctx && self->ctx->spec) {
+    if (self->flag & natusEngValFlagUnlock)
+      self->ctx->spec->val_unlock(self->ctx->ctx, self->val);
+    if (self->flag & natusEngValFlagFree)
+      self->ctx->spec->val_free(self->val);
+  }
 }
 
-natusPrivate *
-mkpriv(engCtx *ctx)
+static void
+context_dtor(natusContext *ctx)
 {
-  privWrap *pw = new0(privWrap);
-  if (!pw)
+  if (ctx && ctx->ctx && ctx->spec)
+    ctx->spec->ctx_free(ctx->ctx);
+}
+
+static bool
+ctx_get_dll(void *parent, void **child, void ***data)
+{
+  *data = child;
+  return false;
+}
+
+natusValue *
+mkval(const natusValue *ctx, natusEngVal val, natusEngValFlags flags, natusValueType type)
+{
+  if (!ctx || !val)
     return NULL;
 
-  pw->priv = private_init(pw, (natusFreeFunction) onprivfree);
-  if (!pw->priv) {
-    free(pw);
+  natusValue *self = mem_new_zero(NULL, natusValue);
+  if (!self) {
+    if (flags & natusEngValFlagUnlock)
+      ctx->ctx->spec->val_unlock(ctx->ctx, val);
+    if (flags & natusEngValFlagFree)
+      ctx->ctx->spec->val_free(val);
+    return NULL;
+  }
+  mem_destructor_set(self, value_dtor);
+
+  self->type = flags & natusEngValFlagException ? natusValueTypeUnknown : type;
+  self->flag = flags;
+  self->val  = val;
+  self->ctx  = mem_incref(self, ctx->ctx);
+  if (!self->ctx) {
+    mem_free(self);
     return NULL;
   }
 
-  return pushpriv(ctx, pw);
+  return self;
 }
 
 natusValue *
 natus_incref(natusValue *val)
 {
-  if (!val)
-    return NULL;
-  val->ref++;
-  return val;
-}
-
-static bool
-free_all_ctx(engCtx *ctx)
-{
-  engCtx *tmp;
-
-  if (!ctx)
-    return false;
-
-  for (tmp = ctx; tmp; tmp = tmp->prev)
-    if (tmp->ref > 0)
-      return false;
-  for (tmp = ctx->next; tmp; tmp = tmp->next)
-    if (tmp->ref > 0)
-      return false;
-
-  return true;
-}
-
-static void
-context_decref(engCtx *ctx)
-{
-  if (!ctx)
-    return;
-  /* Decrement the context reference */
-  ctx->ref = ctx->ref > 0 ? ctx->ref - 1 : 0;
-
-  /* If there are no more context references,
-   * free it if there are no other related contexts... */
-  if (free_all_ctx(ctx)) {
-    engCtx *tmp, *head;
-
-    head = ctx;
-    while (head->prev)
-      head = head->prev;
-
-    /* First loop: free all the contexts */
-    for (tmp = head; tmp; tmp = tmp->next)
-      tmp->eng->spec->ctx_free(tmp->ctx);
-
-    /* Second loop: free everything else */
-    for (tmp = head; tmp;) {
-      privWrap *ptmp = tmp->priv;
-      while (ptmp) {
-        privWrap *pw = ptmp->next;
-        natus_private_free(ptmp->priv);
-        ptmp = pw;
-      }
-
-      engine_decref(&engines, tmp->eng);
-
-      engCtx *ntmp = tmp->next;
-      free(tmp);
-      tmp = ntmp;
-    }
-
-  }
+  return mem_incref(NULL, val);
 }
 
 void
 natus_decref(natusValue *val)
 {
-  if (!val)
-    return;
-  val->ref = val->ref > 0 ? val->ref - 1 : 0;
-  if (val->ref == 0) {
-    /* Free the value */
-    if (val->val && (val->flg & natusEngValFlagUnlock))
-      val->ctx->eng->spec->val_unlock(val->ctx->ctx, val->val);
-    if (val->val && (val->flg & natusEngValFlagFree))
-      val->ctx->eng->spec->val_free(val->val);
-    context_decref(val->ctx);
-    free(val);
-  }
+  mem_decref(NULL, val);
 }
 
 natusValue *
 natus_new_global(const char *name_or_path)
 {
-  natusValue *self = NULL;
   natusPrivate *priv = NULL;
+  natusValue *self = NULL;
+  void **dll = NULL;
+  bool res = false;
 
-  /* Create the value */
-  self = new0(natusValue);
+  self = mem_new_zero(NULL, natusValue);
   if (!self)
     goto error;
-  self->ref++;
-  self->ctx = new0(engCtx);
+  mem_destructor_set(self, value_dtor);
+
+  self->ctx = mem_new_zero(self, natusContext);
   if (!self->ctx)
     goto error;
-  self->ctx->ref++;
+  mem_destructor_set(self->ctx, context_dtor);
+
+  dll = mem_new_zero(self->ctx, void*);
+  if (!dll || !mem_name_set(dll, "dll"))
+    goto error;
+  mem_destructor_set(dll, dll_dtor);
+
+  priv = mem_new_size(dll, 0);
+  if (!priv)
+    goto error;
 
   /* Load the engine */
   if (name_or_path) {
-    self->ctx->eng = do_load_file(name_or_path, false);
-    if (!self->ctx->eng) {
+    res = do_load_file(name_or_path, false, dll, &self->ctx->spec);
+    if (!res) {
       char *tmp = NULL;
       if (asprintf(&tmp, "%s/%s%s", __str(ENGINEDIR), name_or_path, MODSUFFIX) >= 0) {
-        self->ctx->eng = do_load_file(tmp, false);
+        res = do_load_file(tmp, false, dll, &self->ctx->spec);
         free(tmp);
       }
     }
   } else {
-    self->ctx->eng = engines;
-    if (!self->ctx->eng) {
-      self->ctx->eng = do_load_dir(__str(ENGINEDIR), true);
-      if (!self->ctx->eng)
-        self->ctx->eng = do_load_dir(__str(ENGINEDIR), false);
-    }
+      res = do_load_dir(__str(ENGINEDIR), true, dll, &self->ctx->spec);
+      if (!res)
+        res = do_load_dir(__str(ENGINEDIR), false, dll, &self->ctx->spec);
   }
-  if (!self->ctx->eng)
+  if (!res)
     goto error;
 
-  priv = mkpriv(self->ctx);
-  if (!priv || !private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
-    natus_private_free(priv);
+  if (!private_set(priv, NATUS_PRIV_GLOBAL, self, NULL))
     goto error;
-  }
 
-  self->flg = natusEngValFlagUnlock | natusEngValFlagFree;
-  if (!(self->val = self->ctx->eng->spec->new_global(NULL, NULL, priv, &self->ctx->ctx, &self->flg)))
+  self->flag = natusEngValFlagUnlock | natusEngValFlagFree;
+  if (!(self->val = self->ctx->spec->new_global(NULL, NULL, priv, &self->ctx->ctx, &self->flag)))
     goto error;
 
   return self;
 
 error:
-  if (self) {
-    if (self->ctx) {
-      if (self->ctx->eng)
-        engine_decref(&engines, self->ctx->eng);
-      free(self->ctx);
-    }
-    free(self);
-  }
+  mem_free(self);
   return NULL;
 }
 
@@ -357,47 +253,54 @@ natus_new_global_shared(const natusValue *global)
   natusEngCtx ctx = NULL;
   natusEngVal val = NULL;
   natusEngValFlags flags = natusEngValFlagUnlock | natusEngValFlagFree;
+  void **dll = NULL;
 
-  privWrap *pw = new0(privWrap);
-  if (!pw)
+  if (!global)
     return NULL;
 
-  natusPrivate *priv = private_init(pw, (natusFreeFunction) onprivfree);
+  mem_children_foreach(global->ctx, "dll", ctx_get_dll, &dll);
+  if (!dll)
+    return NULL;
+
+  natusPrivate *priv = mem_new_size(dll, 0);
   if (!priv)
     return NULL;
 
-  val = global->ctx->eng->spec->new_global(global->ctx->ctx, global->val, priv, &ctx, &flags);
+  val = global->ctx->spec->new_global(global->ctx->ctx, global->val, priv, &ctx, &flags);
   self = mkval(global, val, flags, natusValueTypeObject);
   if (!self)
-    return NULL;
+    goto error;
 
   /* If a new context was created, wrap it */
-  if (global->ctx->ctx != ctx) {
-    self->ctx->ref--;
-    self->ctx = new0(engCtx);
+  if (ctx && global->ctx->ctx != ctx) {
+    mem_decref(self, global->ctx);
+
+    self->ctx = mem_new_zero(self, natusContext);
     if (!self->ctx) {
-      global->ctx->eng->spec->val_unlock(ctx, self->val);
-      global->ctx->eng->spec->val_free(self->val);
-      global->ctx->eng->spec->ctx_free(ctx);
-      free(self);
+      mem_free(priv);
+      mem_free(self);
+      global->ctx->spec->ctx_free(ctx);
       return NULL;
     }
-    self->ctx->ref++;
-    self->ctx->ctx = ctx;
-    self->ctx->eng = global->ctx->eng;
-    self->ctx->eng->ref++;
-    self->ctx->prev = global->ctx;
-    self->ctx->next = global->ctx->next;
-    global->ctx->next = self->ctx;
+
+    mem_destructor_set(self->ctx, context_dtor);
+    mem_group(global->ctx, self->ctx);
+    self->ctx->spec = global->ctx->spec;
+    self->ctx->ctx  = ctx;
+
+    if (!mem_incref(self->ctx, dll))
+      goto error;
   }
 
-  if (!private_set(priv, NATUS_PRIV_GLOBAL, self, NULL)) {
-    natus_decref(self);
-    return NULL;
-  }
+  if (!private_set(priv, NATUS_PRIV_GLOBAL, self, NULL))
+    goto error;
 
-  pushpriv(self->ctx, pw);
   return self;
+
+error:
+  mem_free(priv);
+  mem_free(self);
+  return NULL;
 }
 
 natusValue *
@@ -411,15 +314,15 @@ natus_get_global(const natusValue *ctx)
     return global;
 
   natusEngValFlags flags = natusEngValFlagUnlock | natusEngValFlagFree;
-  natusEngVal glb = ctx->ctx->eng->spec->get_global(ctx->ctx->ctx, ctx->val, &flags);
+  natusEngVal glb = ctx->ctx->spec->get_global(ctx->ctx->ctx, ctx->val, &flags);
   if (!glb)
     return NULL;
 
-  natusPrivate *priv = ctx->ctx->eng->spec->get_private(ctx->ctx->ctx, glb);
+  natusPrivate *priv = ctx->ctx->spec->get_private(ctx->ctx->ctx, glb);
   if (flags & natusEngValFlagUnlock)
-    ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, glb);
+    ctx->ctx->spec->val_unlock(ctx->ctx->ctx, glb);
   if (flags & natusEngValFlagFree)
-    ctx->ctx->eng->spec->val_free(glb);
+    ctx->ctx->spec->val_free(glb);
   if (!priv)
     return NULL;
 
@@ -431,7 +334,7 @@ natus_get_engine_name(const natusValue *ctx)
 {
   if (!ctx)
     return NULL;
-  return ctx->ctx->eng->spec->name;
+  return ctx->ctx->spec->name;
 }
 
 bool
@@ -439,5 +342,5 @@ natus_borrow_context(const natusValue *ctx, void **context, void **value)
 {
   if (!ctx)
     return false;
-  return ctx->ctx->eng->spec->borrow_context(ctx->ctx->ctx, ctx->val, context, value);
+  return ctx->ctx->spec->borrow_context(ctx->ctx->ctx, ctx->val, context, value);
 }

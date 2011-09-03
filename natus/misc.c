@@ -39,37 +39,6 @@
                    : ((type) natus_to_double(val))); \
 }
 
-void *
-malloc0(size_t size)
-{
-  void *tmp = malloc(size);
-  if (tmp)
-    return memset(tmp, 0, size);
-  return NULL;
-}
-
-natusValue *
-mkval(const natusValue *ctx, natusEngVal val, natusEngValFlags flags, natusValueType type)
-{
-  if (!ctx || !val)
-    return NULL;
-
-  natusValue *self = new0(natusValue);
-  if (!self) {
-    ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, val);
-    ctx->ctx->eng->spec->val_free(val);
-    return NULL;
-  }
-
-  self->ref++;
-  self->ctx = ctx->ctx;
-  self->ctx->ref++;
-  self->val = val;
-  self->flg = flags;
-  self->typ = flags & natusEngValFlagException ? natusValueTypeUnknown : type;
-  return self;
-}
-
 natusValue *
 natus_throw_exception(const natusValue *ctx, const char *base, const char *name, const char *format, ...) {
   va_list ap;

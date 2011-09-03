@@ -4,6 +4,8 @@
 
 #include <natus-internal.h>
 
+#include <libmem.h>
+
 natusValue *
 natus_new_boolean(const natusValue *ctx, bool b)
 {
@@ -140,45 +142,66 @@ natus_new_array_varg(const natusValue *ctx, va_list ap)
   return ret;
 }
 
+static bool
+ctx_get_dll(void *parent, void **child, void ***data)
+{
+  *data = child;
+  return false;
+}
+
 natusValue *
 natus_new_function(const natusValue *ctx, natusNativeFunction func, const char *name)
 {
+  void **dll;
   if (!ctx || !func)
     return NULL;
 
-  natusPrivate *priv = mkpriv(ctx->ctx);
+  mem_children_foreach(ctx->ctx, "dll", ctx_get_dll, &dll);
+  if (!dll)
+    return NULL;
+
+  natusPrivate *priv = mem_new_size(dll, 0);
   if (!priv)
-    goto error;
+    return NULL;
+
   if (!private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
     goto error;
+
   if (!private_set(priv, NATUS_PRIV_FUNCTION, func, NULL))
     goto error;
 
   callandreturn(natusValueTypeFunction, ctx, new_function, ctx->ctx->ctx, name, priv);
 
 error:
-  natus_private_free(priv);
+  mem_decref(dll, priv);
   return NULL;
 }
 
 natusValue *
 natus_new_object(const natusValue *ctx, natusClass *cls)
 {
+  void **dll;
   if (!ctx)
     return NULL;
 
-  natusPrivate *priv = mkpriv(ctx->ctx);
+  mem_children_foreach(ctx->ctx, "dll", ctx_get_dll, &dll);
+  if (!dll)
+    return NULL;
+
+  natusPrivate *priv = mem_new_size(dll, 0);
   if (!priv)
-    goto error;
+    return NULL;
+
   if (cls && !private_set(priv, NATUS_PRIV_GLOBAL, natus_get_global(ctx), NULL))
     goto error;
+
   if (cls && !private_set(priv, NATUS_PRIV_CLASS, cls, (natusFreeFunction) cls->free))
     goto error;
 
   callandreturn(natusValueTypeObject, ctx, new_object, ctx->ctx->ctx, cls, priv);
 
 error:
-  natus_private_free(priv);
+  mem_decref(dll, priv);
   return NULL;
 }
 

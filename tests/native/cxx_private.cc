@@ -1,21 +1,4 @@
 #include "test.hh"
-#include <natus-internal.h>
-
-static int deleted = 0;
-
-static void
-incDeleted(void *x)
-{
-  if (!x)
-    return;
-  deleted++;
-}
-
-static void
-foreach(const char *name, void *priv, bool *up)
-{
-  *up = priv != (void *) 0x1234;
-}
 
 static Value
 doNothing(Value& fnc, Value& ths, Value& arg)

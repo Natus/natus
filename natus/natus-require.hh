@@ -27,29 +27,27 @@
 
 #undef NATUS_MODULE
 #define NATUS_MODULE(modname) \
-  bool natus_module_init_cxx(Value& modname); \
+  bool natus_module_init_cxx(Value modname); \
   extern "C" bool natus_module_init(natusValue *module) { \
-    Value mod(module, false); \
-    return natus_module_init_cxx(mod); \
+    return natus_module_init_cxx(Value(module, false)); \
   } \
-  bool natus_module_init_cxx(Value& modname)
+  bool natus_module_init_cxx(Value modname)
 
 #undef NATUS_CHECK_ORIGIN
 #define NATUS_CHECK_ORIGIN(ctx, uri) \
-  if (!Require(ctx).originPermitted(uri)) \
-    return throwException(ctx, "SecurityError", "Permission denied!");
+  if (!natus::require::originPermitted(ctx, uri)) \
+    return throwException(ctx, "SecurityError", "Permission denied!")
 
 namespace natus
 {
-
-  class Require {
-  public:
+  namespace require
+  {
     typedef enum {
       HookStepResolve, HookStepLoad, HookStepProcess
     } HookStep;
 
     typedef Value
-    (*Hook)(Value& ctx, HookStep step, char* name, void* misc);
+    (*Hook)(Value ctx, HookStep step, Value name, Value uri, void* misc);
 
     typedef bool
     (*OriginMatcher)(const char* pattern, const char* subject);
@@ -57,39 +55,44 @@ namespace natus
     typedef bool
     (*ModuleInit)(natusValue* module);
 
-    Require(Value ctx);
+    bool
+    addHook(Value ctx, const char* name, Hook func,
+            void* misc=NULL, FreeFunction free=NULL);
 
     bool
-    initialize(Value config);
+    addOriginMatcher(Value ctx, const char* name, OriginMatcher func,
+                     void* misc=NULL, FreeFunction free=NULL);
 
     bool
-    initialize(const char* config);
+    delHook(Value ctx, const char* name);
+
+    bool
+    delOriginMatcher(Value ctx, const char* name);
+
+    bool
+    expose(Value ctx, const char* config);
+
+    bool
+    expose(Value ctx, UTF8 config);
+
+    bool
+    expose(Value ctx, Value config);
 
     Value
-    getConfig();
+    getConfig(Value ctx);
 
     bool
-    addHook(const char* name, Hook func, void* misc = NULL, FreeFunction free = NULL);
-
-    bool
-    delHook(const char* name);
-
-    bool
-    addOriginMatcher(const char* name, OriginMatcher func, void* misc = NULL, FreeFunction free = NULL);
-
-    bool
-    delOriginMatcher(const char* name);
+    originPermitted(Value ctx, const char* name);
 
     Value
-    require(const char* name);
+    require(Value ctx, UTF8 name);
 
-    bool
-    originPermitted(const char* name);
+    Value
+    require(Value ctx, UTF16 name);
 
-  private:
-    Value ctx;
-  };
-
+    Value
+    require(Value ctx, Value name);
+  }
 }
 #endif /* NATUS_REQUIRE_HH_ */
 

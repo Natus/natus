@@ -40,7 +40,8 @@ typedef enum {
 } natusRequireHookStep;
 
 typedef natusValue*
-(*natusRequireHook)(natusValue *ctx, natusRequireHookStep step, char *name, void *misc);
+(*natusRequireHook)(natusValue *ctx, natusRequireHookStep step,
+                    natusValue *name, natusValue *uri, void *misc);
 
 typedef bool
 (*natusRequireOriginMatcher)(const char *pattern, const char *subject);
@@ -49,25 +50,25 @@ typedef bool
 (*natusRequireModuleInit)(natusValue *module);
 
 bool
-natus_require_init(natusValue *ctx, const char *config);
+natus_require_expose(natusValue *ctx, const char *config);
 
 bool
-natus_require_init_value(natusValue *ctx, natusValue *config);
+natus_require_expose_value(natusValue *ctx, natusValue *config);
 
 natusValue *
 natus_require_get_config(natusValue *ctx);
 
 bool
 natus_require_hook_add(natusValue *ctx, const char *name, natusRequireHook func,
-                    void *misc, natusFreeFunction free);
+                       void *misc, natusFreeFunction free);
 
 bool
 natus_require_hook_del(natusValue *ctx, const char *name);
 
 bool
 natus_require_origin_matcher_add(natusValue *ctx, const char *name,
-                              natusRequireOriginMatcher func,
-                              void *misc, natusFreeFunction free);
+                                 natusRequireOriginMatcher func,
+                                 void *misc, natusFreeFunction free);
 
 bool
 natus_require_origin_matcher_del(natusValue *ctx, const char *name);
@@ -76,7 +77,13 @@ bool
 natus_require_origin_permitted(natusValue *ctx, const char *uri);
 
 natusValue *
-natus_require(natusValue *ctx, const char *name);
+natus_require(natusValue *ctx, natusValue *name);
+
+natusValue *
+natus_require_utf8(natusValue *ctx, const char *name);
+
+natusValue *
+natus_require_utf16(natusValue *ctx, const natusChar *name);
 
 #ifdef __cplusplus
 } /* extern "C" */

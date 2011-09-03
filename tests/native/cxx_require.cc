@@ -10,9 +10,15 @@ hook_free(void* misc)
 }
 
 Value
-hook(Value& ctx, Require::HookStep step, char* name, void* misc)
+hook(Value ctx, require::HookStep step, Value name, Value uri, void* misc)
 {
-  if (step == Require::HookStepLoad && !strcmp(name, "__internal__")) {
+  if (name != "__internal__")
+    return NULL;
+
+  if (step == require::HookStepResolve)
+    return name;
+
+  if (step == require::HookStepLoad) {
     Value mod = ctx.newObject();
     assert(!mod.set("misc", (long) misc).isException());
     return mod;
@@ -29,18 +35,17 @@ doTest(Value& global)
   config.setRecursive("natus.require.path", path, Value::PropAttrNone, true);
 
   // Initialize the require system
-  Require req(global);
-  assert(req.initialize(config));
-  assert(req.addHook("__internal__", hook, (void*) 0x1234, hook_free));
+  assert(require::expose(global, config));
+  assert(require::addHook(global, "__internal__", hook, (void*) 0x1234, hook_free));
 
   // Load the internal module
-  Value modulea = req.require("__internal__");
+  Value modulea = require::require(global, "__internal__");
   assert(!modulea.isException());
   assert(modulea.isObject());
   assert(modulea.get("misc").to<int>() == 0x1234);
 
   // Load the internal module again
-  Value moduleb = req.require("__internal__");
+  Value moduleb = require::require(global, "__internal__");
   assert(!moduleb.isException());
   assert(moduleb.isObject());
   assert(moduleb.get("misc").to<int>() == 0x1234);
@@ -50,14 +55,14 @@ doTest(Value& global)
   assert(moduleb.get("test").to<int>() == 17);
 
   // Load a script file via standard spec
-  Value scriptmod = req.require("scriptmod");
+  Value scriptmod = require::require(global, "scriptmod");
   assert(!scriptmod.isException());
   assert(scriptmod.isObject());
   assert(scriptmod.get("number").to<int>() == 115);
   assert(scriptmod.get("string").to<UTF8>() == "hello world");
 
   // Load a script file via relative spec
-  scriptmod = req.require("./scriptmod");
+  scriptmod = require::require(global, "./scriptmod");
   assert(!scriptmod.isException());
   assert(scriptmod.isObject());
   assert(scriptmod.get("number").to<int>() == 115);

@@ -227,18 +227,23 @@ completion(const char* text, int start, int end)
 }
 
 static Value
-set_path(Value& ctx, Require::HookStep step, char* name, void* misc)
+set_path(Value ctx, require::HookStep step, Value name, Value uri, void* misc)
 {
-  if (step == Require::HookStepProcess && !strcmp(name, "system")) {
-    Value args = ctx.get("args");
-    if (!args.isArray())
-      return NULL;
+  if (step != require::HookStepProcess)
+    return NULL;
 
-    const char** argv = (const char **) misc;
-    for (int i = 0; argv[i]; i++)
-      args.push(argv[0]);
-  }
+  if (name == "system")
+    return NULL;
 
+  Value args = ctx.newArray();
+  if (!args.isArray())
+    return NULL;
+
+  const char** argv = (const char **) misc;
+  for (int i = 0; argv[i]; i++)
+    args.push(argv[0]);
+
+  ctx.set("args", args);
   return NULL;
 }
 
@@ -340,8 +345,7 @@ main(int argc, char** argv)
   }
 
   // Bring up the Module Loader
-  Require req(global);
-  if (!req.initialize(cfg))
+  if (!require::expose(global, cfg))
     error(3, 0, "Unable to init module loader\n!");
 
   // Do the evaluation
@@ -441,7 +445,7 @@ main(int argc, char** argv)
   jscript[st.st_size] = '\0';
 
   // Evaluate it
-  req.addHook("system_args", set_path, argv + optind);
+  require::addHook(global, "system_args", set_path, argv + optind);
   Value res = global.evaluate(jscript, filename ? filename : "");
   delete[] jscript;
 

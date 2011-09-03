@@ -5,9 +5,9 @@ natus_get_type(const natusValue *ctx)
 {
   if (!ctx)
     return natusValueTypeUndefined;
-  if (ctx->typ == natusValueTypeUnknown)
-    ((natusValue*) ctx)->typ = ctx->ctx->eng->spec->get_type(ctx->ctx->ctx, ctx->val);
-  return ctx->typ;
+  if (ctx->type == natusValueTypeUnknown)
+    ((natusValue*) ctx)->type = ctx->ctx->spec->get_type(ctx->ctx->ctx, ctx->val);
+  return ctx->type;
 }
 
 const char *
@@ -38,7 +38,7 @@ natus_get_type_name(const natusValue *ctx)
 bool
 natus_is_exception(const natusValue *val)
 {
-  return !val || (val->flg & natusEngValFlagException);
+  return !val || (val->flag & natusEngValFlagException);
 }
 
 bool
@@ -100,7 +100,7 @@ natus_to_exception(natusValue *val)
 {
   if (!val)
     return NULL;
-  val->flg |= natusEngValFlagException;
+  val->flag |= natusEngValFlagException;
   return val;
 }
 
@@ -115,7 +115,7 @@ natus_equals(const natusValue *val1, const natusValue *val2)
     return true;
   if (!val1 || !val2)
     return false;
-  return val1->ctx->eng->spec->equal(val1->ctx->ctx, val1->val, val2->val, false);
+  return val1->ctx->spec->equal(val1->ctx->ctx, val1->val, val2->val, false);
 }
 
 bool
@@ -129,5 +129,5 @@ natus_equals_strict(const natusValue *val1, const natusValue *val2)
     return true;
   if (!val1 || !val2)
     return false;
-  return val1->ctx->eng->spec->equal(val1->ctx->ctx, val1->val, val2->val, true);
+  return val1->ctx->spec->equal(val1->ctx->ctx, val1->val, val2->val, true);
 }

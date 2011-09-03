@@ -8,7 +8,7 @@ natus_to_bool(const natusValue *val)
   if (natus_is_exception(val))
     return false;
 
-  return val->ctx->eng->spec->to_bool(val->ctx->ctx, val->val);
+  return val->ctx->spec->to_bool(val->ctx->ctx, val->val);
 }
 
 double
@@ -16,7 +16,7 @@ natus_to_double(const natusValue *val)
 {
   if (!val)
     return 0;
-  return val->ctx->eng->spec->to_double(val->ctx->ctx, val->val);
+  return val->ctx->spec->to_double(val->ctx->ctx, val->val);
 }
 
 int
@@ -47,14 +47,14 @@ natus_to_string_utf8(const natusValue *val, size_t *len)
   if (!natus_is_string(val)) {
     natusValue *str = natus_call_utf8_array((natusValue*) val, "toString", NULL);
     if (natus_is_string(str)) {
-      char *tmp = val->ctx->eng->spec->to_string_utf8(str->ctx->ctx, str->val, len);
+      char *tmp = val->ctx->spec->to_string_utf8(str->ctx->ctx, str->val, len);
       natus_decref(str);
       return tmp;
     }
     natus_decref(str);
   }
 
-  return val->ctx->eng->spec->to_string_utf8(val->ctx->ctx, val->val, len);
+  return val->ctx->spec->to_string_utf8(val->ctx->ctx, val->val, len);
 }
 
 natusChar *
@@ -69,14 +69,14 @@ natus_to_string_utf16(const natusValue *val, size_t *len)
   if (!natus_is_string(val)) {
     natusValue *str = natus_call_utf8_array((natusValue*) val, "toString", NULL);
     if (natus_is_string(str)) {
-      natusChar *tmp = val->ctx->eng->spec->to_string_utf16(str->ctx->ctx, str->val, len);
+      natusChar *tmp = val->ctx->spec->to_string_utf16(str->ctx->ctx, str->val, len);
       natus_decref(str);
       return tmp;
     }
     natus_decref(str);
   }
 
-  return val->ctx->eng->spec->to_string_utf16(val->ctx->ctx, val->val, len);
+  return val->ctx->spec->to_string_utf16(val->ctx->ctx, val->val, len);
 }
 
 bool

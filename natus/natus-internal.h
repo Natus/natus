@@ -32,71 +32,34 @@
 
 #define callandmkval(n, t, c, f, ...) \
   natusEngValFlags _flags = natusEngValFlagUnlock | natusEngValFlagFree; \
-  natusEngVal _val = c->ctx->eng->spec->f(__VA_ARGS__, &_flags); \
+  natusEngVal _val = c->ctx->spec->f(__VA_ARGS__, &_flags); \
   n = mkval(c, _val, _flags, t);
 
 #define callandreturn(t, c, f, ...) \
   callandmkval(natusValue *_value, t, c, f, __VA_ARGS__); \
   return _value
 
-typedef void
-(*privateForeach)(const char *name, void *priv, void *misc);
-
-typedef struct engine engine;
-struct engine {
-  size_t ref;
-  engine *next;
-  engine *prev;
-  void *dll;
+typedef struct natusContext natusContext;
+struct natusContext {
+  natusEngCtx      ctx;
   natusEngineSpec *spec;
 };
 
-typedef struct privWrap privWrap;
-typedef struct engCtx engCtx;
-struct engCtx {
-  size_t ref;
-  engine *eng;
-  natusEngCtx ctx;
-  engCtx *next;
-  engCtx *prev;
-  privWrap *priv;
-};
-
 struct natusValue {
-  size_t ref;
-  engCtx *ctx;
-  natusValueType typ;
-  natusEngVal val;
-  natusEngValFlags flg;
+  natusContext    *ctx;
+  natusEngVal      val;
+  natusEngValFlags flag;
+  natusValueType   type;
 };
-
-#define new0(type) ((type*) malloc0(sizeof(type)))
-void *
-malloc0(size_t size);
 
 natusValue *
 mkval(const natusValue *ctx, natusEngVal val, natusEngValFlags flags, natusValueType type);
-
-natusPrivate *
-mkpriv(engCtx *ctx);
-
-natusPrivate *
-private_init(void *misc, natusFreeFunction free);
-
-void
-private_free(natusPrivate *self);
-
-void
-private_wrap_free(privWrap *pw);
 
 void *
 private_get(const natusPrivate *self, const char *name);
 
 bool
-private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction freef);
-
-void
-private_foreach(const natusPrivate *self, bool rev, privateForeach foreach, void *misc);
+private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free);
 
 #endif /* NATUS_INTERNAL_H_ */
 

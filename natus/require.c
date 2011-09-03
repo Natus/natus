@@ -33,20 +33,24 @@
 #include <sys/stat.h>
 #include <libgen.h>
 
+#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
+#include <natus-require.h>
+
+#include <libmem.h>
+
+#include "evil.h"
+
 #define SCRSUFFIX  ".js"
 #define PKGSUFFIX  "/__init__" SCRSUFFIX
 #define URIPREFIX  "file://"
 #define NFSUFFIX   " not found!"
 
-#define NATUS_REQUIRE_STACK   "natus::Require::Stack"
+#define NATUS_REQUIRE_CONFIG  "natus::Require::Config"
+#define NATUS_REQUIRE_CACHE   "natus::Require::Cache"
 #define CFG_PATH              "natus.require.path"
 #define CFG_WHITELIST         "natus.require.whitelist"
 #define CFG_ORIGINS_WHITELIST "natus.origins.whitelist"
 #define CFG_ORIGINS_BLACKLIST "natus.origins.blacklist"
-
-#define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
-#include <natus-require.h>
-#include <natus-internal.h>
 
 #define  _str(s) # s
 #define __str(s) _str(s)
@@ -54,50 +58,56 @@
 #define JS_REQUIRE_PREFIX "(function(exports, require, module) {\n"
 #define JS_REQUIRE_SUFFIX "\n})"
 
+typedef struct reqOriginMatcher reqOriginMatcher;
+struct reqOriginMatcher {
+  reqOriginMatcher         *next;
+  void                     *misc;
+  natusFreeFunction         free;
+  natusRequireOriginMatcher func;
+};
+
+typedef struct reqHook reqHook;
+struct reqHook {
+  reqHook          *next;
+  void             *misc;
+  natusFreeFunction free;
+  natusRequireHook  func;
+};
+
 typedef struct {
-  natusValue *config;
-  natusPrivate *hooks;
-  natusPrivate *matchers;
-  natusPrivate *dll;
-  natusPrivate *modules;
+  reqHook          *hooks;
+  reqOriginMatcher *matchers;
 } natusRequire;
 
+static natusRequire *
+get_require(natusValue *ctx);
+
 static void
-_natus_require_free(natusRequire *req)
+dll_dtor(void **dll)
 {
-  if (!req)
+  if (!dll || !*dll)
     return;
-  natus_decref(req->config);
-  natus_private_free(req->hooks);
-  natus_private_free(req->matchers);
-  natus_private_free(req->dll);
-  natus_private_free(req->modules);
-  free(req);
+  dlclose(*dll);
 }
 
-typedef struct {
-  void *misc;
-  natusFreeFunction free;
-} reqPayload;
-
-typedef struct {
-  reqPayload head;
-  natusRequireOriginMatcher func;
-} reqOriginMatcher;
-
-typedef struct {
-  reqPayload head;
-  natusRequireHook func;
-} reqHook;
+static void
+require_free(natusRequire *req)
+{
+  mem_free(req);
+}
 
 static void
-_free_pl(reqPayload *pl)
+hook_dtor(reqHook *hook)
 {
-  if (!pl)
-    return;
-  if (pl->misc && pl->free)
-    pl->free(pl->misc);
-  free(pl);
+  if (hook && hook->misc && hook->free)
+    hook->free(hook->misc);
+}
+
+static void
+originmatcher_dtor(reqOriginMatcher *om)
+{
+  if (om && om->misc && om->free)
+    om->free(om->misc);
 }
 
 typedef struct {
@@ -105,14 +115,6 @@ typedef struct {
   const char *uri;
   bool match;
 } loopData;
-
-static void
-_foreach_match(const char *name, reqOriginMatcher *om, loopData *ld)
-{
-  if (!om->func || ld->match)
-    return;
-  ld->match = om->func(ld->pat, ld->uri);
-}
 
 static char *
 check_path(struct stat *st, const char *fmt, ...) {
@@ -123,34 +125,37 @@ check_path(struct stat *st, const char *fmt, ...) {
   int sz = vasprintf(&fn, fmt, ap);
   va_end(ap);
   if (sz < 0)
-  return NULL;
+    return NULL;
 
   char *rp = realpath(fn, NULL);
   free(fn);
   if (!rp)
-  return NULL;
+    return NULL;
 
   if (stat(rp, st) == 0)
-  return rp;
+    return rp;
   free(rp);
   return NULL;
 }
 
-static natusValue*
-internal_require(natusValue *ctx, natusRequireHookStep step, char *name, void *misc)
+static natusValue *
+internal_require_resolve(natusValue *ctx, natusValue *name)
 {
-  if (step == natusRequireHookStepProcess)
+  natusValue *path = NULL, *uris = NULL;
+
+  char *modname = natus_to_string_utf8(name, NULL);
+  if (!modname)
     return NULL;
 
-  natusRequire *req = natus_get_private(ctx, natusRequire*);
-  if (!req)
+  uris = natus_new_array(ctx, NULL);
+  if (!natus_is_array(uris)) {
+    free(modname);
     return NULL;
-
-  natusValue *path = NULL;
+  }
 
   // If the path is a relative path, use the top of the evaluation stack
-  if (name && name[0] == '.') {
-    natusValue *stack = natus_get_private_name_value(ctx, NATUS_REQUIRE_STACK);
+  if (modname && modname[0] == '.') {
+    natusValue *stack = natus_get_private_name_value(ctx, NATUS_EVALUATION_STACK);
     long len = natus_as_long(natus_get_utf8(stack, "length"));
 
     natusValue *prfx = natus_get_index(stack, len > 0 ? len - 1 : 0);
@@ -160,16 +165,17 @@ internal_require(natusValue *ctx, natusRequireHookStep step, char *name, void *m
       prfx = natus_new_string_utf8(ctx, ".");
     }
 
-    const natusValue *items[2] =
-      { prfx, NULL };
-    path = natus_new_array_vector(ctx, items);
+    path = natus_new_array(ctx, prfx, NULL);
     natus_decref(prfx);
 
-    // Otherwise use the normal path
+  // Otherwise use the normal path
   } else {
     natusValue *config = natus_require_get_config(ctx);
-    if (!config)
+    if (!config) {
+      free(modname);
+      natus_decref(uris);
       return NULL;
+    }
 
     path = natus_get_recursive_utf8(config, CFG_PATH);
     natus_decref(config);
@@ -178,112 +184,205 @@ internal_require(natusValue *ctx, natusRequireHookStep step, char *name, void *m
   struct stat st;
   long i, len = natus_as_long(natus_get_utf8(path, "length"));
   for (i = 0; i < len; i++) {
-    natusValue *retval = NULL;
     char *prefix = natus_as_string_utf8(natus_get_index(path, i), NULL);
 
     // Check for native modules
-    char *file = check_path(&st, "%s/%s%s", prefix, name, MODSUFFIX);
-    if (file) {
-      if (step == natusRequireHookStepResolve)
-        goto out;
-
-      void *dll = dlopen(file, RTLD_NOW | RTLD_GLOBAL);
-      if (!dll) {
-        retval = natus_throw_exception(ctx, NULL, "RequireError", dlerror());
-        goto out;
-      }
-
-      retval = natus_new_object(ctx, NULL);
-      natusRequireModuleInit load = (natusRequireModuleInit) dlsym(dll, "natus_module_init");
-      if (!retval || !load || !load(retval)) {
-        natus_decref(retval);
-        dlclose(dll);
-        retval = natus_throw_exception(ctx, NULL, "RequireError", "Module initialization failed!");
-        goto out;
-      }
-
-      natus_private_push(req->dll, dll, (natusFreeFunction) dlclose);
-      goto out;
+    char *file = check_path(&st, "%s/%s%s", prefix, modname, MODSUFFIX);
+    if (!file) {
+      // Check for javascript modules
+      file = check_path(&st, "%s/%s.js", prefix, modname);
+      if (!file)
+        file = check_path(&st, "%s/%s/__init__.js", prefix, modname);
     }
 
-    // Check for javascript modules
-    file = check_path(&st, "%s/%s.js", prefix, name);
-    if (!file)
-      file = check_path(&st, "%s/%s/__init__.js", prefix, name);
     if (file) {
-      if (step == natusRequireHookStepResolve)
-        goto out;
-
-      // If we have a javascript text module
-      FILE *modfile = fopen(file, "r");
-      if (!modfile)
-        goto out;
-
-      // Read the file in, but wrapped in a function
-      size_t len = strlen(JS_REQUIRE_PREFIX) + strlen(JS_REQUIRE_SUFFIX) + st.st_size + 1;
-      char *jscript = calloc(len, sizeof(char));
-      memset(jscript, 0, len);
-      strcpy(jscript, JS_REQUIRE_PREFIX);
-      if (fread(jscript + strlen(JS_REQUIRE_PREFIX), 1, st.st_size, modfile) != st.st_size) {
-        fclose(modfile);
-        free(jscript);
-        retval = natus_throw_exception(ctx, NULL, "RequireError", "Error reading file!");
-        goto out;
-      }
-      fclose(modfile);
-      strcat(jscript, JS_REQUIRE_SUFFIX);
-
-      // Evaluate the file
-      natusValue *func = natus_evaluate_utf8(ctx, jscript, file, 0);
-      free(jscript);
-      if (natus_is_exception(func)) {
-        retval = func;
-        goto out;
-      }
-
-      // Create our arguments (exports, require, module)
-      natusValue *module = natus_new_object(ctx, NULL);
-      natusValue *exports = natus_new_object(ctx, NULL);
-      natusValue *require = natus_get_utf8(ctx, "require");
-      natusValue *modid = natus_new_string_utf8(ctx, name);
-      strncpy(name, "file://", PATH_MAX);
-      strncat(name, file, PATH_MAX - strlen("file://"));
-      natusValue *moduri = natus_new_string_utf8(ctx, name);
-      natus_decref(natus_set_utf8(module, "id", modid, natusPropAttrConstant));
-      natus_decref(natus_set_utf8(module, "uri", moduri, natusPropAttrConstant));
-      natus_decref(modid);
-      natus_decref(moduri);
-
-      // Call the function
-      natusValue *res = natus_call(func, exports, exports, require, module, NULL);
-      natus_decref(require);
-      natus_decref(module);
-      natus_decref(func);
-      if (natus_is_exception(res)) {
-        natus_decref(exports);
-        retval = res;
-        goto out;
-      }
-
-      // Function successfully executed, return the exports
-      natus_decref(res);
-      retval = exports;
-      goto out;
+      natusValue *tmp = natus_new_string(ctx, "file://%s", file);
+      if (!natus_is_exception(tmp))
+        natus_push(uris, tmp);
+      natus_decref(tmp);
     }
 
     free(prefix);
-    continue;
-
-  out:
-    strncpy(name, "file://", PATH_MAX);
-    strncat(name, file, PATH_MAX - strlen("file://"));
-    natus_decref(path);
-    free(prefix);
-    free(file);
-    return retval;
   }
+
   natus_decref(path);
-  return NULL;
+  free(modname);
+  return uris;
+}
+
+static natusValue *
+internal_require_native(natusValue *ctx, natusValue *uri, const char *file)
+{
+  natusRequire *req = get_require(ctx);
+  if (!req)
+    return NULL;
+
+  void **dll = mem_new_zero(req, void*);
+  if (!dll) /* OOM */
+    return NULL;
+
+  *dll = dlopen(file, RTLD_NOW | RTLD_GLOBAL);
+  if (!*dll) {
+    mem_free(dll);
+    return natus_throw_exception(ctx, NULL, "RequireError", dlerror());
+  }
+  mem_destructor_set(dll, dll_dtor);
+
+  natusValue *module = natus_new_object(ctx, NULL);
+  natusRequireModuleInit load = (natusRequireModuleInit) dlsym(dll, "natus_module_init");
+  if (!module || !load || !load(module)) {
+    natus_decref(module);
+    mem_free(dll);
+    return natus_throw_exception(ctx, NULL, "RequireError", "Module initialization failed!");
+  }
+
+  return module;
+}
+
+static natusValue *
+internal_require_javascript(natusValue *ctx, natusValue *name, natusValue *uri, const char *file)
+{
+  struct stat st;
+
+  // If we have a javascript text module
+  FILE *modfile = fopen(file, "r");
+  if (!modfile)
+   return NULL;
+
+  if (fstat(fileno(modfile), &st) != 0) {
+    fclose(modfile);
+    return NULL;
+  }
+
+  // Allocate our buffer
+  char *jscript = mem_new_array_zero(NULL, char, st.st_size + 1);
+  if (!jscript) {
+    fclose(modfile);
+    return NULL;
+  }
+
+  // Read the file
+  size_t bytesread = 0;
+  while (bytesread < st.st_size) {
+    size_t br = fread(jscript + bytesread, 1,
+                      st.st_size - bytesread,
+                      modfile);
+    if (br == 0 && (ferror(modfile) || feof(modfile))) {
+      mem_free(jscript);
+      fclose(modfile);
+      return natus_throw_exception(ctx, NULL, "RequireError", "Error reading file!");
+    }
+
+    bytesread += br;
+  }
+  fclose(modfile);
+
+  // Convert to a natus string and wrap in the function header/footer
+  natusValue *javascript = natus_new_string(ctx, "%s%s%s",
+                                            JS_REQUIRE_PREFIX,
+                                            jscript,
+                                            JS_REQUIRE_SUFFIX);
+  mem_free(jscript);
+
+  // Evaluate the file
+  natusValue *func = natus_evaluate(ctx, javascript, uri, 0);
+  natus_decref(javascript);
+  if (natus_is_exception(func))
+   return func;
+
+  // Create our arguments (exports, require, module)
+  natusValue *module = natus_new_object(ctx, NULL);
+  natusValue *exports = natus_new_object(ctx, NULL);
+  natusValue *require = natus_get_utf8(ctx, "require");
+  natus_decref(natus_set_utf8(module, "id", name, natusPropAttrConstant));
+  natus_decref(natus_set_utf8(module, "uri", uri, natusPropAttrConstant));
+
+  // Call the function
+  natusValue *res = natus_call(func, exports, exports, require, module, NULL);
+  natus_decref(require);
+  natus_decref(module);
+  natus_decref(func);
+  if (natus_is_exception(res)) {
+   natus_decref(exports);
+   return res;
+  }
+
+  // Function successfully executed, return the exports
+  natus_decref(res);
+  return exports;
+}
+
+static bool
+endswith(const char *haystack, const char *needle)
+{
+  if (!haystack || !needle)
+    return false;
+
+  size_t hlen = strlen(haystack);
+  size_t nlen = strlen(needle);
+
+  if (hlen < nlen)
+    return false;
+
+  const char *loc = strstr(haystack, needle);
+  if (!loc)
+    return false;
+
+  return (loc - haystack == hlen - nlen);
+}
+
+static natusValue *
+internal_require(natusValue *ctx, natusRequireHookStep step,
+                 natusValue *name, natusValue *uri, void *misc)
+{
+  if (step == natusRequireHookStepResolve)
+    return internal_require_resolve(ctx, name);
+
+  if (step != natusRequireHookStepLoad)
+    return NULL;
+
+  char *file = natus_to_string_utf8(uri, NULL);
+  if (!file)
+    return NULL;
+
+  if (strstr(file, "file://") == file) {
+    memmove(file, file + strlen("file://"), strlen(file) - strlen("file://"));
+    file[strlen(file) - strlen("file://")] = '\0';
+  }
+
+  natusValue *rslt = NULL;
+  if (endswith(file, MODSUFFIX))
+    rslt = internal_require_native(ctx, uri, file);
+  else if (endswith(file, SCRSUFFIX))
+    rslt = internal_require_javascript(ctx, name, uri, file);
+
+  free(file);
+  return rslt;
+}
+
+static natusRequire *
+get_require(natusValue *ctx)
+{
+  natusValue *global = natus_get_global(ctx);
+  if (!global)
+    return NULL;
+
+  // If a require struct doesn't exist yet, create it
+  natusRequire *req = natus_get_private(global, natusRequire*);
+  if (!req) {
+    req = mem_new_zero(NULL, natusRequire);
+    if (!req)
+      return NULL;
+    if (!natus_set_private(global, natusRequire*, req,
+                           (natusFreeFunction) require_free) ||
+        !natus_require_hook_add(global, "natus::InternalLoader",
+                                internal_require, NULL, NULL)) {
+      natus_set_private(global, natusRequire*, NULL, NULL);
+      return NULL;
+    }
+  }
+
+  return req;
 }
 
 static natusValue *
@@ -292,7 +391,7 @@ require_js(natusValue *require, natusValue *ths, natusValue *arg)
   NATUS_CHECK_ARGUMENTS(arg, "s");
 
   // Get the required name argument
-  char *modname = natus_as_string_utf8(natus_get_index(arg, 0), NULL);
+  natusValue *name = natus_get_index(arg, 0);
 
   // Build our path and whitelist
   natusValue *cfg = natus_require_get_config(require);
@@ -304,9 +403,9 @@ require_js(natusValue *require, natusValue *ths, natusValue *arg)
     bool cleared = false;
     long i, len = natus_as_long(natus_get_utf8(whitelist, "length"));
     for (i = 0; !cleared && i < len; i++) {
-      char *item = natus_as_string_utf8(natus_get_index(whitelist, i), NULL);
-      cleared = !strcmp(modname, item);
-      free(item);
+      natusValue *item = natus_get_index(whitelist, i);
+      cleared = natus_equals_strict(name, item);
+      natus_decref(item);
     }
     if (!cleared) {
       natus_decref(cfg);
@@ -316,8 +415,8 @@ require_js(natusValue *require, natusValue *ths, natusValue *arg)
     }
   }
 
-  natusValue *mod = natus_require(require, modname);
-  free(modname);
+  natusValue *mod = natus_require(require, name);
+  natus_decref(name);
   natus_decref(cfg);
   natus_decref(path);
   natus_decref(whitelist);
@@ -325,7 +424,7 @@ require_js(natusValue *require, natusValue *ths, natusValue *arg)
 }
 
 bool
-natus_require_init(natusValue *ctx, const char *config)
+natus_require_expose(natusValue *ctx, const char *config)
 {
   natusValue *glb, *json = NULL, *arg = NULL, *cfg = NULL;
   bool rslt = false;
@@ -350,7 +449,7 @@ natus_require_init(natusValue *ctx, const char *config)
   if (natus_is_exception(cfg))
     goto out;
 
-  rslt = natus_require_init_value(ctx, cfg);
+  rslt = natus_require_expose_value(ctx, cfg);
 
 out:
   natus_decref(json);
@@ -360,46 +459,19 @@ out:
 }
 
 bool
-natus_require_init_value(natusValue *ctx, natusValue *config)
+natus_require_expose_value(natusValue *ctx, natusValue *config)
 {
-  natusValue *glb = NULL, *pth = NULL;
-  natusRequire *req = NULL;
+  natusValue *glb = NULL, *pth = NULL, *cache;
 
   // Get the global
   glb = natus_get_global(ctx);
   if (!glb)
     goto error;
 
-  // Make sure we haven't already initialized a module loader
-  // If not, initialize
-  req = natus_get_private(glb, natusRequire*);
-  if (req)
-    return true;
-  if (!(req = malloc(sizeof(natusRequire))))
-    goto error;
-  memset(req, 0, sizeof(natusRequire));
-  req->config = natus_incref(config);
-  req->hooks = private_init(NULL, NULL);
-  req->matchers = private_init(NULL, NULL);
-  req->dll = private_init(NULL, NULL);
-  req->modules = private_init(NULL, NULL);
-  if (!req->hooks || !req->matchers || !req->dll || !req->modules)
-    goto error;
-
   // Add require function
-  pth = natus_get_recursive_utf8(req->config, CFG_PATH);
+  pth = natus_get_recursive_utf8(config, CFG_PATH);
   if (pth && natus_is_array(pth) &&
       natus_as_long(natus_get_utf8(pth, "length")) > 0) {
-    // The stack is the one big exception to the layer boundary since it needs to be
-    // updated by the natus_evalue() function.
-    natusValue *stack = natus_new_array(glb, NULL);
-    if (!natus_is_array(stack) ||
-        !natus_set_private_name_value(glb, NATUS_REQUIRE_STACK, stack)) {
-      natus_decref(stack);
-      goto error;
-    }
-    natus_decref(stack);
-
     // Setup the require function
     natusValue *require = natus_new_function(glb, require_js, "require");
     if (!natus_is_function(require) ||
@@ -409,92 +481,128 @@ natus_require_init_value(natusValue *ctx, natusValue *config)
     }
 
     // Add the paths variable if we are not in a sandbox
-    natusValue *whitelist = natus_get_utf8(req->config, CFG_WHITELIST);
+    natusValue *whitelist = natus_get_utf8(config, CFG_WHITELIST);
     if (!natus_is_array(whitelist))
       natus_decref(natus_set_utf8(require, "paths", pth, natusPropAttrConstant));
     natus_decref(whitelist);
 
     natus_decref(require);
   }
-  natus_decref(pth);
+
+  // Setup cache
+  cache = natus_new_object(glb, NULL);
+  if (!cache || !natus_set_private_name_value(glb, NATUS_REQUIRE_CACHE, cache)) {
+    natus_decref(cache);
+    goto error;
+  }
+  natus_decref(cache);
 
   // Finish initialization
-  if (!natus_set_private(glb, natusRequire*, req, (natusFreeFunction) _natus_require_free) ||
-      !natus_require_hook_add(glb, "natus::InternalLoader", internal_require, NULL, NULL)) {
-    natus_set_private(glb, natusRequire*, NULL, NULL);
-    natus_set_private_name(glb, NATUS_REQUIRE_STACK, NULL, NULL);
-    natus_del_utf8(glb, "require");
-    return false;
-  }
+  if (!natus_set_private_name_value(glb, NATUS_REQUIRE_CONFIG, config))
+    goto error;
+
+  natus_decref(pth);
   return true;
 
 error:
-  _natus_require_free(req);
   natus_decref(pth);
+  natus_del_utf8(glb, "require");
+  natus_set_private_name_value(glb, NATUS_REQUIRE_CACHE, NULL);
+  natus_set_private_name_value(glb, NATUS_REQUIRE_CONFIG, NULL);
   return false;
-}
-
-void
-natus_require_free(natusValue *ctx)
-{
-  natusValue *glb = natus_get_global(ctx);
-  natus_set_private(glb, natusRequire*, NULL, NULL);
-  natus_set_private_name(glb, NATUS_REQUIRE_STACK, NULL, NULL);
 }
 
 natusValue *
 natus_require_get_config(natusValue *ctx)
 {
-  // Get the global and the natusRequire struct
-  natusValue *global = natus_get_global(ctx);
-  natusRequire *req = natus_get_private(global, natusRequire*);
-  return natus_incref(req ? req->config : NULL);
+  return natus_get_private_name_value(natus_get_global(ctx),
+                                      NATUS_REQUIRE_CONFIG);
 }
-
-#define _do_set(ctx, field, name, item, free) \
-  natusValue *glb = natus_get_global(ctx); \
-  if (!glb) goto error; \
-  natusRequire *req = (natusRequire*) natus_get_private(glb, natusRequire*); \
-  if (!req) goto error; \
-  return private_set(req->field, name, item, ((natusFreeFunction) free)); \
-  error: \
-    if (item) free((reqPayload*) item); \
-    return false;
 
 bool
 natus_require_hook_add(natusValue *ctx, const char *name, natusRequireHook func, void *misc, natusFreeFunction free)
 {
-  reqHook *hook = malloc(sizeof(reqHook));
-  if (!hook)
+  natusRequire *req = get_require(ctx);
+  if (!req)
     return false;
-  hook->head.misc = misc;
-  hook->head.free = free;
-  hook->func = func;
-  _do_set(ctx, hooks, name, hook, _free_pl);
+
+  reqHook *tmp = mem_new(req, reqHook);
+  if (!tmp || !mem_name_set(tmp, name)) {
+    mem_free(tmp);
+    return false;
+  }
+  mem_destructor_set(tmp, hook_dtor);
+
+  tmp->misc = misc;
+  tmp->free = free;
+  tmp->func = func;
+  tmp->next = req->hooks;
+  req->hooks = tmp;
+  return true;
 }
 
 bool
 natus_require_hook_del(natusValue *ctx, const char *name)
 {
-  _do_set(ctx, hooks, name, NULL, _free_pl);
+  reqHook *tmp, **prv;
+  natusRequire *req;
+
+  req = get_require(ctx);
+  if (!name || !req)
+    return false;
+
+  for (prv = &req->hooks, tmp = req->hooks; tmp; prv = &tmp->next, tmp = tmp->next) {
+    if (!strcmp(mem_name_get(tmp), name)) {
+      *prv = tmp->next;
+      mem_decref(req, tmp);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool
 natus_require_origin_matcher_add(natusValue *ctx, const char *name, natusRequireOriginMatcher func, void *misc, natusFreeFunction free)
 {
-  reqOriginMatcher *match = malloc(sizeof(reqOriginMatcher));
-  if (!match)
+  natusRequire *req = get_require(ctx);
+  if (!req)
     return false;
-  match->head.misc = misc;
-  match->head.free = free;
-  match->func = func;
-  _do_set(ctx, matchers, name, match, _free_pl);
+
+  reqOriginMatcher *tmp = mem_new(req, reqOriginMatcher);
+  if (!tmp || !mem_name_set(tmp, name)) {
+    mem_free(tmp);
+    return false;
+  }
+  mem_destructor_set(tmp, originmatcher_dtor);
+
+  tmp->misc = misc;
+  tmp->free = free;
+  tmp->func = func;
+  tmp->next = req->matchers;
+  req->matchers = tmp;
+  return true;
 }
 
 bool
 natus_require_origin_matcher_del(natusValue *ctx, const char *name)
 {
-  _do_set(ctx, matchers, name, NULL, _free_pl);
+  reqOriginMatcher *tmp, **prv;
+  natusRequire *req;
+
+  req = get_require(ctx);
+  if (!name || !req)
+    return false;
+
+  for (prv = &req->matchers, tmp = req->matchers; tmp; prv = &tmp->next, tmp = tmp->next) {
+    if (!strcmp(mem_name_get(tmp), name)) {
+      *prv = tmp->next;
+      mem_decref(req, tmp);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool
@@ -506,148 +614,275 @@ natus_require_origin_permitted(natusValue *ctx, const char *uri)
     return true;
 
   // Get the require structure
-  natusRequire *req = natus_get_private(glb, natusRequire*);
+  natusRequire *req = get_require(ctx);
   if (!req)
     return true;
 
-  // Get the whitelist and blacklist
-  natusValue *whitelist = natus_get_recursive_utf8(req->config, CFG_ORIGINS_WHITELIST);
-  natusValue *blacklist = natus_get_recursive_utf8(req->config, CFG_ORIGINS_BLACKLIST);
-  if (!natus_is_array(whitelist)) {
-    natus_decref(blacklist);
-    natus_decref(whitelist);
+  natusValue *config = natus_require_get_config(ctx);
+  if (!config)
     return true;
-  }
+
+  // Get the whitelist and blacklist
+  natusValue *whitelist = natus_get_recursive_utf8(config, CFG_ORIGINS_WHITELIST);
+  natusValue *blacklist = natus_get_recursive_utf8(config, CFG_ORIGINS_BLACKLIST);
+  natus_decref(config);
 
   // Check to see if the URI is on the approved whitelist
+  bool match = !natus_is_array(whitelist);
+  reqOriginMatcher *tmp;
   int i;
-  loopData ld =
-    { .match = false, .uri = uri };
   long len = natus_as_long(natus_get_utf8(whitelist, "length"));
-  for (i = 0; !ld.match && i < len; i++) {
-    ld.pat = natus_as_string_utf8(natus_get_index(whitelist, i), NULL);
-    if (!ld.pat)
+  for (i=0; !match && i < len; i++) {
+    char *pattern = natus_as_string_utf8(natus_get_index(whitelist, i), NULL);
+    if (!pattern)
       continue;
-    private_foreach(req->matchers, false, (privateForeach) _foreach_match, &ld);
-    free(ld.pat);
+    for (tmp = req->matchers; !match && tmp; tmp = tmp->next)
+      match = tmp->func(pattern, uri);
+    free(pattern);
   }
   natus_decref(whitelist);
 
   // If the URI matched the whitelist, check the blacklist
-  if (ld.match && natus_is_array(blacklist)) {
-    ld.match = false;
+  if (match && natus_is_array(blacklist)) {
     len = natus_as_long(natus_get_utf8(blacklist, "length"));
-    for (i = 0; !ld.match && i < len; i++) {
-      ld.pat = natus_as_string_utf8(natus_get_index(blacklist, i), NULL);
-      if (!ld.pat)
+    for (i = 0; match && i < len; i++) {
+      char *pattern = natus_as_string_utf8(natus_get_index(blacklist, i), NULL);
+      if (!pattern)
         continue;
-      private_foreach(req->matchers, false, (privateForeach) _foreach_match, &ld);
-      free(ld.pat);
+      for (tmp = req->matchers; match && tmp; tmp = tmp->next)
+        match = !tmp->func(pattern, uri);
+      free(pattern);
     }
-    ld.match = !ld.match;
   }
   natus_decref(blacklist);
 
-  return ld.match;
+  return match;
 }
 
-typedef struct {
-  const char *name;
-  natusRequire *req;
-  natusRequireHookStep step;
-  natusValue *ctx;
-  natusValue *res;
-} natusHookData;
+typedef struct potential {
+  natusRequireHook  hook;
+  void             *misc;
+  natusValue       *uris;
+  struct potential *next;
+} potential;
 
-static void
-do_hooks(const char *hookname, reqHook *hook, natusHookData *misc)
+static potential *
+get_potentials(reqHook *hook, natusValue *global, natusValue *name, natusValue **exc)
 {
-  if (!misc || misc->res)
-    return;
-  char name[PATH_MAX];
-  strcpy(name, misc->name);
+  natusValue *tmp = NULL;
+  potential *pset = NULL, *p = NULL;
 
-  // Call the hook
-  misc->res = hook->func(misc->ctx, misc->step, name, hook->head.misc);
+  for (; hook; hook = hook->next) {
+    tmp = hook->func(global, natusRequireHookStepResolve, name, NULL, hook->misc);
+    if (!tmp)
+      continue;
 
-  // If the step is resolve, we're just checking for cache names
-  if (misc->step == natusRequireHookStepResolve) {
-    natus_decref(misc->res);
+    if (natus_is_exception(tmp)) {
+      *exc = tmp;
+      mem_free(pset);
+      return NULL;
+    }
 
-    // If the name was found in the cache, return it
-    misc->res = private_get(misc->req->modules, name);
-    return;
+    /* Handle invalid values by reverting to the provided name. */
+    if (!natus_is_array(tmp)) {
+      if (!natus_is_string(tmp)) {
+        natus_decref(tmp);
+        tmp = natus_incref(name);
+      }
+
+      natusValue *atmp = natus_new_array(global, tmp, NULL);
+      natus_decref(tmp);
+      tmp = atmp;
+    }
+
+    if (natus_as_long(natus_get_utf8(tmp, "length")) > 0 &&
+        (p = mem_new(NULL, potential))) {
+      assert(!pset || mem_steal(p, pset));
+      assert(mem_steal(p, tmp));
+
+      p->hook = hook->func;
+      p->misc = hook->misc;
+      p->uris = tmp;
+      p->next = pset;
+      pset = p;
+    } else
+      natus_decref(tmp);
   }
 
-  // Return immediately on an exception
-  if (natus_is_exception(misc->res))
-    return;
+  *exc = NULL;
+  return pset;
+}
 
-  // If a module was found, cache it according to the (possibly modified) name
-  if (misc->step == natusRequireHookStepLoad) {
-    // Ignore hooks that return invalid values
-    if (!natus_is_object(misc->res)) {
-      natus_decref(misc->res);
-      misc->res = NULL;
-      return;
+static natusValue *
+check_cache(potential *pset, natusValue **uri)
+{
+  natusValue *module = NULL, *cache = NULL;
+  potential *p;
+
+  for (p=pset; p; p=p->next) {
+    size_t i, len = natus_as_long(natus_get_utf8(p->uris, "length"));
+    for (i=0; i < len; i++) {
+      *uri = natus_get_index(p->uris, i);
+
+      /* Don't check for errors here since we don't really care if there is
+       * no cache yet... */
+      if (!cache)
+        cache = natus_get_private_name_value(natus_get_global(p->uris),
+                                             NATUS_REQUIRE_CACHE);
+
+      module = natus_get(cache, *uri);
+      if (natus_is_object(module))
+        return module;
+
+      natus_decref(*uri);
+      natus_decref(module);
     }
+  }
 
-    // Set the module id
-    natusValue *modname = natus_new_string_utf8(misc->ctx, misc->name);
-    natus_decref(natus_set_recursive_utf8(misc->res, "module.id", modname, natusPropAttrConstant, true));
-    natus_decref(modname);
+  return NULL;
+}
 
-    // Set the module uri (if not sandboxed)
-    natusValue *whitelist = natus_get_utf8(misc->req->config, CFG_WHITELIST);
-    if (!natus_is_array(whitelist)) { // Don't export URI in the sandbox
-      natusValue *uri = natus_new_string_utf8(misc->res, name);
-      natus_decref(natus_set_recursive_utf8(misc->res, "module.uri", uri, natusPropAttrConstant, true));
-      natus_decref(uri);
-    }
+static natusValue *
+load_module(potential *pset, natusValue *global,
+            natusValue *name, natusValue **uri)
+{
+  natusValue *config = NULL, *whitelist = NULL, *module = NULL;
+  potential *p;
+
+  config = natus_get_private_name_value(global, NATUS_REQUIRE_CONFIG);
+  whitelist = natus_get_recursive_utf8(config, CFG_WHITELIST);
+  if (natus_is_exception(config)) {
+    natus_decref(config);
+    config = NULL;
+  }
+  if (natus_is_exception(whitelist)) {
     natus_decref(whitelist);
-
-    // Store the module in the cache
-    assert(private_set(misc->req->modules, name, natus_incref(misc->res), (natusFreeFunction) natus_decref));
+    whitelist = NULL;
   }
+
+  for (p=pset; p; p=p->next) {
+    size_t i, len = natus_as_long(natus_get_utf8(p->uris, "length"));
+    for (i=0; i < len; i++) {
+      *uri = natus_get_index(p->uris, i);
+      module = p->hook(global, natusRequireHookStepLoad, name, *uri, p->misc);
+      if (!natus_is_exception(module) && natus_is_object(module))
+        goto havemod;
+      natus_decref(*uri);
+      *uri = NULL;
+      if (module && natus_is_exception(module))
+        goto out;
+      natus_decref(module);
+      module = NULL;
+    }
+  }
+
+  goto out;
+
+havemod:
+  // Set the module id
+  natus_decref(natus_set_recursive_utf8(module, "module.id", name,
+                                        natusPropAttrConstant, true));
+
+  // Set the module uri (if not sandboxed)
+  if (natus_is_object(config) && !natus_is_array(whitelist))
+    natus_decref(natus_set_recursive_utf8(module, "module.uri", *uri,
+                                          natusPropAttrConstant, true));
+
+  /* At this point we actually require the cache, so create it if it
+   * doesn't exist yet... */
+  natusValue *cache = natus_get_private_name_value(global, NATUS_REQUIRE_CACHE);
+  if (natus_is_exception(cache) || !natus_is_object(cache)) {
+    natus_decref(cache);
+    cache = natus_new_object(global, NULL);
+    if (natus_is_exception(cache) ||
+        !natus_set_private_name_value(global, NATUS_REQUIRE_CACHE, cache)) {
+      natus_decref(cache);
+      goto out;
+    }
+  }
+
+  // Store the module in the cache
+  natus_decref(natus_set(cache, *uri, module, natusPropAttrNone));
+
+out:
+  natus_decref(config);
+  natus_decref(whitelist);
+  return module;
 }
 
 natusValue *
-natus_require(natusValue *ctx, const char *name)
+natus_require(natusValue *ctx, natusValue *name)
 {
-  // Get the global and the natusRequire struct
+  natusValue *module = NULL, *uri = NULL;
+  potential *pset = NULL;
+  reqHook *tmp = NULL;
+
   natusValue *global = natus_get_global(ctx);
-  natusRequire *req = natus_get_private(global, natusRequire*);
-  if (!global || !req)
+  if (!global)
+    return NULL;
+
+  natusRequire *req = get_require(ctx);
+  if (!req)
     return NULL;
 
   // Check to see if we've already loaded the module (resolve step)
-  natusHookData hd = { name, req, natusRequireHookStepResolve, global, NULL };
-  private_foreach(req->hooks, true, (privateForeach) do_hooks, &hd);
-  if (hd.res) {
-    if (!natus_is_exception(hd.res))
-      goto modfound;
-    return hd.res;
-  }
+  pset = get_potentials(req->hooks, global, name, &module);
+  if (module)
+    goto out;
+  if (pset) {
+    module = check_cache(pset, &uri);
+    if (module)
+      goto out;
 
-  // Load the module (load step)
-  hd.step = natusRequireHookStepLoad;
-  private_foreach(req->hooks, true, (privateForeach) do_hooks, &hd);
-  if (hd.res) {
-    if (!natus_is_exception(hd.res))
+    // Load the module (load step)
+    module = load_module(pset, global, name, &uri);
+    if (module && natus_is_exception(module))
+      goto out;
+    else if (natus_is_object(module))
       goto modfound;
-    return hd.res;
   }
-  natus_decref(hd.res);
 
   // Module not found
-  return natus_throw_exception(ctx, NULL, "RequireError", "Module %s not found!", name);
+  natus_decref(module);
+  char *modname = natus_to_string_utf8(name, NULL);
+  module = natus_throw_exception(ctx, NULL, "RequireError", "Module %s not found!", modname);
+  free(modname);
+  goto out;
 
   // Module found
 modfound:
-  hd.step = natusRequireHookStepProcess;
-  hd.ctx = hd.res;
-  hd.res = NULL;
-  private_foreach(req->hooks, true, (privateForeach) do_hooks, &hd);
-  natus_decref(hd.res);
-  return hd.ctx;
+  for (tmp = req->hooks; tmp; tmp = tmp->next) {
+    natusValue *vtmp = tmp->func(module, natusRequireHookStepProcess,
+                                 name, uri, tmp->misc);
+    if (vtmp && natus_is_exception(vtmp)) {
+      natus_decref(module);
+      natus_decref(uri);
+      module = vtmp;
+      goto out;
+    }
+
+    natus_decref(vtmp);
+  }
+
+out:
+  mem_free(pset);
+  return module;
+}
+
+natusValue *
+natus_require_utf8(natusValue *ctx, const char *name)
+{
+  natusValue *nm = natus_new_string_utf8(ctx, name);
+  natusValue *tmp = natus_require(ctx, nm);
+  natus_decref(nm);
+  return tmp;
+}
+
+natusValue *
+natus_require_utf16(natusValue *ctx, const natusChar *name)
+{
+  natusValue *nm = natus_new_string_utf16(ctx, name);
+  natusValue *tmp = natus_require(ctx, nm);
+  natus_decref(nm);
+  return tmp;
 }

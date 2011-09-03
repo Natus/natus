@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include <libmem.h>
+
 #define hmkval(ctx, val) \
   mkval(ctx, val, \
         natusEngValFlagUnlock | natusEngValFlagFree, \
@@ -101,7 +103,7 @@ natus_handle_call(natusEngVal obj, const natusPrivate *priv, natusEngVal ths, na
 void
 natus_private_free(natusPrivate *priv)
 {
-  private_free(priv);
+  assert(mem_free(priv));
 }
 
 bool

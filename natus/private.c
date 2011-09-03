@@ -21,169 +21,68 @@
  *
  */
 
-#include <stdlib.h>
-#include <string.h>
-
 #define I_ACKNOWLEDGE_THAT_NATUS_IS_NOT_STABLE
 #include <natus-internal.h>
 
+#include <libmem.h>
+#include <assert.h>
+
 typedef struct {
-  char *name;
-  void *priv;
-  natusFreeFunction free;
+  void   *priv;
+  memFree free;
 } item;
 
-struct natusPrivate {
-  item  *priv;
-  size_t size;
-  size_t used;
-  void  *misc;
-  natusFreeFunction free;
-};
-
-static inline bool
-_private_push(natusPrivate *self, const char *name, void *priv, natusFreeFunction free)
+static bool
+foreach_get(void *parent, item *child, void **data)
 {
-  if (!self || !priv) {
-    if (free && priv)
-      free(priv);
-    return false;
-  }
+  *data = child->priv;
+  return false;
+}
 
-  // Expand the array if necessary
-  if (self->used >= self->size) {
-    self->size *= 2;
-    item *tmp = realloc(self->priv, sizeof(item) * self->size);
-    if (!tmp) {
-      self->size /= 2;
-      if (free && priv)
-        free(priv);
-      return false;
-    }
-    self->priv = tmp;
-  }
-
-  // Add the new item on the end
-  self->priv[self->used].name = name ? strdup(name) : NULL;
-  self->priv[self->used].priv = priv;
-  self->priv[self->used].free = free;
-  if (name && !self->priv[self->used].name) {
-    if (free && priv)
-      free(priv);
-    return false;
-  }
-
-  self->used++;
+static bool
+foreach_free(void *parent, void *child, void *data)
+{
+  mem_decref(parent, child);
   return true;
 }
 
-natusPrivate *
-private_init(void *misc, natusFreeFunction free)
+static void
+item_dtor(item *itm)
 {
-  natusPrivate *self = malloc(sizeof(natusPrivate));
-  if (!self) {
-    if (free)
-      free(misc);
-    return NULL;
-  }
-
-  self->free = free;
-  self->misc = misc;
-  self->used = 0;
-  self->size = 8;
-  self->priv = calloc(self->size, sizeof(item));
-  if (!self->priv) {
-    if (free)
-      free(misc);
-    free(self);
-    return NULL;
-  }
-  return self;
-}
-
-void
-private_free(natusPrivate *self)
-{
-  if (!self)
-    return;
-
-  // Free the privates
-  size_t i;
-  for (i = 0; i < self->used; i++) {
-    if (self->priv[i].free && self->priv[i].priv)
-      self->priv[i].free(self->priv[i].priv);
-    free(self->priv[i].name);
-  }
-  free(self->priv);
-
-  // Call the callback
-  if (self->free)
-    self->free(self->misc);
-
-  // Free the CFP
-  free(self);
+  if (itm && itm->priv && itm->free)
+    itm->free(itm->priv);
 }
 
 void *
 private_get(const natusPrivate *self, const char *name)
 {
-  size_t i;
-  if (!self || !name)
-    return NULL;
-
-  // Find an existing match and update it
-  for (i = 0; i < self->used; i++)
-    if (self->priv[i].name && !strcmp(self->priv[i].name, name))
-      return self->priv[i].priv;
-  return NULL;
+  void *tmp = NULL;
+  if (self && name)
+    mem_children_foreach((natusPrivate*) self, name, foreach_get, &tmp);
+  return tmp;
 }
 
 bool
-private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction freef)
+private_set(natusPrivate *self, const char *name, void *priv, natusFreeFunction free)
 {
-  size_t i = 0;
-  if (!self) {
-    if (freef && priv)
-      freef(priv);
-    return NULL;
-  }
+  if (!self)
+    return false;
 
-  // Find an existing match and update it
-  for (i = 0; name && i < self->size; i++) {
-    if (!self->priv[i].name)
-      continue;
-    if (strcmp(self->priv[i].name, name))
-      continue;
+  if (name)
+    mem_children_foreach(self, name, foreach_free, NULL);
 
-    // We have a match, so free the item
-    if (self->priv[i].priv && self->priv[i].free)
-      self->priv[i].free(self->priv[i].priv);
-
-    // It priv is NULL, remove the item from the array
-    if (!priv) {
-      free(self->priv[i].name);
-      for (i++; i < self->size; i++)
-        self->priv[i - 1] = self->priv[i];
-      self->used--;
-      return true;
+  item *itm = mem_new(self, item);
+  if (itm) {
+    if (name && !mem_name_set(itm, name)) {
+      mem_decref(self, itm);
+      return false;
     }
-
-    // Update the item
-    self->priv[i].priv = priv;
-    self->priv[i].free = freef;
-    return true;
+    mem_destructor_set(itm, item_dtor);
+    itm->priv = priv;
+    itm->free = free;
   }
 
-  // No existing match was found. We'll add a new item,
-  return _private_push(self, name, priv, freef);
-}
-
-void
-private_foreach(const natusPrivate *self, bool rev, privateForeach foreach, void *misc)
-{
-  ssize_t i;
-  for (i = rev ? self->used - 1 : 0; rev ? i >= 0 : i < self->used; i += rev ? -1 : 1)
-    foreach(self->priv[i].name, self->priv[i].priv, misc);
+  return itm != NULL;
 }
 
 bool
@@ -194,7 +93,7 @@ natus_set_private_name(natusValue *obj, const char *key, void *priv, natusFreeFu
   if (!key)
     return false;
 
-  natusPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
+  natusPrivate *prv = obj->ctx->spec->get_private(obj->ctx->ctx, obj->val);
   return private_set(prv, key, priv, free);
 }
 
@@ -207,16 +106,14 @@ free_private_value(natusValue *pv)
   /* If the refcount is 0 it means that we are in the process of teardown,
    * and the value has already been unlocked because we are dismantling ctx.
    * Thus, we only do unlock if we aren't in this teardown phase. */
-  if (pv->ctx->ref > 0)
-    pv->ctx->eng->spec->val_unlock(pv->ctx->ctx, pv->val);
-  pv->ctx->eng->spec->val_free(pv->val);
-  free(pv);
+  if (mem_parents_count(pv->ctx, NULL) > 0)
+    pv->ctx->spec->val_unlock(pv->ctx->ctx, pv->val);
+  mem_free(pv);
 }
 
 bool
 natus_set_private_name_value(natusValue *obj, const char *key, natusValue* priv)
 {
-  natusEngVal v = NULL;
   natusValue *val = NULL;
 
   if (priv) {
@@ -228,14 +125,15 @@ natus_set_private_name_value(natusValue *obj, const char *key, natusValue* priv)
      *       So the way around this is that we don't store the normal natusValue,
      *       but instead store a special one without a refcount on the ctx.
      *       This means that ctx will be properly freed. */
-    v = priv->ctx->eng->spec->val_duplicate(priv->ctx->ctx, priv->val);
-    if (!v)
-      return false;
-
-    val = mkval(priv, v, priv->flg, priv->typ);
+    val = mkval(priv, priv->ctx->spec->val_duplicate(priv->ctx->ctx, priv->val),
+                priv->flag, priv->type);
     if (!val)
       return false;
-    val->ctx->ref--; /* Don't keep a copy of this reference around */
+
+    /* Don't keep a copy of this reference around,
+     * guaranteed not to free in this case since we
+     * just added an additional link in mkval() */
+    mem_decref(val, val->ctx);
   }
 
   if (!natus_set_private_name(obj, key, val, (natusFreeFunction) free_private_value)) {
@@ -252,7 +150,7 @@ natus_get_private_name(const natusValue *obj, const char *key)
     return NULL;
   if (!key)
     return NULL;
-  natusPrivate *prv = obj->ctx->eng->spec->get_private(obj->ctx->ctx, obj->val);
+  natusPrivate *prv = obj->ctx->spec->get_private(obj->ctx->ctx, obj->val);
   return private_get(prv, key);
 }
 
@@ -264,7 +162,7 @@ natus_get_private_name_value(const natusValue *obj, const char *key)
   if (!val)
     return NULL;
   return mkval(val,
-      val->ctx->eng->spec->val_duplicate(val->ctx->ctx, val->val),
-      val->flg,
-      val->typ);
+      val->ctx->spec->val_duplicate(val->ctx->ctx, val->val),
+      val->flag,
+      val->type);
 }
