@@ -115,7 +115,7 @@ natus_equals(const natusValue *val1, const natusValue *val2)
     return true;
   if (!val1 || !val2)
     return false;
-  return val1->ctx->eng->spec->equal(val1->ctx->ctx, val1->val, val1->val, false);
+  return val1->ctx->eng->spec->equal(val1->ctx->ctx, val1->val, val2->val, false);
 }
 
 bool
@@ -129,5 +129,5 @@ natus_equals_strict(const natusValue *val1, const natusValue *val2)
     return true;
   if (!val1 || !val2)
     return false;
-  return val1->ctx->eng->spec->equal(val1->ctx->ctx, val1->val, val1->val, true);
+  return val1->ctx->eng->spec->equal(val1->ctx->ctx, val1->val, val2->val, true);
 }
