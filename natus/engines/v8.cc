@@ -632,7 +632,7 @@ v8_get_private(const natusEngCtx ctx, const natusEngVal val)
 }
 
 static natusEngVal
-v8_get_global(const natusEngCtx ctx, const natusEngVal val)
+v8_get_global(const natusEngCtx ctx, const natusEngVal val, natusEngValFlags *flags)
 {
   HandleScope hs;
   Context::Scope cs(*ctx);

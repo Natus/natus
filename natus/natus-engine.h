@@ -123,7 +123,7 @@ typedef struct {
   natusEngVal    (*evaluate)         (const natusEngCtx ctx, natusEngVal ths, const natusEngVal jscript, const natusEngVal filename, unsigned int lineno, natusEngValFlags *flags);
 
   natusPrivate  *(*get_private)      (const natusEngCtx ctx, const natusEngVal val);
-  natusEngVal    (*get_global)       (const natusEngCtx ctx, const natusEngVal val);
+  natusEngVal    (*get_global)       (const natusEngCtx ctx, const natusEngVal val, natusEngValFlags *flags);
   natusValueType (*get_type)         (const natusEngCtx ctx, const natusEngVal val);
   bool           (*borrow_context)   (natusEngCtx ctx, natusEngVal val, void **context, void **value);
   bool           (*equal)            (const natusEngCtx ctx, const natusEngVal val1, const natusEngVal val2, bool strict);

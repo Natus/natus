@@ -751,8 +751,9 @@ jsc_get_private(const natusEngCtx ctx, const natusEngVal val)
 }
 
 static natusEngVal
-jsc_get_global(const natusEngCtx ctx, const natusEngVal val)
+jsc_get_global(const natusEngCtx ctx, const natusEngVal val, natusEngValFlags *flags)
 {
+  *flags &= ~(natusEngValFlagFree | natusEngValFlagUnlock);
   return JSContextGetGlobalObject(ctx);
 }
 

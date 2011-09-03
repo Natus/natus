@@ -410,13 +410,16 @@ natus_get_global(const natusValue *ctx)
   if (global)
     return global;
 
-  natusEngVal glb = ctx->ctx->eng->spec->get_global(ctx->ctx->ctx, ctx->val);
+  natusEngValFlags flags = natusEngValFlagUnlock | natusEngValFlagFree;
+  natusEngVal glb = ctx->ctx->eng->spec->get_global(ctx->ctx->ctx, ctx->val, &flags);
   if (!glb)
     return NULL;
 
   natusPrivate *priv = ctx->ctx->eng->spec->get_private(ctx->ctx->ctx, glb);
-  ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, glb);
-  ctx->ctx->eng->spec->val_free(glb);
+  if (flags & natusEngValFlagUnlock)
+    ctx->ctx->eng->spec->val_unlock(ctx->ctx->ctx, glb);
+  if (flags & natusEngValFlagFree)
+    ctx->ctx->eng->spec->val_free(glb);
   if (!priv)
     return NULL;
 

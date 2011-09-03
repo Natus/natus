@@ -729,7 +729,7 @@ sm_get_private(const natusEngCtx ctx, const natusEngVal val)
 }
 
 static natusEngVal
-sm_get_global(const natusEngCtx ctx, const natusEngVal val)
+sm_get_global(const natusEngCtx ctx, const natusEngVal val, natusEngValFlags *flags)
 {
   JSObject *obj = NULL;
   JS_ValueToObject(ctx, *val, &obj);
