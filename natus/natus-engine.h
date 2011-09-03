@@ -84,7 +84,8 @@ typedef enum {
 typedef enum {
   natusEngValFlagNone      = 0,
   natusEngValFlagException = 1,
-  natusEngValFlagMustFree  = 1 << 1
+  natusEngValFlagUnlock    = 1 << 1,
+  natusEngValFlagFree      = 1 << 2
 } natusEngValFlags;
 
 typedef struct {

@@ -2,24 +2,28 @@
 
 #include <assert.h>
 
+#define hmkval(ctx, val) \
+  mkval(ctx, val, \
+        natusEngValFlagUnlock | natusEngValFlagFree, \
+        natusValueTypeUnknown)
+
 static natusEngVal
 return_ownership(natusValue *val, natusEngValFlags *flags)
 {
   natusEngVal ret = NULL;
   if (!flags)
     return NULL;
-  *flags = natusEngValFlagNone;
-  if (natus_is_exception(val))
-    *flags |= natusEngValFlagException;
+  *flags = natusEngValFlagException;
   if (!val)
     return NULL;
+  *flags = val->flag;
 
-  /* If this value will free here, return ownership */
+  /* If this value will not free here, retain ownership */
   ret = val->val;
-  if (val->ref <= 1) {
-    *flags |= natusEngValFlagMustFree;
-    val->flg = val->flg & ~natusEngValFlagMustFree; /* Don't free this! */
-  }
+  if (mem_parents_count(val, NULL) > 1)
+    *flags &= ~(natusEngValFlagUnlock | natusEngValFlagFree);
+  else
+    val->flag &= ~(natusEngValFlagUnlock | natusEngValFlagFree);
   natus_decref(val);
 
   return ret;
@@ -32,9 +36,9 @@ natus_handle_property(const natusPropertyAction act, natusEngVal obj, const natu
   assert(glbl);
 
   /* Convert the arguments */
-  natusValue *vobj = mkval(glbl, obj, natusEngValFlagMustFree, natusValueTypeUnknown);
-  natusValue *vidx = mkval(glbl, act & natusPropertyActionEnumerate ? NULL : idx, natusEngValFlagMustFree, natusValueTypeUnknown);
-  natusValue *vval = mkval(glbl, act & natusPropertyActionSet ? val : NULL, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *vobj = hmkval(glbl, obj);
+  natusValue *vidx = hmkval(glbl, act & natusPropertyActionEnumerate ? NULL : idx);
+  natusValue *vval = hmkval(glbl, act & natusPropertyActionSet ? val : NULL);
   natusValue *rslt = NULL;
 
   /* Do the call */
@@ -73,9 +77,9 @@ natus_handle_call(natusEngVal obj, const natusPrivate *priv, natusEngVal ths, na
   assert(glbl);
 
   /* Convert the arguments */
-  natusValue *vobj = mkval(glbl, obj, natusEngValFlagMustFree, natusValueTypeUnknown);
-  natusValue *vths = ths ? mkval(glbl, ths, natusEngValFlagMustFree, natusValueTypeUnknown) : natus_new_undefined(glbl);
-  natusValue *varg = mkval(glbl, arg, natusEngValFlagMustFree, natusValueTypeUnknown);
+  natusValue *vobj = hmkval(glbl, obj);
+  natusValue *vths = ths ? hmkval(glbl, ths) : natus_new_undefined(glbl);
+  natusValue *varg = hmkval(glbl, arg);
   natusValue *rslt = NULL;
   if (vobj && vths && varg) {
     natusClass *clss = private_get(priv, NATUS_PRIV_CLASS);

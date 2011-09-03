@@ -70,11 +70,12 @@ property_handler(const AccessorInfo& info, Handle<Value> property, Handle<Value>
     return Handle<Value>();
 
   Handle<Value> ret = *res;
-  if (flags & natusEngValFlagMustFree) {
+  if (flags & natusEngValFlagUnlock) {
     res->Dispose();
     res->Clear();
-    delete res;
   }
+  if (flags & natusEngValFlagFree)
+    delete res;
 
   if (flags & natusEngValFlagException)
     return ret->IsUndefined() ? Handle<Value>() : ThrowException(ret);
@@ -139,11 +140,12 @@ obj_enumerate(const AccessorInfo& info)
     return Handle<Array>();
 
   Handle<Value> ret = *res;
-  if (flags & natusEngValFlagMustFree) {
+  if (flags & natusEngValFlagUnlock) {
     res->Dispose();
     res->Clear();
-    delete res;
   }
+  if (flags & natusEngValFlagFree)
+    delete res;
 
   if (!ret->IsArray())
     return Handle<Array>();
@@ -175,11 +177,12 @@ int_call(const Arguments& args, Handle<Value> object)
     return ThrowException(Undefined());
 
   Handle<Value> ret = *res;
-  if (flags & natusEngValFlagMustFree) {
+  if (flags & natusEngValFlagUnlock) {
     res->Dispose();
     res->Clear();
-    delete res;
   }
+  if (flags & natusEngValFlagFree)
+    delete res;
 
   if (flags & natusEngValFlagException)
     return ThrowException(ret);

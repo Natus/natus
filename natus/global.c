@@ -280,10 +280,10 @@ natus_decref(natusValue *val)
   val->ref = val->ref > 0 ? val->ref - 1 : 0;
   if (val->ref == 0) {
     /* Free the value */
-    if (val->val && (val->flg & natusEngValFlagMustFree)) {
+    if (val->val && (val->flg & natusEngValFlagUnlock))
       val->ctx->eng->spec->val_unlock(val->ctx->ctx, val->val);
+    if (val->val && (val->flg & natusEngValFlagFree))
       val->ctx->eng->spec->val_free(val->val);
-    }
     context_decref(val->ctx);
     free(val);
   }
@@ -332,7 +332,7 @@ natus_new_global(const char *name_or_path)
     goto error;
   }
 
-  self->flg = natusEngValFlagMustFree;
+  self->flg = natusEngValFlagUnlock | natusEngValFlagFree;
   if (!(self->val = self->ctx->eng->spec->new_global(NULL, NULL, priv, &self->ctx->ctx, &self->flg)))
     goto error;
 
@@ -356,7 +356,7 @@ natus_new_global_shared(const natusValue *global)
   natusValue *self = NULL;
   natusEngCtx ctx = NULL;
   natusEngVal val = NULL;
-  natusEngValFlags flags = natusEngValFlagMustFree;
+  natusEngValFlags flags = natusEngValFlagUnlock | natusEngValFlagFree;
 
   privWrap *pw = new0(privWrap);
   if (!pw)

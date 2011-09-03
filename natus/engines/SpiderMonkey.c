@@ -97,28 +97,28 @@ property_handler(JSContext *ctx, JSObject *object, jsid id, jsval *vp, natusProp
 
   if (flags & natusEngValFlagException) {
     if (!res || JSVAL_IS_VOID(*res)) {
-      if (flags & natusEngValFlagMustFree && res) {
+      if ((flags & natusEngValFlagUnlock) && res)
         sm_val_unlock(ctx, res);
+      if ((flags & natusEngValFlagFree) && res)
         sm_val_free(res);
-      }
       return JS_TRUE;
     }
 
     JS_SetPendingException(ctx, *res);
-    if (flags & natusEngValFlagMustFree) {
+    if (flags & natusEngValFlagUnlock)
       sm_val_unlock(ctx, res);
+    if (flags & natusEngValFlagFree)
       sm_val_free(res);
-    }
     return JS_FALSE;
   }
 
   if (act == natusPropertyActionGet)
     *vp = *res;
 
-  if (flags & natusEngValFlagMustFree) {
+  if (flags & natusEngValFlagUnlock)
     sm_val_unlock(ctx, res);
+  if (flags & natusEngValFlagFree)
     sm_val_free(res);
-  }
   return JS_TRUE;
 }
 
@@ -145,18 +145,18 @@ call_handler(JSContext *ctx, uintN argc, jsval *vp, bool constr)
   // Handle the results
   if (flags & natusEngValFlagException) {
     JS_SetPendingException(ctx, res ? *res : JSVAL_VOID);
-    if ((flags & natusEngValFlagMustFree) && res) {
+    if ((flags & natusEngValFlagUnlock) && res)
       sm_val_unlock(ctx, res);
+    if ((flags & natusEngValFlagFree) && res)
       sm_val_free(res);
-    }
     return JS_FALSE;
   }
 
   JS_SET_RVAL(ctx, vp, *res);
-  if (flags & natusEngValFlagMustFree) {
+  if (flags & natusEngValFlagUnlock)
     sm_val_unlock(ctx, res);
+  if (flags & natusEngValFlagFree)
     sm_val_free(res);
-  }
   return JS_TRUE;
 }
 

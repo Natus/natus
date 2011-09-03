@@ -31,7 +31,7 @@
 #define NATUS_PRIV_GLOBAL    "natus::Global"
 
 #define callandmkval(n, t, c, f, ...) \
-  natusEngValFlags _flags = natusEngValFlagMustFree; \
+  natusEngValFlags _flags = natusEngValFlagUnlock | natusEngValFlagFree; \
   natusEngVal _val = c->ctx->eng->spec->f(__VA_ARGS__, &_flags); \
   n = mkval(c, _val, _flags, t);
 

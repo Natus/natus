@@ -113,7 +113,7 @@ obj_del(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueR
     JSValueProtect(ctx, object);
     JSValueProtect(ctx, idx);
     JSValueRef ret = natus_handle_property(natusPropertyActionDelete, object, JSObjectGetPrivate(object), idx, NULL, &flags);
-    if (flags & natusEngValFlagMustFree)
+    if (flags & natusEngValFlagUnlock)
       JSValueUnprotect(ctx, ret);
     if (flags & natusEngValFlagException) {
       *exc = ret;
@@ -134,7 +134,7 @@ obj_get(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueR
     JSValueProtect(ctx, object);
     JSValueProtect(ctx, idx);
     JSValueRef ret = natus_handle_property(natusPropertyActionGet, object, JSObjectGetPrivate(object), idx, NULL, &flags);
-    if (flags & natusEngValFlagMustFree)
+    if (flags & natusEngValFlagUnlock)
       JSValueUnprotect(ctx, ret);
     if (flags & natusEngValFlagException) {
       *exc = ret;
@@ -156,7 +156,7 @@ obj_set(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueR
     JSValueProtect(ctx, idx);
     JSValueProtect(ctx, value);
     JSValueRef ret = natus_handle_property(natusPropertyActionSet, object, JSObjectGetPrivate(object), idx, value, &flags);
-    if (flags & natusEngValFlagMustFree)
+    if (flags & natusEngValFlagUnlock)
       JSValueUnprotect(ctx, ret);
     if (flags & natusEngValFlagException) {
       *exc = ret;
@@ -177,7 +177,7 @@ obj_enum(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef prop
   JSValueRef rslt = natus_handle_property(natusPropertyActionEnumerate, JSObjectGetPrivate(object), NULL, NULL, NULL, &flags);
   if (!rslt)
     return;
-  if (flags & natusEngValFlagMustFree)
+  if (flags & natusEngValFlagUnlock)
     JSValueUnprotect(ctx, rslt);
 
   JSObjectRef obj = JSValueToObject(ctx, rslt, &exc);
@@ -226,7 +226,7 @@ obj_call(JSContextRef ctx, JSObjectRef object, JSObjectRef thisObject, size_t ar
     return NULL;
   }
 
-  if (flags & natusEngValFlagMustFree)
+  if (flags & natusEngValFlagUnlock)
     JSValueUnprotect(ctx, ret);
 
   if (flags & natusEngValFlagException) {
