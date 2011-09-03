@@ -163,10 +163,58 @@ typedef void (*FreeFunction) (void *mem);
     operator=(const Value& value);
 
     bool
-    operator==(const Value& value);
+    operator==(const Value& value) const;
 
     bool
-    operator!=(const Value& value);
+    operator==(bool value) const;
+
+    bool
+    operator==(int value) const;
+
+    bool
+    operator==(long value) const;
+
+    bool
+    operator==(double value) const;
+
+    bool
+    operator==(const char* value) const;
+
+    bool
+    operator==(const Char* value) const;
+
+    bool
+    operator==(UTF8 value) const;
+
+    bool
+    operator==(UTF16 value) const;
+
+    bool
+    operator!=(const Value& value) const;
+
+    bool
+    operator!=(bool value) const;
+
+    bool
+    operator!=(int value) const;
+
+    bool
+    operator!=(long value) const;
+
+    bool
+    operator!=(double value) const;
+
+    bool
+    operator!=(const char* value) const;
+
+    bool
+    operator!=(const Char* value) const;
+
+    bool
+    operator!=(UTF8 value) const;
+
+    bool
+    operator!=(UTF16 value) const;
 
     Value
     operator[](long index);
@@ -586,10 +634,58 @@ typedef void (*FreeFunction) (void *mem);
     callNew(UTF16 name, const Value *arg0, ...);
 
     bool
-    equals(Value val);
+    equals(Value val) const;
 
     bool
-    equalsStrict(Value val);
+    equals(bool value) const;
+
+    bool
+    equals(int value) const;
+
+    bool
+    equals(long value) const;
+
+    bool
+    equals(double value) const;
+
+    bool
+    equals(const char* value) const;
+
+    bool
+    equals(const Char* value) const;
+
+    bool
+    equals(UTF8 value) const;
+
+    bool
+    equals(UTF16 value) const;
+
+    bool
+    equalsStrict(Value val) const;
+
+    bool
+    equalsStrict(bool value) const;
+
+    bool
+    equalsStrict(int value) const;
+
+    bool
+    equalsStrict(long value) const;
+
+    bool
+    equalsStrict(double value) const;
+
+    bool
+    equalsStrict(const char* value) const;
+
+    bool
+    equalsStrict(const Char* value) const;
+
+    bool
+    equalsStrict(UTF8 value) const;
+
+    bool
+    equalsStrict(UTF16 value) const;
 
   private:
     natusValue *internal;

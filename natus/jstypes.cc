@@ -1,13 +1,109 @@
 #include <natus-internal.hh>
 
 bool
-Value::operator==(const Value& value)
+Value::operator==(const Value& value) const
 {
   return equals(value);
 }
 
 bool
-Value::operator!=(const Value& value)
+Value::operator==(bool value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(int value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(long value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(double value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(const char* value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(const Char* value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(UTF8 value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator==(UTF16 value) const
+{
+  return equals(value);
+}
+
+bool
+Value::operator!=(const Value& value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(bool value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(int value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(long value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(double value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(const char* value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(const Char* value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(UTF8 value) const
+{
+  return !equals(value);
+}
+
+bool
+Value::operator!=(UTF16 value) const
 {
   return !equals(value);
 }
@@ -91,13 +187,109 @@ Value::toException()
 }
 
 bool
-Value::equals(Value val)
+Value::equals(Value val) const
 {
   return natus_equals(internal, val.internal);
 }
 
 bool
-Value::equalsStrict(Value val)
+Value::equals(bool value) const
+{
+  return equals(newBoolean(value));
+}
+
+bool
+Value::equals(int value) const
+{
+  return equals(newNumber(value));
+}
+
+bool
+Value::equals(long value) const
+{
+  return equals(newNumber(value));
+}
+
+bool
+Value::equals(double value) const
+{
+  return equals(newNumber(value));
+}
+
+bool
+Value::equals(const char* value) const
+{
+  return equals(newString(value));
+}
+
+bool
+Value::equals(const Char* value) const
+{
+  return equals(newString(value));
+}
+
+bool
+Value::equals(UTF8 value) const
+{
+  return equals(newString(value));
+}
+
+bool
+Value::equals(UTF16 value) const
+{
+  return equals(newString(value));
+}
+
+bool
+Value::equalsStrict(Value val) const
 {
   return natus_equals_strict(internal, val.internal);
+}
+
+bool
+Value::equalsStrict(bool value) const
+{
+  return equalsStrict(newBoolean(value));
+}
+
+bool
+Value::equalsStrict(int value) const
+{
+  return equalsStrict(newNumber(value));
+}
+
+bool
+Value::equalsStrict(long value) const
+{
+  return equalsStrict(newNumber(value));
+}
+
+bool
+Value::equalsStrict(double value) const
+{
+  return equalsStrict(newNumber(value));
+}
+
+bool
+Value::equalsStrict(const char* value) const
+{
+  return equalsStrict(newString(value));
+}
+
+bool
+Value::equalsStrict(const Char* value) const
+{
+  return equalsStrict(newString(value));
+}
+
+bool
+Value::equalsStrict(UTF8 value) const
+{
+  return equalsStrict(newString(value));
+}
+
+bool
+Value::equalsStrict(UTF16 value) const
+{
+  return equalsStrict(newString(value));
 }
