@@ -236,7 +236,7 @@ set_path(Value& ctx, Require::HookStep step, char* name, void* misc)
 
     const char** argv = (const char **) misc;
     for (int i = 0; argv[i]; i++)
-      arrayBuilder(args, argv[0]);
+      args.push(argv[0]);
   }
 
   return NULL;

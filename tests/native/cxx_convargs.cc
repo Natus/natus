@@ -10,9 +10,9 @@ doTest(Value& global)
 
   Value obj = global.newObject();
   obj.setPrivateName("private", (void*) 0x1234);
-  arrayBuilder(array, global.newNumber('x'));
-  arrayBuilder(array, global.newString("test"));
-  arrayBuilder(array, obj);
+  array.push(global.newNumber('x'));
+  array.push(global.newString("test"));
+  array.push(obj);
   assert(array.get("length").to<int>() == 3);
 
   // No conversions

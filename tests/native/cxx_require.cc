@@ -25,7 +25,7 @@ int
 doTest(Value& global)
 {
   Value config = global.newObject();
-  Value path = arrayBuilder(global, "./");
+  Value path = global.newArray().push("./");
   config.setRecursive("natus.require.path", path, Value::PropAttrNone, true);
 
   // Initialize the require system

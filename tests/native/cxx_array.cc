@@ -3,7 +3,7 @@
 int
 doTest(Value& global)
 {
-  Value array = arrayBuilder(arrayBuilder(global, 123), 456);
+  Value array = global.newArray().push(123).push(456);
   assert(array.isArray());
   assert(array.get("length").to<int>() == 2);
   assert(!global.set("x", array).isException());
@@ -11,7 +11,7 @@ doTest(Value& global)
   array = global.get("x");
   assert(array.isArray());
   assert(2 == array.get("length").to<int>());
-  assert(3 == array.call("push", arrayBuilder(global, "foo")).to<int>());
+  assert(3 == array.call("push", global.newArray().push("foo")).to<int>());
 
   assert(123 == array.get(0).to<int>());
   assert(456 == array.get(1).to<int>());

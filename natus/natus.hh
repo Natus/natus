@@ -755,36 +755,6 @@ typedef void (*FreeFunction) (void *mem);
   Value
   convertArguments(Value args, const char *fmt, ...);
 
-  Value
-  arrayBuilder(Value array, Value item);
-
-  Value
-  arrayBuilder(Value array, bool item);
-
-  Value
-  arrayBuilder(Value array, int item);
-
-  Value
-  arrayBuilder(Value array, long item);
-
-  Value
-  arrayBuilder(Value array, double item);
-
-  Value
-  arrayBuilder(Value array, const char* item);
-
-  Value
-  arrayBuilder(Value array, const Char* item);
-
-  Value
-  arrayBuilder(Value array, UTF8 item);
-
-  Value
-  arrayBuilder(Value array, UTF16 item);
-
-  Value
-  arrayBuilder(Value array, NativeFunction item);
-
 } // namespace natus
 #endif /* NATUS_HPP_ */
 
