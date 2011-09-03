@@ -307,8 +307,7 @@ jsc_ctx_free(natusEngCtx ctx)
 static void
 jsc_val_unlock(natusEngCtx ctx, natusEngVal val)
 {
-  if (val != JSContextGetGlobalObject(ctx))
-    JSValueUnprotect(ctx, val);
+  JSValueUnprotect(ctx, val);
 }
 
 static natusEngVal
