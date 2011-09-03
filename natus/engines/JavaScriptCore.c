@@ -46,7 +46,7 @@ typedef JSValueRef natusEngVal;
 #define checkerror() \
   if (exc) { \
     *flags |= natusEngValFlagException; \
-    return exc; \
+    return mkval(ctx, exc, flags); \
   }
 
 #define checkerrorval(val) \
@@ -58,6 +58,14 @@ typedef struct {
   JSClassDefinition def;
   JSClassRef ref;
 } JavaScriptCoreClass;
+
+static natusEngVal
+mkval(const JSContextRef ctx, JSValueRef val, natusEngValFlags *flags)
+{
+  *flags &= ~natusEngValFlagFree;
+  JSValueProtect(ctx, val);
+  return val;
+}
 
 static void
 class_free(JavaScriptCoreClass *jscc)
@@ -358,13 +366,13 @@ error:
 static natusEngVal
 jsc_new_bool(const natusEngCtx ctx, bool b, natusEngValFlags *flags)
 {
-  return JSValueMakeBoolean(ctx, b);
+  return mkval(ctx, JSValueMakeBoolean(ctx, b), flags);
 }
 
 static natusEngVal
 jsc_new_number(const natusEngCtx ctx, double n, natusEngValFlags *flags)
 {
-  return JSValueMakeNumber(ctx, n);
+  return mkval(ctx, JSValueMakeNumber(ctx, n), flags);
 }
 
 static natusEngVal
@@ -373,7 +381,7 @@ jsc_new_string_utf8(const natusEngCtx ctx, const char *str, size_t len, natusEng
   JSStringRef string = JSStringCreateWithUTF8CString(str);
   JSValueRef val = JSValueMakeString(ctx, string);
   JSStringRelease(string);
-  return val;
+  return mkval(ctx, val, flags);
 }
 
 static natusEngVal
@@ -382,7 +390,7 @@ jsc_new_string_utf16(const natusEngCtx ctx, const natusChar *str, size_t len, na
   JSStringRef string = JSStringCreateWithCharacters(str, len);
   JSValueRef val = JSValueMakeString(ctx, string);
   JSStringRelease(string);
-  return val;
+  return mkval(ctx, val, flags);
 }
 
 static natusEngVal
@@ -391,7 +399,7 @@ jsc_new_array(const natusEngCtx ctx, const natusEngVal *array, size_t len, natus
   JSValueRef exc = NULL;
   JSObjectRef ret = JSObjectMakeArray(ctx, len, array, &exc);
   checkerrorval(ret);
-  return ret;
+  return mkval(ctx, ret, flags);
 }
 
 static natusEngVal
@@ -463,7 +471,7 @@ jsc_new_function(const natusEngCtx ctx, const char *name, natusPrivate *priv, na
   JSStringRelease(stmp);
   checkerror();
 
-  return obj;
+  return mkval(ctx, obj, flags);
 }
 
 static natusEngVal
@@ -500,19 +508,19 @@ jsc_new_object(const natusEngCtx ctx, natusClass *cls, natusPrivate *priv, natus
     return NULL;
 
   // Do the return
-  return obj;
+  return mkval(ctx, obj, flags);
 }
 
 static natusEngVal
 jsc_new_null(const natusEngCtx ctx, natusEngValFlags *flags)
 {
-  return JSValueMakeNull(ctx);
+  return mkval(ctx, JSValueMakeNull(ctx), flags);
 }
 
 static natusEngVal
 jsc_new_undefined(const natusEngCtx ctx, natusEngValFlags *flags)
 {
-  return JSValueMakeUndefined(ctx);
+  return mkval(ctx, JSValueMakeUndefined(ctx), flags);
 }
 
 static bool
@@ -583,7 +591,7 @@ jsc_del(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngVa
   JSStringRelease(sidx);
   checkerror();
 
-  return JSValueMakeBoolean(ctx, true);
+  return mkval(ctx, JSValueMakeBoolean(ctx, true), flags);
 }
 
 static natusEngVal
@@ -606,7 +614,8 @@ jsc_get(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, natusEngVa
     JSStringRelease(idx);
   }
   checkerrorval(rslt);
-  return rslt;
+
+  return mkval(ctx, rslt, flags);
 }
 
 static natusEngVal
@@ -630,7 +639,8 @@ jsc_set(const natusEngCtx ctx, natusEngVal val, const natusEngVal id, const natu
     }
   }
   checkerror();
-  return JSValueMakeBoolean(ctx, true);
+
+  return mkval(ctx, JSValueMakeBoolean(ctx, true), flags);
 }
 
 static natusEngVal
@@ -669,7 +679,8 @@ jsc_enumerate(const natusEngCtx ctx, natusEngVal val, natusEngValFlags *flags)
   JSObjectRef array = JSObjectMakeArray(ctx, c, items, &exc);
   free(items);
   checkerror();
-  return array;
+
+  return mkval(ctx, array, flags);
 }
 
 static natusEngVal
@@ -699,7 +710,7 @@ jsc_call(const natusEngCtx ctx, natusEngVal func, natusEngVal ths, natusEngVal a
     if (!argv[i] || exc) {
       free(argv);
       *flags |= natusEngValFlagException;
-      return exc;
+      return mkval(ctx, exc, flags);
     }
   }
 
@@ -714,7 +725,8 @@ jsc_call(const natusEngCtx ctx, natusEngVal func, natusEngVal ths, natusEngVal a
   }
   free(argv);
   checkerror();
-  return rval;
+
+  return mkval(ctx, rval, flags);
 }
 
 static natusEngVal
@@ -737,7 +749,8 @@ jsc_evaluate(const natusEngCtx ctx, natusEngVal ths, const natusEngVal jscript, 
   JSStringRelease(strjscript);
   JSStringRelease(strfilename);
   checkerror();
-  return rval;
+
+  return mkval(ctx, rval, flags);
 }
 
 static natusPrivate *
