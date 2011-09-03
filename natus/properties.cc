@@ -158,6 +158,13 @@ Value::set(Value idx, NativeFunction value, Value::PropAttr attrs)
 }
 
 Value
+Value::set(Value idx, NativeFunction value, const char *name, Value::PropAttr attrs)
+{
+  Value v = newFunction(value, name);
+  return natus_set(internal, idx.internal, v.internal, (natusPropAttr) attrs);
+}
+
+Value
 Value::set(UTF8 idx, Value value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
@@ -233,6 +240,14 @@ Value::set(UTF8 idx, NativeFunction value, Value::PropAttr attrs)
 {
   Value n = newString(idx);
   Value v = newFunction(value, idx.c_str());
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
+}
+
+Value
+Value::set(UTF8 idx, NativeFunction value, const char *name, Value::PropAttr attrs)
+{
+  Value n = newString(idx);
+  Value v = newFunction(value, name);
   return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
 }
 
@@ -316,6 +331,14 @@ Value::set(UTF16 idx, NativeFunction value, Value::PropAttr attrs)
 }
 
 Value
+Value::set(UTF16 idx, NativeFunction value, const char *name, Value::PropAttr attrs)
+{
+  Value n = newString(idx);
+  Value v = newFunction(value, name);
+  return natus_set(internal, n.borrowCValue(), v.internal, (natusPropAttr) attrs);
+}
+
+Value
 Value::set(size_t idx, Value value)
 {
   return natus_set_index(internal, idx, value.internal);
@@ -380,7 +403,14 @@ Value::set(size_t idx, UTF16 value)
 Value
 Value::set(size_t idx, NativeFunction value)
 {
-  Value v = newFunction(value);
+  Value v = newFunction(value, newNumber(idx).to<UTF8>().c_str());
+  return natus_set_index(internal, idx, v.internal);
+}
+
+Value
+Value::set(size_t idx, NativeFunction value, const char *name)
+{
+  Value v = newFunction(value, name);
   return natus_set_index(internal, idx, v.internal);
 }
 
@@ -441,7 +471,17 @@ Value::setRecursive(UTF8 path, UTF16 val, Value::PropAttr attrs, bool mkpath)
 Value
 Value::setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs, bool mkpath)
 {
-  return setRecursive(path, newFunction(val), attrs, mkpath);
+  UTF8 name = path;
+  size_t last = path.find_last_of('.');
+  if (last != UTF8::npos)
+    name = path.substr(last+1);
+  return setRecursive(path, newFunction(val, name.c_str()), attrs, mkpath);
+}
+
+Value
+Value::setRecursive(UTF8 path, NativeFunction val, const char *name, Value::PropAttr attrs, bool mkpath)
+{
+  return setRecursive(path, newFunction(val, name), attrs, mkpath);
 }
 
 Value

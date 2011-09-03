@@ -337,6 +337,9 @@ typedef void (*FreeFunction) (void *mem);
     set(Value idx, NativeFunction value, Value::PropAttr attrs = PropAttrNone);
 
     Value
+    set(Value idx, NativeFunction value, const char *name, Value::PropAttr attrs = PropAttrNone);
+
+    Value
     set(UTF8 idx, Value value, Value::PropAttr attrs = PropAttrNone);
 
     Value
@@ -365,6 +368,9 @@ typedef void (*FreeFunction) (void *mem);
 
     Value
     set(UTF8 idx, NativeFunction value, Value::PropAttr attrs = PropAttrNone);
+
+    Value
+    set(UTF8 idx, NativeFunction value, const char *name, Value::PropAttr attrs = PropAttrNone);
 
     Value
     set(UTF16 idx, Value value, Value::PropAttr attrs = PropAttrNone);
@@ -397,6 +403,9 @@ typedef void (*FreeFunction) (void *mem);
     set(UTF16 idx, NativeFunction value, Value::PropAttr attrs = PropAttrNone);
 
     Value
+    set(UTF16 idx, NativeFunction value, const char *name, Value::PropAttr attrs = PropAttrNone);
+
+    Value
     set(size_t idx, Value value);
 
     Value
@@ -427,6 +436,9 @@ typedef void (*FreeFunction) (void *mem);
     set(size_t idx, NativeFunction value);
 
     Value
+    set(size_t idx, NativeFunction value, const char *name);
+
+    Value
     setRecursive(UTF8 path, Value val, Value::PropAttr attrs = PropAttrNone, bool mkpath = false);
 
     Value
@@ -455,6 +467,9 @@ typedef void (*FreeFunction) (void *mem);
 
     Value
     setRecursive(UTF8 path, NativeFunction val, Value::PropAttr attrs = PropAttrNone, bool mkpath = false);
+
+    Value
+    setRecursive(UTF8 path, NativeFunction val, const char *name, Value::PropAttr attrs = PropAttrNone, bool mkpath = false);
 
     Value
     enumerate() const;
