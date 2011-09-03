@@ -1,4 +1,36 @@
 #include <natus-internal.h>
+#include "evil.h"
+
+static bool
+push(natusValue *ctx, natusValue *filename)
+{
+  natusValue *glbl = natus_get_global(ctx);
+  natusValue *stck = natus_get_private_name_value(glbl, NATUS_EVALUATION_STACK);
+  if (!natus_is_array(stck)) {
+    natus_decref(stck);
+
+    stck = natus_new_array_vector(glbl, NULL);
+    if (!natus_is_array(stck) ||
+        !natus_set_private_name_value(glbl, NATUS_EVALUATION_STACK, stck)) {
+      natus_decref(stck);
+      return false;
+    }
+  }
+
+  bool success = natus_push(stck, filename);
+  natus_decref(stck);
+  return success;
+}
+
+static void
+pop(natusValue *ctx)
+{
+  natusValue *glbl = natus_get_global(ctx);
+  natusValue *stck = natus_get_private_name_value(glbl, NATUS_EVALUATION_STACK);
+  if (natus_is_array(stck))
+    natus_pop(stck);
+  natus_decref(stck);
+}
 
 natusValue *
 natus_evaluate(natusValue *ths, const natusValue *javascript, const natusValue *filename, unsigned int lineno)
@@ -21,33 +53,15 @@ natus_evaluate(natusValue *ths, const natusValue *javascript, const natusValue *
   }
   free(chars);
 
-  // Add the file's directory to the require stack
-  bool pushed = false;
-  natusValue *glbl = natus_get_global(ths);
-  natusValue *reqr = natus_get_utf8(glbl, "require");
-  natusValue *stck = natus_get_private_name_value(reqr, "natus.reqStack");
-  if (natus_is_array(stck))
-    natus_decref(natus_set_index(stck, natus_as_long(natus_get_utf8(stck, "length")), filename));
-
-  callandmkval(natusValue *rslt,
-      natusValueTypeUnknown,
-      ths, evaluate,
-      ths->ctx->ctx,
-      ths->val,
-      jscript
-      ? jscript->val
-      : (javascript ? javascript->val : NULL),
-      filename
-      ? filename->val
-      : NULL,
-      lineno);
-  natus_decref(jscript);
-
-  // Remove the directory from the stack
+  bool pushed = push(ths, (natusValue*) filename);
+  callandmkval(natusValue *rslt, natusValueTypeUnknown, ths, evaluate,
+               ths->ctx->ctx, ths->val,
+               jscript ? jscript->val : (javascript ? javascript->val : NULL),
+               filename ? filename->val : NULL, lineno);
   if (pushed)
-    natus_decref(natus_call_utf8_array(stck, "pop", NULL));
-  natus_decref(stck);
-  natus_decref(reqr);
+    pop(ths);
+
+  natus_decref(jscript);
   return rslt;
 }
 
