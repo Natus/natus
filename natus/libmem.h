@@ -84,7 +84,7 @@ mem_decref_children(void *parent);
 void
 mem_decref_children_name(void *parent, const char *name);
 
-bool
+void
 mem_free(void *mem);
 
 void

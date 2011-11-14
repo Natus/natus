@@ -103,7 +103,7 @@ natus_handle_call(natusEngVal obj, const natusPrivate *priv, natusEngVal ths, na
 void
 natus_private_free(natusPrivate *priv)
 {
-  assert(mem_free(priv));
+  mem_free(priv);
 }
 
 bool

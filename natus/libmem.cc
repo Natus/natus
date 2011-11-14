@@ -277,7 +277,7 @@ mem_decref_children_name(void *parent, const char *name)
   mem::decref_children(parent, name);
 }
 
-bool
+void
 mem_free(void *mem)
 {
   return mem::free(mem);
@@ -434,14 +434,14 @@ decref_children(void *parent, const char *name)
   }
 }
 
-bool
+void
 free(void *mem)
 {
   chunk *chnk = GET_CHUNK(mem);
   if (!chnk || chnk->parents.used != 1)
-    return false;
+    return;
   _mem_unlink(chnk->parents.chunks[0], chnk, true);
-  return true;
+  return;
 }
 
 void

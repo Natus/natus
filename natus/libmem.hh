@@ -53,7 +53,7 @@ decref(void *parent, void *child);
 void
 decref_children(void *parent, const char *name=NULL);
 
-bool
+void
 free(void *mem);
 
 void
