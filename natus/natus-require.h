@@ -50,10 +50,10 @@ typedef bool
 (*natusRequireModuleInit)(natusValue *module);
 
 bool
-natus_require_expose(natusValue *ctx, const char *config);
+natus_require_init(natusValue *ctx, natusValue *config);
 
 bool
-natus_require_expose_value(natusValue *ctx, natusValue *config);
+natus_require_init_utf8(natusValue *ctx, const char *config);
 
 natusValue *
 natus_require_get_config(natusValue *ctx);

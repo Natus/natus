@@ -345,7 +345,7 @@ main(int argc, char** argv)
   }
 
   // Bring up the Module Loader
-  if (!require::expose(global, cfg))
+  if (!require::init(global, cfg))
     error(3, 0, "Unable to init module loader\n!");
 
   // Do the evaluation

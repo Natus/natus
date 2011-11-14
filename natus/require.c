@@ -38,15 +38,15 @@
 
 #include <libmem.h>
 
-#include "evil.h"
-
 #define SCRSUFFIX  ".js"
 #define PKGSUFFIX  "/__init__" SCRSUFFIX
 #define URIPREFIX  "file://"
 #define NFSUFFIX   " not found!"
 
+#define NATUS_REQUIRE_HOOK    "natus::Require::Hook"
 #define NATUS_REQUIRE_CONFIG  "natus::Require::Config"
 #define NATUS_REQUIRE_CACHE   "natus::Require::Cache"
+#define NATUS_REQUIRE_STACK   "natus::Require::Stack"
 #define CFG_PATH              "natus.require.path"
 #define CFG_WHITELIST         "natus.require.whitelist"
 #define CFG_ORIGINS_WHITELIST "natus.origins.whitelist"
@@ -155,7 +155,7 @@ internal_require_resolve(natusValue *ctx, natusValue *name)
 
   // If the path is a relative path, use the top of the evaluation stack
   if (modname && modname[0] == '.') {
-    natusValue *stack = natus_get_private_name_value(ctx, NATUS_EVALUATION_STACK);
+    natusValue *stack = natus_get_private_name_value(ctx, NATUS_REQUIRE_STACK);
     long len = natus_as_long(natus_get_utf8(stack, "length"));
 
     natusValue *prfx = natus_get_index(stack, len > 0 ? len - 1 : 0);
@@ -423,50 +423,55 @@ require_js(natusValue *require, natusValue *ths, natusValue *arg)
   return mod;
 }
 
-bool
-natus_require_expose(natusValue *ctx, const char *config)
+static void
+require_eval_hook(natusValue *ths, natusValue **javascript_or_return,
+                  natusValue **filename, unsigned int *lineno, void *misc)
 {
-  natusValue *glb, *json = NULL, *arg = NULL, *cfg = NULL;
-  bool rslt = false;
+  natusValue *stack = (natusValue*) misc;
 
-  // Parse the config
-  if (!config)
-    config = "{}";
+  if (lineno) {
+    // Remove shebang line if present
+    size_t len;
+    natusChar *chars = natus_to_string_utf16(*javascript_or_return, &len);
+    if (len > 2 && chars[0] == '#' && chars[1] == '!') {
+      size_t i;
+      for (i = 2; i < len; i++) {
+        if (chars[i] == '\n') {
+          natusValue *jscript;
 
-  glb  = natus_get_global(ctx);
-  if (natus_is_exception(glb))
-    return false;
+          jscript = natus_new_string_utf16_length(ths, chars + i, len - i);
+          if (jscript) {
+            natus_decref(*javascript_or_return);
+            *javascript_or_return = jscript;
+            *lineno += 1;
+          }
 
-  json = natus_get_utf8(glb, "JSON");
-  if (natus_is_exception(json))
-    goto out;
+          break;
+        }
+      }
+    }
 
-  arg  = natus_new_string_utf8(glb, config);
-  if (natus_is_exception(arg))
-    goto out;
-
-  cfg  = natus_call_new_utf8(json, "parse", arg, NULL);
-  if (natus_is_exception(cfg))
-    goto out;
-
-  rslt = natus_require_expose_value(ctx, cfg);
-
-out:
-  natus_decref(json);
-  natus_decref(arg);
-  natus_decref(cfg);
-  return rslt;
+    natus_decref(natus_push(stack, *filename));
+  } else
+    natus_decref(natus_pop(stack));
 }
 
 bool
-natus_require_expose_value(natusValue *ctx, natusValue *config)
+natus_require_init(natusValue *ctx, natusValue *config)
 {
-  natusValue *glb = NULL, *pth = NULL, *cache;
+  natusValue *glb = NULL, *pth = NULL, *cache, *stack;
 
   // Get the global
   glb = natus_get_global(ctx);
   if (!glb)
     goto error;
+
+  // Check to see if we are already initialized
+  cache = natus_get_private_name_value(glb, NATUS_REQUIRE_CACHE);
+  if (cache) {
+    natus_decref(cache);
+    return true;
+  }
 
   // Add require function
   pth = natus_get_recursive_utf8(config, CFG_PATH);
@@ -497,6 +502,16 @@ natus_require_expose_value(natusValue *ctx, natusValue *config)
   }
   natus_decref(cache);
 
+  // Setup stack
+  stack = natus_new_array_vector(glb, NULL);
+  if (!stack ||
+      !natus_evaluate_hook_add(glb, NATUS_REQUIRE_HOOK, require_eval_hook, stack, NULL) ||
+      !natus_set_private_name_value(glb, NATUS_REQUIRE_STACK, stack)) {
+    natus_decref(stack);
+    goto error;
+  }
+  natus_decref(stack);
+
   // Finish initialization
   if (!natus_set_private_name_value(glb, NATUS_REQUIRE_CONFIG, config))
     goto error;
@@ -507,9 +522,46 @@ natus_require_expose_value(natusValue *ctx, natusValue *config)
 error:
   natus_decref(pth);
   natus_del_utf8(glb, "require");
+  natus_set_private_name_value(glb, NATUS_REQUIRE_STACK, NULL);
   natus_set_private_name_value(glb, NATUS_REQUIRE_CACHE, NULL);
   natus_set_private_name_value(glb, NATUS_REQUIRE_CONFIG, NULL);
+  natus_evaluate_hook_del(glb, NATUS_REQUIRE_HOOK);
   return false;
+}
+
+bool
+natus_require_init_utf8(natusValue *ctx, const char *config)
+{
+  natusValue *glb, *json = NULL, *arg = NULL, *cfg = NULL;
+  bool rslt = false;
+
+  // Parse the config
+  if (!config)
+    config = "{}";
+
+  glb  = natus_get_global(ctx);
+  if (natus_is_exception(glb))
+    return false;
+
+  json = natus_get_utf8(glb, "JSON");
+  if (natus_is_exception(json))
+    goto out;
+
+  arg  = natus_new_string_utf8(glb, config);
+  if (natus_is_exception(arg))
+    goto out;
+
+  cfg  = natus_call_new_utf8(json, "parse", arg, NULL);
+  if (natus_is_exception(cfg))
+    goto out;
+
+  rslt = natus_require_init(ctx, cfg);
+
+out:
+  natus_decref(json);
+  natus_decref(arg);
+  natus_decref(cfg);
+  return rslt;
 }
 
 natusValue *

@@ -73,21 +73,21 @@ namespace natus
     }
 
     bool
-    expose(Value ctx, const char* config)
+    init(Value ctx, const char* config)
     {
-      return natus_require_expose(ctx.borrowCValue(), config);
+      return natus_require_init_utf8(ctx.borrowCValue(), config);
     }
 
     bool
-    expose(Value ctx, UTF8 config)
+    init(Value ctx, UTF8 config)
     {
-      return natus_require_expose(ctx.borrowCValue(), config.c_str());
+      return natus_require_init_utf8(ctx.borrowCValue(), config.c_str());
     }
 
     bool
-    expose(Value ctx, Value config)
+    init(Value ctx, Value config)
     {
-      return natus_require_expose_value(ctx.borrowCValue(), config.borrowCValue());
+      return natus_require_init(ctx.borrowCValue(), config.borrowCValue());
     }
 
     Value

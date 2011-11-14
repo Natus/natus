@@ -35,7 +35,7 @@ doTest(Value& global)
   config.setRecursive("natus.require.path", path, Value::PropAttrNone, true);
 
   // Initialize the require system
-  assert(require::expose(global, config));
+  assert(require::init(global, config));
   assert(require::addHook(global, "__internal__", hook, (void*) 0x1234, hook_free));
 
   // Load the internal module

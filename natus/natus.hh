@@ -65,6 +65,20 @@ typedef uint16_t Char;
  */
 typedef void (*FreeFunction) (void *mem);
 
+/* Allows you to filter calls to evaluate. Called twice: once before the
+ * evaluation is performed and once after.
+ *
+ * In the first call, javascript_or_return is the javascript to be evaluated.
+ * In the second call, javascript_or_return is the return value from the
+ * evaluation and lineno will be NULL. You may replace any of the values.
+ *
+ * Keep in mind that the evaluation may cause sub-evaluations, so if you
+ * maintain state between calls you should wind and unwind like a stack.
+ */
+typedef void
+(*EvaluateHook)(Value ths, Value *javascript_or_return, Value *filename,
+                unsigned int *lineno, void *misc);
+
 /* Type: NativeFunction
    * Function type for calls made back into native space from javascript.
    *
@@ -758,6 +772,12 @@ typedef void (*FreeFunction) (void *mem);
   Value
   convertArguments(Value args, const char *fmt, ...);
 
+  bool
+  addEvaluateHook(Value ctx, const char *name, EvaluateHook hook,
+                  void *misc, FreeFunction free);
+
+  bool
+  delEvaluateHook(Value ctx, const char *name);
 } // namespace natus
 #endif /* NATUS_HPP_ */
 

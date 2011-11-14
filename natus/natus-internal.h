@@ -39,10 +39,13 @@
   callandmkval(natusValue *_value, t, c, f, __VA_ARGS__); \
   return _value
 
+typedef struct evalHook evalHook;
+
 typedef struct natusContext natusContext;
 struct natusContext {
   natusEngCtx      ctx;
   natusEngineSpec *spec;
+  evalHook        *evalhooks;
 };
 
 struct natusValue {

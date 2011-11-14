@@ -73,6 +73,29 @@ typedef void
 typedef natusValue *
 (*natusNativeFunction)(natusValue *fnc, natusValue *ths, natusValue *arg);
 
+/* Allows you to filter calls to evaluate. Called twice: once before the
+ * evaluation is performed and once after.
+ *
+ * In the first call javascript_or_return contains a reference to the
+ * natusValue* containing the javascript to be evaluated, filename contains a
+ * reference to the natusValue* containing the filename of the contents and
+ * lineno contains a reference to the line number. You may overwrite any of
+ * these values, but if you do, you must natus_decref() the original values.
+ *
+ * In the second call javascript_or_return contains a reference to the
+ * natusValue* containing the return value from the evaluation, filename
+ * contains a reference to the natusValue* containing the filename of the
+ * contents evaluated and lineno is NULL. You may overwrite
+ * javascript_or_return, but if you do, you must natus_decref() the original
+ * value.
+ *
+ * Keep in mind that the evaluation may cause sub-evaluations, so if you
+ * maintain state between calls you should wind and unwind like a stack.
+ */
+typedef void
+(*natusEvaluateHook)(natusValue *ths, natusValue **javascript_or_return,
+                     natusValue **filename, unsigned int *lineno, void *misc);
+
 typedef enum {
   natusValueTypeUnknown = 0 << 0,
   natusValueTypeArray = 1 << 0,
@@ -326,7 +349,7 @@ natusValue *
 natus_get_private_name_value(const natusValue *obj, const char *key);
 
 natusValue *
-natus_evaluate(natusValue *ths, const natusValue *javascript, const natusValue *filename, unsigned int lineno);
+natus_evaluate(natusValue *ths, natusValue *javascript, natusValue *filename, unsigned int lineno);
 
 natusValue *
 natus_evaluate_utf8(natusValue *ths, const char *javascript, const char *filename, unsigned int lineno);
@@ -402,6 +425,14 @@ natus_convert_arguments(natusValue *arg, const char *fmt, ...);
 
 natusValue *
 natus_convert_arguments_varg(natusValue *arg, const char *fmt, va_list ap);
+
+bool
+natus_evaluate_hook_add(natusValue *ctx, const char *name,
+                        natusEvaluateHook hook, void *misc,
+                        natusFreeFunction free);
+
+bool
+natus_evaluate_hook_del(natusValue *ctx, const char *name);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -70,13 +70,13 @@ namespace natus
     delOriginMatcher(Value ctx, const char* name);
 
     bool
-    expose(Value ctx, const char* config);
+    init(Value ctx, const char* config);
 
     bool
-    expose(Value ctx, UTF8 config);
+    init(Value ctx, UTF8 config);
 
     bool
-    expose(Value ctx, Value config);
+    init(Value ctx, Value config);
 
     Value
     getConfig(Value ctx);
