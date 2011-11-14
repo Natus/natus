@@ -96,6 +96,9 @@ typedef void (*FreeFunction) (void *mem);
       HookAll = (HookProperties | HookCall),
     } Hooks;
 
+    virtual
+    ~Class();
+
     virtual Hooks
     getHooks();
 

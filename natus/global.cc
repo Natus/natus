@@ -1,5 +1,9 @@
 #include <natus-internal.hh>
 
+Class::~Class()
+{
+}
+
 Class::Hooks
 Class::getHooks()
 {
