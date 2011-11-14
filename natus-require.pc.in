@@ -1,0 +1,11 @@
+prefix=@prefix@
+libdir=@libdir@
+includedir=@includedir@
+moduledir=@MODULEDIR@
+ 
+Name: natus 
+Description: JavaScript meta-engine module system
+Version: @VERSION@
+Libs: -L${libdir} -lnatus-require
+Cflags: -I${includedir}
+Requires.private: natus

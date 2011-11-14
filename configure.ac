@@ -99,6 +99,6 @@ echo
 
 MODULEDIR=${libdir}/${PACKAGE_NAME}/${PACKAGE_VERSION}/modules
 AC_SUBST(MODULEDIR)
-AC_CONFIG_FILES(Makefile natus.pc natus/Makefile natus/engines/Makefile tests/Makefile tests/native/Makefile)
+AC_CONFIG_FILES(Makefile natus.pc natus-require.pc natus/Makefile natus/engines/Makefile tests/Makefile tests/native/Makefile)
 AC_OUTPUT
 
